@@ -208,7 +208,14 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
         toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
         toggleSafeModeOnceItem.type = @"com.opa334.choicy.toggleSafeModeOnce";
 
-        return [orig arrayByAddingObject:toggleSafeModeOnceItem];
+        if(!orig)
+        {
+            return @[toggleSafeModeOnceItem];
+        }
+        else
+        {
+            return [orig arrayByAddingObject:toggleSafeModeOnceItem];
+        }
     }
 
     return orig;
