@@ -63,7 +63,7 @@
 
     for(CHPTweakInfo* info in self.tweakList)
     {
-        if([info.filterBundles containsObject:@"com.apple.UIKit"] || [info.filterBundles containsObject:key] || [info.filterExecutables containsObject:key])
+        if([info.filterBundles containsObject:@"com.apple.UIKit"] || ([info.filterBundles containsObject:@"com.apple.StoreKit"] && [key containsString:@"."]) || [info.filterBundles containsObject:key] || [info.filterExecutables containsObject:key])
         {
             [tweakListForKey addObject:info];
         }
