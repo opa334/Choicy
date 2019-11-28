@@ -1,3 +1,3 @@
 # Choicy
 
-Choicy is an advanced tweak configurator. It can be used to disable or individually configure tweak injection into certain apps or daemons. It also has an option to add 3D touch / haptic touch application shortcuts to launch the application once with(out) tweaks.
+Choicy adds the ability to individually configure tweak injection for applications and daemons. The configuration works by setting either a blacklist of tweaks not to load or a whitelist of the tweaks to exclusively load. Alternatively, it is also possible to disable tweak injection for an individual process altogether. There is also an an option to add an application shortcut to launch the application with or without tweaks once.
