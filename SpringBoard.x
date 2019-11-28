@@ -27,11 +27,6 @@ BOOL shouldEnableSafeModeForApplicationWithID(NSString* applicationID)
 {
     BOOL safeMode = NO;
 
-    if([applicationBlacklist containsObject:applicationID])
-    {
-        return NO;
-    }
-
     NSDictionary* settingsForApp = preferencesForApplicationWithID(applicationID);
 
     if(settingsForApp && [settingsForApp isKindOfClass:[NSDictionary class]])
@@ -129,7 +124,7 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
         applicationID = [self applicationBundleIdentifierForShortcuts];
     }
 
-    if([applicationBlacklist containsObject:applicationID] || !applicationID)
+    if(!applicationID)
     {
         return orig;
     }
@@ -184,7 +179,7 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 
     NSString* applicationID = [self applicationBundleIdentifier];
 
-    if([applicationBlacklist containsObject:applicationID] || !applicationID)
+    if(!applicationID)
     {
         return orig;
     }

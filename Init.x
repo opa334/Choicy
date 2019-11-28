@@ -63,7 +63,6 @@ void reloadPreferences()
 %ctor
 {
     plistPath = @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist";
-    applicationBlacklist = @[@"com.apple.Preferences"];
 	reloadPreferences();
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 

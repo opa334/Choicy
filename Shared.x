@@ -23,7 +23,6 @@ NSDictionary* englishLocalizations;
 NSString* plistPath;
 NSString* executablePath;
 NSDictionary* preferences;
-NSArray* applicationBlacklist;
 
 NSString* localize(NSString* key)
 {	

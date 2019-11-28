@@ -23,7 +23,6 @@ extern NSString* localize(NSString* key);
 extern NSString* plistPath;
 extern NSString* executablePath;
 extern NSDictionary* preferences;
-extern NSArray* applicationBlacklist;
 
 extern NSDictionary* preferencesForApplicationWithID(NSString* applicationID);
 extern NSDictionary* preferencesForDaemonWithDisplayName(NSString* daemonDisplayName);
