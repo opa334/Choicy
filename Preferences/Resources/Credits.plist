@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+        <dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>No code was directly taken from the credited repos. They still helped with the development, that's why they're mentioned here.</string>
+        </dict>
+		<dict>
+			<key>action</key>
+			<string>openQuickPrefs</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>QuickPrefs (AnthoPakPak)</string>
+		</dict>
+        <dict>
+			<key>action</key>
+			<string>openTweakConfigurator</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>TweakConfigurator (pixelomer)</string>
+		</dict>
+        <dict>
+			<key>action</key>
+			<string>openUnSub</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>UnSub (Nepeta)</string>
+		</dict>
+	</array>
+</dict>
+</plist>
