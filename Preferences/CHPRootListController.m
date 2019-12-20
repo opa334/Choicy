@@ -27,7 +27,7 @@ NSDictionary* preferences;
 
 void reloadPreferences()
 {
-	preferences = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+	preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	[[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:@"preferencesDidReload" object:nil]];
 }
 
@@ -78,17 +78,16 @@ extern void initCHPPreferencesTableDataSource();
 __attribute__((constructor))
 static void init(void)
 {
-	plistPath = @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist";
 	[[CHPTweakList sharedInstance] updateTweakList];
 
 	reloadPreferences();
-    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
 	NSBundle* applistBundle = [NSBundle bundleWithPath:@"/System/Library/PreferenceBundles/AppList.bundle"];
-    if(applistBundle)
-    {
-        [applistBundle load];
-        initCHPApplicationPreferenceViewController();
+	if(applistBundle)
+	{
+		[applistBundle load];
+		initCHPApplicationPreferenceViewController();
 		initCHPPreferencesTableDataSource();
-    }
+	}
 }

@@ -18,16 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#import <CoreFoundation/CoreFoundation.h>
+#import <Foundation/Foundation.h>
+#import <HBLog.h>
+
 extern NSBundle* CHBundle;
 extern NSString* localize(NSString* key);
-extern NSString* plistPath;
-extern NSString* executablePath;
 extern NSDictionary* preferences;
+
+#define CHPPlistPath @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist"
 
 extern NSDictionary* preferencesForApplicationWithID(NSString* applicationID);
 extern NSDictionary* preferencesForDaemonWithDisplayName(NSString* daemonDisplayName);
 
 extern void BKSTerminateApplicationForReasonAndReportWithDescription(NSString *bundleID, int reasonID, bool report, NSString *description);
+
+#ifndef kCFCoreFoundationVersionNumber_iOS_11_0
+#define kCFCoreFoundationVersionNumber_iOS_11_0 1443.00
+#endif
 
 #ifndef kCFCoreFoundationVersionNumber_iOS_13_0
 #define kCFCoreFoundationVersionNumber_iOS_13_0 1665.15

@@ -25,27 +25,27 @@
 
 - (NSString*)plistName
 {
-    return @"Credits";
+	return @"Credits";
 }
 
 - (NSString*)topTitle
 {
-    return localize(@"CREDITS");
+	return localize(@"CREDITS");
 }
 
 - (void)openQuickPrefs
 {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/AnthoPakPak/QuickPrefs"]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/AnthoPakPak/QuickPrefs"]];
 }
 
 - (void)openTweakConfigurator
 {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/pixelomer/TweakConfigurator"]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/pixelomer/TweakConfigurator"]];
 }
 
 - (void)openUnSub
 {
-    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/NepetaDev/UnSub"]];
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/NepetaDev/UnSub"]];
 }
 
 @end

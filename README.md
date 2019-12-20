@@ -1,3 +1,9 @@
 # Choicy
 
-Choicy adds the ability to individually configure tweak injection for applications and daemons. The configuration works by setting either a blacklist of tweaks not to load or a whitelist of the tweaks to exclusively load. Alternatively, it is also possible to disable tweak injection for an individual process altogether. There is also an option to add an application shortcut to launch the application with or without tweaks once.
+An advanced tweak configurator!
+
+## Features:
+• Disable tweak injection individually for every process
+• Configure each tweak dylib individually for every process
+• Disable tweaks globally (with the ability to set exceptions for individual processes)
+• Option for an application shortcut to launch the application with or without tweaks once

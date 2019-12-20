@@ -23,13 +23,13 @@
 
 @interface CHPApplicationDaemonConfigurationListController : CHPListController
 {
-    BOOL _isApplication;
-    BOOL _isSpringboard;
-    NSMutableDictionary* _appDaemonSettings;
-    NSMutableArray* _customConfigurationSpecifiers;
-    PSSpecifier* _segmentSpecifier;
-    NSMutableArray* _tweakWhitelist;
-    NSMutableArray* _tweakBlacklist;
+	BOOL _isApplication;
+	BOOL _isSpringboard;
+	NSMutableDictionary* _appDaemonSettings;
+	NSMutableArray* _customConfigurationSpecifiers;
+	PSSpecifier* _segmentSpecifier;
+	NSMutableArray* _tweakWhitelist;
+	NSMutableArray* _tweakBlacklist;
 }
 
 - (void)readAppDaemonSettingsFromMainPropertyList;

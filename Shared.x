@@ -18,22 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#import "Shared.h"
+
 NSBundle* CHBundle;
 NSDictionary* englishLocalizations;
-NSString* plistPath;
-NSString* executablePath;
 NSDictionary* preferences;
 
 NSString* localize(NSString* key)
 {	
-    if(!CHBundle)
-    {
-        CHBundle = [NSBundle bundleWithPath:@"/Library/Application Support/Choicy.bundle"];
-    }
+	if(key == nil)
+	{
+		return nil;
+	}
 
-	NSString* localizedString = [CHBundle localizedStringForKey:key value:@"" table:nil];
+	if(!CHBundle)
+	{
+		CHBundle = [NSBundle bundleWithPath:@"/Library/Application Support/Choicy.bundle"];
+	}
 
-	if([localizedString isEqualToString:@""])
+	NSString* localizedString = [CHBundle localizedStringForKey:key value:key table:nil];
+
+	if([localizedString isEqualToString:key])
 	{
 		if(!englishLocalizations)
 		{

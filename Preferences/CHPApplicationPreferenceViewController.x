@@ -25,75 +25,75 @@ extern NSDictionary* preferences;
 
 NSString* previewStringForSettings(NSDictionary* settings)
 {
-    NSNumber* tweakInjectionDisabled = [settings objectForKey:@"tweakInjectionDisabled"];
-    NSNumber* customTweakConfigurationEnabled = [settings objectForKey:@"customTweakConfigurationEnabled"];
+	NSNumber* tweakInjectionDisabled = [settings objectForKey:@"tweakInjectionDisabled"];
+	NSNumber* customTweakConfigurationEnabled = [settings objectForKey:@"customTweakConfigurationEnabled"];
 
-    if(tweakInjectionDisabled.boolValue)
-    {
-        return localize(@"TWEAKS_DISABLED");
-    }
-    else if(customTweakConfigurationEnabled.boolValue)
-    {
-        return localize(@"CUSTOM");
-    }
-    else
-    {
-        return @"";
-    }
+	if(tweakInjectionDisabled.boolValue)
+	{
+		return localize(@"TWEAKS_DISABLED");
+	}
+	else if(customTweakConfigurationEnabled.boolValue)
+	{
+		return localize(@"CUSTOM");
+	}
+	else
+	{
+		return @"";
+	}
 }
 
 %subclass CHPApplicationPreferenceViewController : ALApplicationPreferenceViewController
 
 - (id)initForContentSize:(CGSize)size
 {
-    id orig = %orig;
+	id orig = %orig;
 
-    ALPreferencesTableDataSource* dataSource = [self valueForKey:@"_dataSource"];
-    object_setClass(dataSource, NSClassFromString(@"CHPPreferencesTableDataSource"));
+	ALPreferencesTableDataSource* dataSource = [self valueForKey:@"_dataSource"];
+	object_setClass(dataSource, NSClassFromString(@"CHPPreferencesTableDataSource"));
 
-    [[NSNotificationCenter defaultCenter] addObserver:orig selector:@selector(reloadValueOfVisibleCells) name:@"preferencesDidReload" object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:orig selector:@selector(reloadValueOfVisibleCells) name:@"preferencesDidReload" object:nil];
 
-    return orig;
+	return orig;
 }
 
 - (void)dealloc
 {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    %orig;
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	%orig;
 }
 
 %new
 - (void)reloadValueOfVisibleCells
 {
-    UITableView* tableView = [self valueForKey:@"_tableView"];
+	UITableView* tableView = [self valueForKey:@"_tableView"];
 
-    for(id cell in tableView.visibleCells)
-    {
-        if([cell isKindOfClass:NSClassFromString(@"ALValueCell")])
-        {
-            NSIndexPath* indexPath = [tableView indexPathForCell:cell];
-            [(ALValueCell *)cell loadValue:[self valueForCellAtIndexPath:indexPath] withTitle:[self valueTitleForCellAtIndexPath:indexPath]];
-        }
-    }
+	for(id cell in tableView.visibleCells)
+	{
+		if([cell isKindOfClass:NSClassFromString(@"ALValueCell")])
+		{
+			NSIndexPath* indexPath = [tableView indexPathForCell:cell];
+			[(ALValueCell *)cell loadValue:[self valueForCellAtIndexPath:indexPath] withTitle:[self valueTitleForCellAtIndexPath:indexPath]];
+		}
+	}
 }
 
 - (id)valueForCellAtIndexPath:(NSIndexPath *)indexPath
 {
-    ALApplicationTableDataSource* dataSource = [self valueForKey:@"_dataSource"];
-    ALApplicationTableDataSourceSection* section = [[dataSource valueForKey:@"_sectionDescriptors"] objectAtIndex:indexPath.section];
-    NSString* displayIdentifier = [section displayIdentifierForRow:indexPath.row];
+	ALApplicationTableDataSource* dataSource = [self valueForKey:@"_dataSource"];
+	ALApplicationTableDataSourceSection* section = [[dataSource valueForKey:@"_sectionDescriptors"] objectAtIndex:indexPath.section];
+	NSString* displayIdentifier = [section displayIdentifierForRow:indexPath.row];
 
-    NSDictionary* appSettings = [preferences objectForKey:@"appSettings"];
+	NSDictionary* appSettings = [preferences objectForKey:@"appSettings"];
 
-    NSDictionary* settingsForApp = [appSettings objectForKey:displayIdentifier];
+	NSDictionary* settingsForApp = [appSettings objectForKey:displayIdentifier];
 
-    return previewStringForSettings(settingsForApp);
+	return previewStringForSettings(settingsForApp);
 }
 
 %end
 
 void initCHPApplicationPreferenceViewController()
 {
-    %config(generator=internal)
-    %init;
+	%config(generator=internal)
+	%init;
 }

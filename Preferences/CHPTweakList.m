@@ -21,6 +21,7 @@
 #import "CHPTweakList.h"
 
 #import "CHPTweakInfo.h"
+#import "CHPDaemonInfo.h"
 
 @implementation CHPTweakList
 
@@ -38,38 +39,95 @@
 
 - (void)updateTweakList
 {
-    NSMutableArray* tweakListM = [NSMutableArray new];
-    NSArray* dynamicLibraries = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/MobileSubstrate/DynamicLibraries"].URLByResolvingSymlinksInPath includingPropertiesForKeys:nil options:0 error:nil];
+	NSMutableArray* tweakListM = [NSMutableArray new];
+	NSArray* dynamicLibraries = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/MobileSubstrate/DynamicLibraries"].URLByResolvingSymlinksInPath includingPropertiesForKeys:nil options:0 error:nil];
 
-    for(NSURL* URL in dynamicLibraries)
-    {
-        if([[URL pathExtension] isEqualToString:@"plist"])
-        {
-            NSURL* dylibURL = [[URL URLByDeletingPathExtension] URLByAppendingPathExtension:@"dylib"];
-            if([dylibURL checkResourceIsReachableAndReturnError:nil])
-            {
-                CHPTweakInfo* tweakInfo = [[CHPTweakInfo alloc] initWithDylibPath:dylibURL.path plistPath:URL.path];
-                [tweakListM addObject:tweakInfo];
-            }
-        }
-    }
+	for(NSURL* URL in dynamicLibraries)
+	{
+		if([[URL pathExtension] isEqualToString:@"plist"])
+		{
+			NSURL* dylibURL = [[URL URLByDeletingPathExtension] URLByAppendingPathExtension:@"dylib"];
+			if([dylibURL checkResourceIsReachableAndReturnError:nil])
+			{
+				CHPTweakInfo* tweakInfo = [[CHPTweakInfo alloc] initWithDylibPath:dylibURL.path plistPath:URL.path];
+				[tweakListM addObject:tweakInfo];
+			}
+		}
+	}
 
-    self.tweakList = [tweakListM copy];
+	self.tweakList = [tweakListM copy];
 }
 
-- (NSArray*)tweakListForKey:(NSString*)key
+- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers
 {
-    NSMutableArray* tweakListForKey = [NSMutableArray new];
+	NSMutableArray* tweakListForApplication = [NSMutableArray new];
 
-    for(CHPTweakInfo* info in self.tweakList)
-    {
-        if([info.filterBundles containsObject:@"com.apple.UIKit"] || ([info.filterBundles containsObject:@"com.apple.StoreKit"] && [key containsString:@"."]) || [info.filterBundles containsObject:key] || [info.filterExecutables containsObject:key])
-        {
-            [tweakListForKey addObject:info];
-        }
-    }
+	for(CHPTweakInfo* tweakInfo in self.tweakList)
+	{
+		if([tweakInfo.filterBundles containsObject:identifier])
+		{
+			[tweakListForApplication addObject:tweakInfo];
+		}
 
-    return [tweakListForKey copy];
+		for(NSString* frameworkIdentifier in linkedFrameworkIdentifiers)
+		{
+			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
+			{
+				[tweakListForApplication addObject:tweakInfo];
+			}
+		}
+	}
+
+	return [tweakListForApplication copy];
+}
+
+- (NSArray*)tweakListForDaemon:(CHPDaemonInfo*)daemonInfo
+{
+	NSMutableArray* tweakListForDaemon = [NSMutableArray new];
+
+	for(CHPTweakInfo* tweakInfo in self.tweakList)
+	{
+		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
+		{
+			[tweakListForDaemon addObject:tweakInfo];
+		}
+
+		for(NSString* frameworkIdentifier in daemonInfo.linkedFrameworkIdentifiers)
+		{
+			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
+			{
+				[tweakListForDaemon addObject:tweakInfo];
+			}
+		}
+	}
+
+	return [tweakListForDaemon copy];
+}
+
+- (BOOL)oneOrMoreTweaksInjectIntoDaemon:(CHPDaemonInfo*)daemonInfo
+{
+	for(CHPTweakInfo* tweakInfo in self.tweakList)
+	{
+		if([tweakInfo.dylibName containsString:@"Choicy"])
+		{
+			continue;
+		}
+		
+		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
+		{
+			return YES;
+		}
+
+		for(NSString* frameworkIdentifier in daemonInfo.linkedFrameworkIdentifiers)
+		{
+			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
+			{
+				return YES;
+			}
+		}
+	}
+
+	return NO;
 }
 
 @end

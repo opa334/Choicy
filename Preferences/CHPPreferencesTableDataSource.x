@@ -19,16 +19,32 @@
 // SOFTWARE.
 
 #import "../Shared.h"
+#import "CHPApplicationPreferenceViewController.h"
+
+@interface CHPPreferencesTableDataSource : NSObject
+@end
 
 %subclass CHPPreferencesTableDataSource : ALPreferencesTableDataSource
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
 {
-    return localize(%orig);
+	return localize(%orig);
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+	UITableViewCell* cell = %orig;
+	ALApplicationTableDataSourceSection* section = [[self valueForKey:@"_sectionDescriptors"] objectAtIndex:indexPath.section];
+	NSString* displayIdentifier = [section displayIdentifierForRow:indexPath.row];
+	if([displayIdentifier isEqualToString:@"com.apple.CarPlaySettings"] && ![cell.textLabel.text hasSuffix:@"(CarPlay)"])
+	{
+		cell.textLabel.text = [cell.textLabel.text stringByAppendingString:@" (CarPlay)"];
+	}
+	return cell;
 }
 %end
 
 void initCHPPreferencesTableDataSource()
 {
-    %config(generator=internal)
-    %init;
+	%config(generator=internal)
+	%init;
 }

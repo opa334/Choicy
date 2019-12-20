@@ -42,28 +42,10 @@
 			[[CHPDaemonList sharedInstance] updateDaemonListIfNeeded];
 		});
 	}
-
-	_suggestedDaemons = [NSSet setWithArray:@[
-		@"maild",@"mediaanalysisd",
-		@"com.apple.accessibility.AccessibilityUIServer",@"powerlogHelperd",
-		@"webbookmarksd",@"HeuristicInterpreter",
-		@"photoanalysisd",@"touchsetupd",
-		@"ContextService",@"itunescloudd",
-		@"heard",@"suggestd",
-		@"searchd",@"SIMSetupUIService",
-		@"bookassetd",@"appstored",
-		@"homed",@"assetsd",
-		@"dmd",@"callservicesd",
-		@"aggregated",@"CommCenter",
-		@"PowerUIAgent",@"tipsd",
-		@"com.apple.WebKit.WebContent",@"com.apple.WebKit.Networking",
-		@"splashboardd",@"exchangesyncd",
-		@"remindd",@"AppSSODaemon",
-		@"siriknowledged",@"TVRemoteConnectionService",
-		@"replayd",@"watchlistd",
-		@"voicememod",@"nanotimekitcompaniond",
-		@"NTKFaceSnapshotService",@"photoanalysisd",
-		@"ptpcamerad",@"searchd"]]; //Some handpicked daemons that depend on UIKit
+	else
+	{
+		[self updateSuggestedDaemons];
+	}
 
 	[super viewDidLoad];
 }
@@ -121,6 +103,7 @@
 					
 					[specifier setProperty:@YES forKey:@"enabled"];
 					[specifier setProperty:[info displayName] forKey:@"key"];
+					[specifier setProperty:info forKey:@"daemonInfo"];
 					[specifier setProperty:@NO forKey:@"isApplication"];
 
 					[specifiers addObject:specifier];
@@ -173,9 +156,9 @@ extern NSString* previewStringForSettings(NSDictionary* settings);
 {
 	NSString* identifier = [specifier propertyForKey:@"key"];
 
-    NSDictionary* daemonSettings = [preferences objectForKey:@"daemonSettings"];
+	NSDictionary* daemonSettings = [preferences objectForKey:@"daemonSettings"];
 
-    NSDictionary* settingsForDaemon = [daemonSettings objectForKey:identifier];
+	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:identifier];
 
 	return previewStringForSettings(settingsForDaemon);
 }
@@ -195,6 +178,27 @@ extern NSString* previewStringForSettings(NSDictionary* settings);
 		PSSpecifier* specifier = [self specifierAtIndex:[self indexForIndexPath:selectedIndexPath]];
 		[self reloadSpecifier:specifier];
 	}
+}
+
+- (void)updateSuggestedDaemons
+{
+	NSMutableSet* suggestedDaemons = [NSMutableSet new];
+
+	for(CHPDaemonInfo* info in [CHPDaemonList sharedInstance].daemonList)
+	{
+		if([info.linkedFrameworkIdentifiers containsObject:@"com.apple.UIKit"])
+		{
+			[suggestedDaemons addObject:[info displayName]];
+		}
+	}
+
+	_suggestedDaemons = [suggestedDaemons copy];
+}
+
+- (void)daemonListDidUpdate:(CHPDaemonList*)list
+{
+	[self updateSuggestedDaemons];
+	[self reloadSpecifiers];
 }
 
 @end

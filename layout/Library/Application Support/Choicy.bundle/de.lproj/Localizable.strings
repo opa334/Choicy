@@ -1,11 +1,10 @@
-"CONFIGURATION" = "Konfiguration";
+"PROCESS_CONFIGURATION" = "Prozess Konfiguration";
+"PROCESS_CONFIGURATION_FOOTER" = "Applikationen werden automatisch neu gestartet, wenn sich ihre Einstellungen ändern. Um die Konfiguration von SpringBoard anzuwenden ist ein manueller Respring nötig. Um die Konfiguration von einigen Hintergrunddiensten anzuwenden, ist ein ldrestart oder ein Neustart des Gerätes notwendig.";
 "APPLICATIONS" = "Applikationen";
 "DAEMONS" = "Hintergrunddienste";
 "DISABLE_TWEAK_INJECTION" = "Tweaks deaktivieren";
 "LAUNCH_WITHOUT_TWEAKS" = "Ohne Tweaks starten";
 "LAUNCH_WITH_TWEAKS" = "Mit Tweaks starten";
-"CONFIGURATION" = "Konfiguration";
-"CONFIGURATION_FOOTER" = "Applikationen werden automatisch neu gestartet, wenn sich ihre Einstellungen ändern. Um die Konfiguration von SpringBoard anzuwenden ist ein manueller Respring nötig. Um die Konfiguration von einigen Hintergrunddiensten anzuwenden, ist ein ldrestart oder ein Neustart des Gerätes notwendig.";
 "LAUNCH_WITHOUT_TWEAKS_OPTION" = "'Ohne Tweaks starten' Option";
 "LAUNCH_WITH_TWEAKS_OPTION" = "'Mit Tweaks starten' Option";
 "APP_OPTIONS" = "App Optionen";
@@ -19,6 +18,13 @@
 "SHOW_ALL_DAEMONS" = "Alle Hintergrunddienste anzeigen";
 "SYSTEM_APPLICATIONS" = "Systemapplikationen";
 "USER_APPLICATIONS" = "Benutzerapplikationen";
+"HIDDEN_APPLICATIONS" = "Versteckte Applikationen";
+"GLOBAL_CONFIGURATION" = "Globale Konfiguration";
+"GLOBAL_TWEAK_CONFIGURATION" = "Globale Tweak Konfiguration";
+"ALLOW_BLACKLIST_OVERWRITES" = "Blacklist Überschreibungen erlauben";
+"ALLOW_BLACKLIST_OVERWRITES_FOOTER" = "Erlaube prozessspezifischen benutzerdefinierten Blacklisten, die Konfiguration dieser Liste zu überschreiben. Wenn eine Blacklist für einen Prozess aktiviert ist und ein Tweak die hier deaktiviert wurde in der Blacklist auch deaktiviert ist, wird der Tweak trotzdem in den Prozess geladen.";
+"ALLOW_WHITELIST_OVERWRITES" = "Whitelist Überschreibungen erlauben";
+"ALLOW_WHITELIST_OVERWRITES_FOOTER" = "Erlaube prozessspezifischen benutzerdefinierten Whitelisten, die Konfiguration dieser Liste zu überschreiben. Wenn eine Whitelist für einen Prozess aktiviert ist und ein Tweak die hier deaktiviert wurde in der Whitelist aktiviert ist, wird der Tweak trotzdem in den Prozess geladen.";
 "OTHER" = "Anderes";
 "FOLLOW_ME_ON_TWITTER" = "Folge mir auf Twitter";
 "DONATE" = "Spenden";

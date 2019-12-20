@@ -8,9 +8,25 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>CONFIGURATION</string>
+			<string>GLOBAL_CONFIGURATION</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>GLOBAL_TWEAK_CONFIGURATION</string>
+			<key>detail</key>
+			<string>CHPGlobalTweakConfigurationController</string>
+			<key>isController</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>PROCESS_CONFIGURATION</string>
 			<key>footerText</key>
-			<string>CONFIGURATION_FOOTER</string>
+			<string>PROCESS_CONFIGURATION_FOOTER</string>
 		</dict>
 		<dict>
 			<key>key</key>
@@ -55,7 +71,7 @@
 					<key>icon-size</key>
 					<string>29</string>
 					<key>predicate</key>
-					<string>(isSystemApplication = TRUE AND isWebApplication = FALSE AND NOT (displayIdentifier IN {'com.apple.Preferences'}))</string>
+					<string>(isSystemApplication = TRUE AND isWebApplication = FALSE)</string>
 					<key>suppress-hidden-apps</key>
 					<string>1</string>
 					<key>title</key>
@@ -88,11 +104,46 @@
 					<key>icon-size</key>
 					<string>29</string>
 					<key>predicate</key>
-					<string>(isSystemApplication = FALSE AND isWebApplication = FALSE AND NOT (displayIdentifier IN {'com.apple.Preferences'}))</string>
+					<string>(isSystemApplication = FALSE AND isWebApplication = FALSE)</string>
 					<key>suppress-hidden-apps</key>
 					<string>1</string>
 					<key>title</key>
 					<string>USER_APPLICATIONS</string>
+					<key>display-identifier-macro</key>
+					<string>DISPLAY_IDENTIFIER</string>
+					<key>action</key>
+					<string>showPreferences</string>
+					<key>bundle</key>
+					<string>ChoicyPrefs</string>
+					<key>entry</key>
+					<dict>
+						<key>key</key>
+						<string>DISPLAY_IDENTIFIER</string>
+						<key>cell</key>
+						<string>PSLinkCell</string>
+						<key>detail</key>
+						<string>CHPApplicationDaemonConfigurationListController</string>
+						<key>isController</key>
+						<true/>
+						<key>overridePrincipalClass</key>
+						<true/>
+						<key>bundle</key>
+						<string>AppList</string>
+						<key>isApplication</key>
+						<true/>
+					</dict>
+				</dict>
+				<dict>
+					<key>cell-class-name</key>
+					<string>ALDisclosureIndicatedCell</string>
+					<key>icon-size</key>
+					<string>29</string>
+					<key>predicate</key>
+					<string>(info.choicy_hasHiddenTag = TRUE OR isWebApplication = TRUE)</string>
+					<key>suppress-hidden-apps</key>
+					<false/>
+					<key>title</key>
+					<string>HIDDEN_APPLICATIONS</string>
 					<key>display-identifier-macro</key>
 					<string>DISPLAY_IDENTIFIER</string>
 					<key>action</key>

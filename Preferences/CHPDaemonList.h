@@ -22,12 +22,13 @@
 
 @interface CHPDaemonList : NSObject
 {
-    NSHashTable* _observers;
+	NSHashTable* _observers;
 }
 @property(nonatomic,readonly) BOOL loaded;
 @property(nonatomic,readonly) BOOL loading;
 @property(nonatomic,readonly) NSArray* daemonList;
 + (instancetype)sharedInstance;
+- (BOOL)daemonList:(NSArray*)daemonList containsDisplayName:(NSString*)displayName;
 - (void)updateDaemonListIfNeeded;
 - (void)addObserver:(id<CHPDaemonListObserver>)observer;
 - (void)removeObserver:(id<CHPDaemonListObserver>)observer;

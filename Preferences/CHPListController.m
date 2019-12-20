@@ -48,21 +48,22 @@
 		}
 	}
 
-    NSString* title = [self topTitle];
-    if(title)
-    {
-        [(UINavigationItem *)self.navigationItem setTitle:title];
-    }
+	NSString* title = [self topTitle];
+	if(title)
+	{
+		[(UINavigationItem *)self.navigationItem setTitle:title];
+	}
 
 	return _specifiers;
 }
 
 - (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers
 {
-    //Localize specifiers
+	//Localize specifiers
 	NSMutableArray* mutableSpecifiers = (NSMutableArray*)specifiers;
 	for(PSSpecifier* specifier in mutableSpecifiers)
 	{
+		HBLogDebug(@"title:%@",specifier.properties[@"label"]);
 		NSString* localizedTitle = localize(specifier.properties[@"label"]);
 		NSString* localizedFooter = localize(specifier.properties[@"footerText"]);
 		specifier.name = localizedTitle;
@@ -72,21 +73,22 @@
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier*)specifier
 {
-	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:plistPath];
+	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	if(!mutableDict)
 	{
 		mutableDict = [NSMutableDictionary new];
 	}
 	[mutableDict setObject:value forKey:[[specifier properties] objectForKey:@"key"]];
-	[mutableDict writeToFile:plistPath atomically:YES];
-	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, NULL, YES);
+	[mutableDict writeToFile:CHPPlistPath atomically:YES];
+
+	[self sendPostNotificationForSpecifier:specifier];
 }
 
 - (id)readPreferenceValue:(PSSpecifier*)specifier
 {
-	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 
-    id obj = [dict objectForKey:[[specifier properties] objectForKey:@"key"]];
+	id obj = [dict objectForKey:[[specifier properties] objectForKey:@"key"]];
 
 	if(!obj)
 	{
@@ -94,6 +96,15 @@
 	}
 
 	return obj;
+}
+
+- (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier
+{
+	NSString* postNotification = [specifier propertyForKey:@"PostNotification"];
+	if(postNotification)
+	{
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)postNotification, NULL, NULL, YES);
+	}
 }
 
 @end

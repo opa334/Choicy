@@ -18,9 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+@class CHPDaemonInfo;
+
 @interface CHPTweakList : NSObject
 @property (nonatomic) NSArray* tweakList;
 + (instancetype)sharedInstance;
 - (void)updateTweakList;
-- (NSArray*)tweakListForKey:(NSString*)key;
+- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers;
+- (NSArray*)tweakListForDaemon:(CHPDaemonInfo*)daemonInfo;
+- (BOOL)oneOrMoreTweaksInjectIntoDaemon:(CHPDaemonInfo*)daemonInfo;
 @end

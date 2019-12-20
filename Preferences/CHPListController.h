@@ -25,4 +25,5 @@
 - (NSString*)topTitle;
 - (NSString*)plistName;
 - (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers;
+- (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier;
 @end

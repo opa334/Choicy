@@ -24,7 +24,8 @@
 
 @interface CHPDaemonListController : CHPListController <CHPDaemonListObserver>
 {
-    NSSet* _suggestedDaemons;
-    BOOL _showsAllDaemons;
+	NSSet* _suggestedDaemons;
+	BOOL _showsAllDaemons;
 }
+- (void)updateSuggestedDaemons;
 @end

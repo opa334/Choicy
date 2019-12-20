@@ -32,6 +32,18 @@
 - (void)handleSafeModeForExecutionContext:(FBProcessExecutionContext*)executionContext withApplicationID:(NSString*)applicationID;
 @end
 
+
+
+@interface SBApplicationInfo : NSObject
+@property (nonatomic,readonly) NSURL* executableURL;
+@property (nonatomic,readonly) BOOL hasHiddenTag;
+@property (nonatomic,retain,readonly) NSArray* tags;
+@end
+
+@interface SBApplication : NSObject
+- (SBApplicationInfo*)_appInfo;
+@end
+
 @interface SBSApplicationShortcutIcon : NSObject
 @end
 

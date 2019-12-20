@@ -20,6 +20,8 @@
 
 #import "CHPDaemonList.h"
 #import "CHPDaemonInfo.h"
+#import "CHPMachoParser.h"
+#import "CHPTweakList.h"
 
 @implementation CHPDaemonList
 
@@ -37,163 +39,209 @@
 
 - (instancetype)init
 {
-    self = [super init];
+	self = [super init];
 
-    _observers = [NSHashTable weakObjectsHashTable];
+	_observers = [NSHashTable weakObjectsHashTable];
 
-    return self;
+	return self;
+}
+
+- (BOOL)daemonList:(NSArray*)daemonList containsDisplayName:(NSString*)displayName
+{
+	for(CHPDaemonInfo* info in daemonList)
+	{
+		if([info.displayName isEqualToString:displayName])
+		{
+			return YES;
+		}
+	}
+
+	return NO;
 }
 
 - (void)updateDaemonListIfNeeded
 {
-    if(_loaded || _loading)
-    {
-        return;
-    }
+	if(_loaded || _loading)
+	{
+		return;
+	}
 
-    _loading = YES;
+	_loading = YES;
 
-    NSMutableArray<NSURL*>* daemonPlists = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil] mutableCopy];
+	NSMutableArray<NSURL*>* daemonPlists = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil] mutableCopy];
 
-    [daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
+	[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
 
-    for(NSURL* daemonPlistURL in [daemonPlists reverseObjectEnumerator])
-    {
-        if(![daemonPlistURL.pathExtension isEqualToString:@"plist"])
-        {
-            [daemonPlists removeObject:daemonPlistURL];
-        }
-    }
+	for(NSURL* daemonPlistURL in [daemonPlists reverseObjectEnumerator])
+	{
+		if(![daemonPlistURL.pathExtension isEqualToString:@"plist"])
+		{
+			[daemonPlists removeObject:daemonPlistURL];
+		}
+	}
 
-    NSMutableArray* daemonListM = [NSMutableArray new];
+	NSMutableArray* daemonListM = [NSMutableArray new];
 
-    for(NSURL* daemonPlistURL in daemonPlists)
-    {
-        NSDictionary* daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
-        NSNumber* disabled = [daemonDictionary objectForKey:@"Disabled"];
-        if(!disabled.boolValue)
-        {
-            CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+	for(NSURL* daemonPlistURL in daemonPlists)
+	{
+		NSDictionary* daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
+		NSNumber* disabled = [daemonDictionary objectForKey:@"Disabled"];
+		if(!disabled.boolValue)
+		{
+			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
 
-            NSArray* programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
+			info.executablePath = [daemonDictionary objectForKey:@"Program"];
 
-            info.executablePath = programArguments.firstObject;
+			if(!info.executablePath)
+			{
+				NSArray* programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
+				if(programArguments.count > 0)
+				{
+					info.executablePath = programArguments.firstObject;
+				}
+			}
 
-            if(!info.executablePath)
-            {
-                NSString* program = [daemonDictionary objectForKey:@"Program"];
-                if(program)
-                {
-                    info.executablePath = program;
-                }
-            }
+			info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
 
-            info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
+			if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:@"com.apple.SpringBoard"]) //Filter out some useless entries
+			{
+				if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+				{
+				   [daemonListM addObject:info];
+				}
+			}
+		}
+	}
 
-            if(info.executablePath && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"]) //Filter out some useless entries
-            {
-                [daemonListM addObject:info];
-            }
-        }
-    }
+	NSDirectoryEnumerator* systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
+	{
+		return YES;
+	}];
 
-    NSDirectoryEnumerator* systemLibraryAppPlaceholdersEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/AppPlaceholders" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
-    {
-        return YES;
-    }];
+	NSDirectoryEnumerator* systemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
+	{
+		return YES;
+	}];
 
-    NSDirectoryEnumerator* systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
-    {
-        return YES;
-    }];
+	NSMutableArray* XPCUrls = [NSMutableArray new];
 
-    NSDirectoryEnumerator* systemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
-    {
-        return YES;
-    }];
+	for(NSURL* fileURL in systemLibraryFrameworksEnumerator)
+	{
+		if([fileURL.path hasSuffix:@".xpc"])
+		{
+			[XPCUrls addObject:fileURL];
+		}
+	}
 
-    NSMutableArray* XPCUrls = [NSMutableArray new];
+	for(NSURL* fileURL in systemLibraryPrivateFrameworksEnumerator)
+	{
+		if([fileURL.path hasSuffix:@".xpc"])
+		{
+			[XPCUrls addObject:fileURL];
+		}
+	}
 
-    for(NSURL* fileURL in systemLibraryAppPlaceholdersEnumerator)
-    {
-        if([fileURL.path hasSuffix:@".xpc"])
-        {
-            [XPCUrls addObject:fileURL];
-        }
-    }
+	for(NSURL* XPCUrl in XPCUrls)
+	{
+		NSString* XPCPath = XPCUrl.path;
 
-    for(NSURL* fileURL in systemLibraryFrameworksEnumerator)
-    {
-        if([fileURL.path hasSuffix:@".xpc"])
-        {
-            [XPCUrls addObject:fileURL];
-        }
-    }
+		NSString* XPCName = [XPCUrl.lastPathComponent stringByReplacingOccurrencesOfString:@".xpc" withString:@""];
 
-    for(NSURL* fileURL in systemLibraryPrivateFrameworksEnumerator)
-    {
-        if([fileURL.path hasSuffix:@".xpc"])
-        {
-            [XPCUrls addObject:fileURL];
-        }
-    }
+		NSString* XPCExecutablePath = [XPCPath stringByAppendingPathComponent:XPCName];
 
-    for(NSURL* XPCUrl in XPCUrls)
-    {
-        NSString* XPCPath = XPCUrl.path;
+		if([[NSFileManager defaultManager] fileExistsAtPath:XPCExecutablePath])
+		{
+			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+			info.executablePath = XPCExecutablePath;
 
-        if([XPCPath isEqualToString:@"/System/Library/PrivateFrameworks/Accessibility.framework/Frameworks/com.apple.accessibility.AccessibilityUIServer.xpc"]) //Fix duplicate?
-        {
-            continue;
-        }
+			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+			{
+				[daemonListM addObject:info];
+			}
+		}
+	}
 
-        NSString* XPCName = [XPCUrl.lastPathComponent stringByReplacingOccurrencesOfString:@".xpc" withString:@""];
+	NSMutableArray* additionalPotentialDaemons = [NSMutableArray new];
 
-        NSString* XPCExecutablePath = [XPCPath stringByAppendingPathComponent:XPCName];
+	[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/libexec" isDirectory:YES] 
+                    includingPropertiesForKeys:nil 
+                                       options:0 
+                                         error:nil]];
+	
+	[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/bin" isDirectory:YES] 
+                    includingPropertiesForKeys:nil 
+                                       options:0 
+                                         error:nil]];
+	
+	[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/sbin" isDirectory:YES] 
+                    includingPropertiesForKeys:nil 
+                                       options:0 
+                                         error:nil]];
+	
 
-        CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
-        info.executablePath = XPCExecutablePath;
+	for(NSURL* URL in additionalPotentialDaemons)
+	{
+		if([URL.lastPathComponent hasSuffix:@"d"])
+		{
+			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+			info.executablePath = [URL path];
 
-        [daemonListM addObject:info];
-    }
+			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+			{
+				[daemonListM addObject:info];
+			}
+		}
+	}
 
-    [daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo* a, CHPDaemonInfo* b)  //Sort alphabetically
-    {
-        return [[a displayName] localizedCaseInsensitiveCompare:[b displayName]];
-    }];
+	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo* a, CHPDaemonInfo* b)  //Sort alphabetically
+	{
+		return [[a displayName] localizedCaseInsensitiveCompare:[b displayName]];
+	}];
 
-    _daemonList = [daemonListM copy];
-    _loading = NO;
-    _loaded = YES;
+	CHPTweakList* tweakList = [CHPTweakList sharedInstance];
 
-    [self sendReloadToObservers];
+	for(CHPDaemonInfo* daemonInfo in [daemonListM reverseObjectEnumerator])
+	{
+		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(nil, daemonInfo.executablePath);
+
+		if(![tweakList oneOrMoreTweaksInjectIntoDaemon:daemonInfo])
+		{
+			[daemonListM removeObject:daemonInfo];
+		}
+	}
+
+	_daemonList = [daemonListM copy];
+	_loading = NO;
+	_loaded = YES;
+
+	[self sendReloadToObservers];
 }
 
 - (void)addObserver:(id<CHPDaemonListObserver>)observer
 {
-    if(![_observers containsObject:observer])
-    {
-        [_observers addObject:observer];
-    }
+	if(![_observers containsObject:observer])
+	{
+		[_observers addObject:observer];
+	}
 }
 
 - (void)removeObserver:(id<CHPDaemonListObserver>)observer
 {
-    if([_observers containsObject:observer])
-    {
-        [_observers removeObject:observer];
-    }
+	if([_observers containsObject:observer])
+	{
+		[_observers removeObject:observer];
+	}
 }
 
 - (void)sendReloadToObservers
 {
-    for(id<CHPDaemonListObserver> observer in _observers)
-    {
-        dispatch_async(dispatch_get_main_queue(), ^
-        {
-            [observer reloadSpecifiers];
-        });
-    }
+	for(id<CHPDaemonListObserver> observer in _observers)
+	{
+		dispatch_async(dispatch_get_main_queue(), ^
+		{
+			[observer daemonListDidUpdate:self];
+		});
+	}
 }
 
 @end

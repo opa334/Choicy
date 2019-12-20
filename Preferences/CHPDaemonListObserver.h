@@ -18,7 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+@class CHPDaemonList;
+
 @protocol CHPDaemonListObserver
 @required
-- (void)reloadSpecifiers;
+- (void)daemonListDidUpdate:(CHPDaemonList*)list;
 @end

@@ -25,6 +25,7 @@
 #import "../Shared.h"
 #import "CHPTweakList.h"
 #import "CHPTweakInfo.h"
+#import "CHPMachoParser.h"
 
 @interface PSSpecifier ()
 @property (nonatomic,retain) NSArray* values;
@@ -96,7 +97,37 @@
 
 		NSMutableArray* specifiers = [super specifiers];
 
-		NSArray* tweakList = [[CHPTweakList sharedInstance] tweakListForKey:[[self specifier] propertyForKey:@"key"]];
+		NSArray* tweakList;
+
+		if(_isApplication)
+		{
+			NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
+			NSString* applicationExecutablePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"info.choicy_executablePath" forDisplayIdentifier:applicationIdentifier];
+			if(!applicationExecutablePath)
+			{
+				NSString* bundlePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"path" forDisplayIdentifier:applicationIdentifier];
+				if(bundlePath)
+				{
+					NSBundle* applicationBundle = [NSBundle bundleWithPath:bundlePath];
+					if(applicationBundle)
+					{
+						applicationExecutablePath = applicationBundle.executablePath;
+					}
+				}				
+			}
+
+			if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
+			{
+				[specifiers removeObjectAtIndex:0];
+			}
+
+			NSSet* linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(nil, applicationExecutablePath);
+			tweakList = [[CHPTweakList sharedInstance] tweakListForApplicationWithIdentifier:applicationIdentifier linkedFrameworkIdentifiers:linkedFrameworkIdentifiers];
+		}
+		else
+		{
+			tweakList = [[CHPTweakList sharedInstance] tweakListForDaemon:[[self specifier] propertyForKey:@"daemonInfo"]];
+		}
 
 		_customConfigurationSpecifiers = [NSMutableArray new];
 
@@ -130,7 +161,7 @@
 
 		for(CHPTweakInfo* tweakInfo in tweakList)
 		{
-			if([tweakInfo.dylibName containsString:@"Choicy"])
+			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"])
 			{
 				continue;
 			}
@@ -217,6 +248,7 @@
 	}
 
 	[self writeAppDaemonSettingsToMainPropertyList];
+	[self sendPostNotificationForSpecifier:specifier];
 }
 
 - (id)readValueForTweakWithSpecifier:(PSSpecifier*)specifier
@@ -256,6 +288,7 @@
 
 	[_appDaemonSettings setValue:value forKey:key];
 	[self writeAppDaemonSettingsToMainPropertyList];
+	[self sendPostNotificationForSpecifier:specifier];
 
 	if([key isEqualToString:@"tweakInjectionDisabled"] || [key isEqualToString:@"customTweakConfigurationEnabled"])
 	{
@@ -283,7 +316,7 @@
 
 - (void)readAppDaemonSettingsFromMainPropertyList
 {
-	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	NSDictionary* appDaemonSettingsDict = [dict objectForKey:[self dictionaryName]];
 
 	_appDaemonSettings = [[appDaemonSettingsDict objectForKey:[[[self specifier] properties] objectForKey:@"key"]] mutableCopy];
@@ -295,7 +328,7 @@
 
 - (void)writeAppDaemonSettingsToMainPropertyList
 {
-	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:plistPath];
+	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	if(!mutableDict)
 	{
 		mutableDict = [NSMutableDictionary new];
@@ -308,8 +341,7 @@
 
 	[appDaemonSettingsDict setObject:[_appDaemonSettings copy] forKey:[[[self specifier] properties] objectForKey:@"key"]];
 	[mutableDict setObject:[appDaemonSettingsDict copy] forKey:[self dictionaryName]];
-	[mutableDict writeToFile:plistPath atomically:YES];
-	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, NULL, YES);
+	[mutableDict writeToFile:CHPPlistPath atomically:YES];
 }
 
 @end

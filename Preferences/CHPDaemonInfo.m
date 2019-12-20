@@ -27,4 +27,9 @@
     return [self.executablePath lastPathComponent];
 }
 
+- (NSString*)description
+{
+	return [NSString stringWithFormat:@"<CHPDaemonInfo: executablePath = %@, plistIdentifier = %@ linkedFrameworkIdentifiers = %@>", self.executablePath, self.plistIdentifier, self.linkedFrameworkIdentifiers];
+}
+
 @end

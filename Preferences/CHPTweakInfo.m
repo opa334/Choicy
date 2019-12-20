@@ -24,21 +24,26 @@
 
 - (instancetype)initWithDylibPath:(NSString*)dylibPath plistPath:(NSString*)plistPath
 {
-    self = [super init];
+	self = [super init];
 
-    self.dylibName = [[dylibPath lastPathComponent] stringByDeletingPathExtension];
+	self.dylibName = [[dylibPath lastPathComponent] stringByDeletingPathExtension];
 
-    NSDictionary* plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+	NSDictionary* plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
 
-    NSDictionary* filter = [plist objectForKey:@"Filter"];
+	NSDictionary* filter = [plist objectForKey:@"Filter"];
 
-    if(filter)
-    {
-        self.filterBundles = [filter objectForKey:@"Bundles"];
-        self.filterExecutables = [filter objectForKey:@"Executables"];
-    }
+	if(filter)
+	{
+		self.filterBundles = [filter objectForKey:@"Bundles"];
+		self.filterExecutables = [filter objectForKey:@"Executables"];
+	}
 
-    return self;
+	return self;
+}
+
+- (NSString*)description
+{
+	return [NSString stringWithFormat:@"<CHPTweakInfo: dylibName = %@, filterBundles = %@, filterExecutables = %@>", self.dylibName, self.filterBundles, self.filterExecutables];
 }
 
 @end
