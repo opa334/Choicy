@@ -35,7 +35,7 @@ BOOL isTweakDylib(NSString* dylibPath)
 {
 	if([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"])
 	{
-		NSString* plistPath = [[dylibPath.lastPathComponent stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
+		NSString* plistPath = [[dylibPath stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
 
 		if([[NSFileManager defaultManager] fileExistsAtPath:plistPath])
 		{
