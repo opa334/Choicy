@@ -31,13 +31,36 @@ BOOL allowBlacklistOverwrites;
 BOOL allowWhitelistOverwrites;
 BOOL isApplication;
 
-BOOL shouldLoadDylib(NSString* dylibPath)
+BOOL isTweakDylib(NSString* dylibPath)
 {
 	if([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"])
 	{
-		NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
+		NSString* plistPath = [[dylibPath.lastPathComponent stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
 
-		NSLog(@"dylibName = %@", dylibName);
+		if([[NSFileManager defaultManager] fileExistsAtPath:plistPath])
+		{
+			//Shoutouts to libFLEX for having a plist with an empty bundles entry
+			NSDictionary* bundlePlistDict = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+
+			NSDictionary* filter = [bundlePlistDict objectForKey:@"Filter"];
+			NSDictionary* bundles = [filter objectForKey:@"Bundles"];
+			NSDictionary* executables = [filter objectForKey:@"Executables"];
+
+			if(bundles.count > 0 || executables.count > 0)
+			{
+				return YES;
+			}
+		}
+	}
+
+	return NO;
+}
+
+BOOL shouldLoadDylib(NSString* dylibPath)
+{
+	if(isTweakDylib(dylibPath))
+	{
+		NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
 
 		if([dylibName isEqualToString:@"ChoicySB"])
 		{
@@ -93,7 +116,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 	{
 		NSString* dylibPath = @(path);
 
-		if([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"])
+		if(isTweakDylib(dylibPath))
 		{
 			if(![dylibPath.lastPathComponent isEqualToString:@"ChoicySB.dylib"])
 			{

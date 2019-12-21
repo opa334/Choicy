@@ -60,6 +60,7 @@ NSString* dyldCachePath()
 
 void fetchDyldCacheInformation()
 {
+	HBLogDebug(@"fetchDyldCacheInformation start");
 	static dispatch_once_t onceTokenDyld;
 
     dispatch_once(&onceTokenDyld, ^
@@ -108,6 +109,8 @@ void fetchDyldCacheInformation()
 	}
 
 	fclose(dyldCacheFile);
+
+	HBLogDebug(@"fetchDyldCacheInformation end");
 }
 
 BOOL pathIsInsideDyldCache(NSString* path)
@@ -196,39 +199,20 @@ uint32_t offsetForArchInFatBinary(FILE *machoFile)
 
 	BOOL swp = fatHeader.magic == FAT_CIGAM;
 
-	int32_t cpusubtype = 0;
-	size_t cpusubtypelength = sizeof(cpusubtype);
-	sysctlbyname("hw.cpusubtype", &cpusubtype, &cpusubtypelength, NULL, 0);
-
-	bool foundFallback = NO, foundBest = NO;
-	struct fat_arch fallbackArch;
-	struct fat_arch bestArch;
-
 	for(int i = 0; i < s32(fatHeader.nfat_arch, swp); i++)
 	{
 		struct fat_arch fatArch;
+		fseek(machoFile,sizeof(fatHeader) + sizeof(fatArch) * i,SEEK_SET);
 		fread(&fatArch,sizeof(fatArch),1,machoFile);
 
-		if(s32(fatArch.cpusubtype, swp) == 0)
-		{
-			foundFallback = YES;
-			fallbackArch = fatArch;
-		}
-		else if(s32(fatArch.cpusubtype, swp) == cpusubtype)
-		{
-			foundBest = YES;
-			bestArch = fatArch;
-		}
-	}
+		fseek(machoFile,s32(fatArch.offset, swp),SEEK_SET);
+		struct mach_header_universal header;
+		fread(&header,sizeof(header),1,machoFile);
 
-	if(foundBest)
-	{
-		return s32(bestArch.offset, swp);
-	}
-
-	if(foundFallback)
-	{
-		return s32(fallbackArch.offset, swp);
+		if(header.magic == MH_MAGIC_UNIVERSAL || header.magic == MH_CIGAM_UNIVERSAL)
+		{
+			return s32(fatArch.offset, swp);
+		}
 	}
 
 	return 0;

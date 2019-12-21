@@ -23,6 +23,8 @@
 #import "CHPMachoParser.h"
 #import "CHPTweakList.h"
 
+#import <dirent.h>
+
 @implementation CHPDaemonList
 
 + (instancetype)sharedInstance
@@ -163,10 +165,32 @@
 
 	NSMutableArray* additionalPotentialDaemons = [NSMutableArray new];
 
-	[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/libexec" isDirectory:YES] 
+	// On A12 unc0ver, using contentsOfDirectoryAtURL on /usr/libexec locks the thread and leaves a kernel thread looping
+	// This causes all sorts of issues and heats the device up
+	// This will eventually be fixed inside unc0ver
+	// The C API is not affected by this issue, so we just use it instead
+	DIR *dir;
+    struct dirent* dp;
+    dir = opendir("/usr/libexec");
+    while ((dp=readdir(dir)) != NULL)
+	{
+        if (!(!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, "..")))
+        {
+            NSString* filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
+            if(filename)
+			{
+				NSURL* URL = [NSURL fileURLWithPath:[@"/usr/libexec" stringByAppendingPathComponent:filename]];
+				HBLogDebug(@"added %@", URL);
+				[additionalPotentialDaemons addObject:URL];
+			}
+        }
+    }
+    closedir(dir);
+
+	/*[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/libexec" isDirectory:YES] 
                     includingPropertiesForKeys:nil 
                                        options:0 
-                                         error:nil]];
+                                         error:nil]];*/
 	
 	[additionalPotentialDaemons addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/usr/bin" isDirectory:YES] 
                     includingPropertiesForKeys:nil 
