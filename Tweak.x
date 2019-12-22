@@ -116,8 +116,8 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		BOOL tweakIsInGlobalBlacklist = [globalTweakBlacklist containsObject:dylibName];
 
 		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInWhitelist);
-		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInBlacklist);
-		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInGlobalBlacklist);
+		HBLogDebug(@"tweakIsInBlacklist = %d", tweakIsInBlacklist);
+		HBLogDebug(@"tweakIsInGlobalBlacklist = %d", tweakIsInGlobalBlacklist);
 
 		if(tweakIsInGlobalBlacklist)
 		{
