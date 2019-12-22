@@ -37,22 +37,51 @@ BOOL isTweakDylib(NSString* dylibPath)
 	{
 		NSString* plistPath = [[dylibPath stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
 
+		HBLogDebug(@"plistPath = %@", plistPath);
+
 		if([[NSFileManager defaultManager] fileExistsAtPath:plistPath])
 		{
 			//Shoutouts to libFLEX for having a plist with an empty bundles entry
 			NSDictionary* bundlePlistDict = [NSDictionary dictionaryWithContentsOfFile:plistPath];
 
-			NSDictionary* filter = [bundlePlistDict objectForKey:@"Filter"];
-			NSDictionary* bundles = [filter objectForKey:@"Bundles"];
-			NSDictionary* executables = [filter objectForKey:@"Executables"];
+			HBLogDebug(@"bundlePlistDict = %@", bundlePlistDict);
 
-			if(bundles.count > 0 || executables.count > 0)
+			NSDictionary* filter = [bundlePlistDict objectForKey:@"Filter"];
+
+			for(NSString* key in [filter allKeys])
 			{
-				return YES;
+				NSObject* obj = [filter objectForKey:key];
+
+				if([obj respondsToSelector:@selector(count)])
+				{
+					NSArray* arrObj = (NSArray*)obj;
+
+					if(arrObj.count > 0)
+					{
+						HBLogDebug(@"%@ was determined to be a tweak", dylibPath.lastPathComponent);
+						return YES;
+					}
+				}
 			}
+
+			/*NSDictionary* bundles = [filter objectForKey:@"Bundles"];
+			NSDictionary* executables = [filter objectForKey:@"Executables"];
+			NSDictionary* classes = [filter objectForKey:@"Classes"];
+
+			HBLogDebug(@"filter = %@", filter);
+			HBLogDebug(@"bundles = %@", bundles);
+			HBLogDebug(@"executables = %@", executables);
+			HBLogDebug(@"classes = %@", classes);
+
+			if(bundles.count > 0 || executables.count > 0 || classes.count > 0)
+			{
+				
+				return YES;
+			}*/
 		}
 	}
 
+	HBLogDebug(@"%@ was determined NOT to be a tweak", dylibPath.lastPathComponent);
 	return NO;
 }
 
@@ -62,8 +91,14 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 	{
 		NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
 
+		HBLogDebug(@"Checking whether %@ should be loaded", dylibName);
+		HBLogDebug(@"tweakWhitelist = %@", tweakWhitelist);
+		HBLogDebug(@"tweakBlacklist = %@", tweakBlacklist);
+		HBLogDebug(@"globalTweakBlacklist = %@", globalTweakBlacklist);
+
 		if([dylibName isEqualToString:@"ChoicySB"])
 		{
+			HBLogDebug(@"Loaded because ChoicySB");
 			return YES;
 		}
 
@@ -71,6 +106,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		{
 			if([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.Preferences"] && [dylibName isEqualToString:@"PreferenceLoader"])
 			{
+				HBLogDebug(@"Loaded because PreferenceLoader");
 				return YES;
 			}
 		}
@@ -79,32 +115,42 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		BOOL tweakIsInBlacklist = [tweakBlacklist containsObject:dylibName];
 		BOOL tweakIsInGlobalBlacklist = [globalTweakBlacklist containsObject:dylibName];
 
+		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInWhitelist);
+		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInBlacklist);
+		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInGlobalBlacklist);
+
 		if(tweakIsInGlobalBlacklist)
 		{
 			if(tweakWhitelist && tweakIsInWhitelist && allowWhitelistOverwrites)
 			{
+				HBLogDebug(@"Loaded because tweakWhitelist && tweakIsInWhitelist && allowWhitelistOverwrites");
 				return YES;
 			}
 
 			if(tweakBlacklist && !tweakIsInBlacklist && allowBlacklistOverwrites)
 			{
+				HBLogDebug(@"Loaded because tweakBlacklist && !tweakIsInBlacklist && allowBlacklistOverwrites");
 				return YES;
 			}
 
+			HBLogDebug(@"Not loaded because in global blacklist");
 			return NO;
 		}
 
 		if(tweakWhitelist && !tweakIsInWhitelist)
 		{
+			HBLogDebug(@"Not loaded because not in whitelist");
 			return NO;
 		}
 
 		if(tweakBlacklist && tweakIsInBlacklist)
 		{
+			HBLogDebug(@"Not loaded because in blacklist");
 			return NO;
 		}
 	}
 
+	HBLogDebug(@"Loaded");
 	return YES;
 }
 
@@ -112,19 +158,25 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 %hookf(void *, dlopen, const char *path, int mode)
 {
-	if(path != NULL)
+	@autoreleasepool
 	{
-		NSString* dylibPath = @(path);
-
-		if(isTweakDylib(dylibPath))
+		if(path != NULL)
 		{
-			if(![dylibPath.lastPathComponent isEqualToString:@"ChoicySB.dylib"])
+			NSString* dylibPath = @(path);
+
+			if(isTweakDylib(dylibPath))
 			{
-				return NULL;
+				if(![dylibPath.lastPathComponent isEqualToString:@"ChoicySB.dylib"])
+				{
+					HBLogDebug(@"%@ not loaded because all tweaks blocked", dylibPath.lastPathComponent);
+					return NULL;
+				}
 			}
+
+			HBLogDebug(@"%@ loaded because not a tweak", dylibPath.lastPathComponent);
 		}
 	}
-
+	
 	return %orig;
 }
 
@@ -134,13 +186,19 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 %hookf(void *, dlopen, const char *path, int mode)
 {
-	if(path != NULL)
+	@autoreleasepool
 	{
-		NSString* dylibPath = @(path);
-
-		if(!shouldLoadDylib(dylibPath))
+		if(path != NULL)
 		{
-			return NULL;
+			NSString* dylibPath = @(path);
+
+			if(!shouldLoadDylib(dylibPath))
+			{
+				HBLogDebug(@"%@ not loaded", dylibPath.lastPathComponent);
+				return NULL;
+			}
+
+			HBLogDebug(@"%@ loaded", dylibPath.lastPathComponent);
 		}
 	}
 
@@ -151,66 +209,73 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 %ctor
 {
-	HBLogDebug(@"CHOICY INIT");
-
-	preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
-
-	NSString* executablePath = [[NSClassFromString(@"NSProcessInfo") processInfo] arguments].firstObject;
-
-	isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
-	NSDictionary* settings;
-
-	if(isApplication)
+	@autoreleasepool
 	{
-		settings = preferencesForApplicationWithID([NSBundle mainBundle].bundleIdentifier);
-	}
-	else
-	{
-		settings = preferencesForDaemonWithDisplayName(executablePath.lastPathComponent);
-	}
+		HBLogDebug(@"CHOICY INIT");
 
-	HBLogDebug(@"settings = %@", settings);
+		preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 
-	globalTweakBlacklist = [preferences objectForKey:@"globalTweakBlacklist"] ?: [NSArray new];
-	allowBlacklistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowBlacklistOverwrites"]).boolValue;
-	allowWhitelistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowWhitelistOverwrites"]).boolValue;
+		NSString* executablePath = [[NSClassFromString(@"NSProcessInfo") processInfo] arguments].firstObject;
 
-	BOOL tweakInjectionDisabled = NO;
-	BOOL customTweakConfigurationEnabled = NO;
-	NSInteger whitelistBlacklistSegment = 0;
+		isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
+		NSDictionary* settings;
 
-	if(settings)
-	{
-		tweakInjectionDisabled = ((NSNumber*)[settings objectForKey:@"tweakInjectionDisabled"]).boolValue;
-		customTweakConfigurationEnabled = ((NSNumber*)[settings objectForKey:@"customTweakConfigurationEnabled"]).boolValue;
-		whitelistBlacklistSegment = ((NSNumber*)[settings objectForKey:@"whitelistBlacklistSegment"]).intValue;
-	}
-
-	if(tweakInjectionDisabled)
-	{
 		if(isApplication)
 		{
-			if(![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
-			{
-				return;
-			}
+			settings = preferencesForApplicationWithID([NSBundle mainBundle].bundleIdentifier);
 		}
-		%init(BlockAllTweaks);
-	}
-	else if(customTweakConfigurationEnabled || globalTweakBlacklist.count > 0)
-	{
-		if(customTweakConfigurationEnabled)
+		else
 		{
-			if(whitelistBlacklistSegment == 2) //blacklist
-			{
-				tweakBlacklist = [settings objectForKey:@"tweakBlacklist"] ?: [NSArray new];
-			}
-			else //whitelist
-			{
-				tweakWhitelist = [settings objectForKey:@"tweakWhitelist"] ?: [NSArray new];
-			}
+			settings = preferencesForDaemonWithDisplayName(executablePath.lastPathComponent);
 		}
 
-		%init(CustomConfiguration);
+		HBLogDebug(@"settings = %@", settings);
+
+		globalTweakBlacklist = [preferences objectForKey:@"globalTweakBlacklist"] ?: [NSArray new];
+		allowBlacklistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowBlacklistOverwrites"]).boolValue;
+		allowWhitelistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowWhitelistOverwrites"]).boolValue;
+
+		BOOL tweakInjectionDisabled = NO;
+		BOOL customTweakConfigurationEnabled = NO;
+		NSInteger whitelistBlacklistSegment = 0;
+
+		if(settings)
+		{
+			tweakInjectionDisabled = ((NSNumber*)[settings objectForKey:@"tweakInjectionDisabled"]).boolValue;
+			customTweakConfigurationEnabled = ((NSNumber*)[settings objectForKey:@"customTweakConfigurationEnabled"]).boolValue;
+			whitelistBlacklistSegment = ((NSNumber*)[settings objectForKey:@"whitelistBlacklistSegment"]).intValue;
+		}
+
+		if(tweakInjectionDisabled)
+		{
+			if(isApplication)
+			{
+				if(![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
+				{
+					HBLogDebug(@"exiting cause application and tweakInjectionDisabled");
+					return;
+				}
+			}
+
+			HBLogDebug(@"blocking all tweaks");
+			%init(BlockAllTweaks);
+		}
+		else if(customTweakConfigurationEnabled || globalTweakBlacklist.count > 0)
+		{
+			if(customTweakConfigurationEnabled)
+			{
+				if(whitelistBlacklistSegment == 2) //blacklist
+				{
+					tweakBlacklist = [settings objectForKey:@"tweakBlacklist"] ?: [NSArray new];
+				}
+				else //whitelist
+				{
+					tweakWhitelist = [settings objectForKey:@"tweakWhitelist"] ?: [NSArray new];
+				}
+			}
+
+			HBLogDebug(@"initialising custom configuration");
+			%init(CustomConfiguration);
+		}
 	}
 }
