@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Lars Fröder
+// Copyright (c) 2019-2020 Lars Fröder
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 #import "CHPTweakList.h"
 #import "CHPTweakInfo.h"
 #import "CHPMachoParser.h"
+
+extern BOOL customTweakConfigurationWorks;
 
 @interface PSSpecifier ()
 @property (nonatomic,retain) NSArray* values;
@@ -99,6 +101,7 @@
 
 		NSArray* tweakList;
 
+		//Get tweak list
 		if(_isApplication)
 		{
 			NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
@@ -210,6 +213,16 @@
 
 	NSNumber* customTweakConfigurationNum = [self readPreferenceValue:customTweakConfigurationSpecifier];
 	[disableTweakInjectionSpecifier setProperty:@(!customTweakConfigurationNum.boolValue) forKey:@"enabled"];
+
+	if(!customTweakConfigurationWorks)
+	{
+		[customTweakConfigurationSpecifier setProperty:@NO forKey:@"enabled"];
+
+		if(!_isApplication || _isSpringboard)
+		{
+			[disableTweakInjectionSpecifier setProperty:@NO forKey:@"enabled"];
+		}
+	}
 
 	[self reloadSpecifier:disableTweakInjectionSpecifier];
 	[self reloadSpecifier:customTweakConfigurationSpecifier];
