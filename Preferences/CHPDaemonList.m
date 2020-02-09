@@ -89,9 +89,11 @@
 	for(NSURL* daemonPlistURL in daemonPlists)
 	{
 		NSDictionary* daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
-		NSNumber* disabled = [daemonDictionary objectForKey:@"Disabled"];
-		if(!disabled.boolValue)
-		{
+		//禁用检查禁用属性，因为有的二进制文件即使是禁用状态，有时候也会启动。
+		//Disable check disabled attribute, Because some binary files are sometimes started even if they are disabled.
+		//NSNumber* disabled = [daemonDictionary objectForKey:@"Disabled"];
+		//if(!disabled.boolValue)
+		//{
 			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
 
 			info.executablePath = [daemonDictionary objectForKey:@"Program"];
@@ -114,7 +116,7 @@
 				   [daemonListM addObject:info];
 				}
 			}
-		}
+		//}
 	}
 
 	NSDirectoryEnumerator* systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
