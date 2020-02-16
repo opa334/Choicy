@@ -118,6 +118,8 @@
 							cell:PSGroupCell
 							edit:nil];
 
+			[buttonGroup setProperty:localize(@"DAEMON_LIST_BOTTOM_NOTICE") forKey:@"footerText"];
+
 			[specifiers addObject:buttonGroup];
 
 			NSString* toggleName;

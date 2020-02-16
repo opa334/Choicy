@@ -67,6 +67,7 @@
 		if([tweakInfo.filterBundles containsObject:identifier])
 		{
 			[tweakListForApplication addObject:tweakInfo];
+			continue;
 		}
 
 		for(NSString* frameworkIdentifier in linkedFrameworkIdentifiers)
@@ -74,6 +75,7 @@
 			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
 			{
 				[tweakListForApplication addObject:tweakInfo];
+				break;
 			}
 		}
 	}
@@ -90,6 +92,13 @@
 		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
 		{
 			[tweakListForDaemon addObject:tweakInfo];
+			continue;
+		}
+
+		if([tweakInfo.filterBundles containsObject:[daemonInfo displayName]])
+		{
+			[tweakListForDaemon addObject:tweakInfo];
+			continue;
 		}
 
 		for(NSString* frameworkIdentifier in daemonInfo.linkedFrameworkIdentifiers)
@@ -97,6 +106,7 @@
 			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
 			{
 				[tweakListForDaemon addObject:tweakInfo];
+				break;
 			}
 		}
 	}
@@ -114,6 +124,11 @@
 		}
 		
 		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
+		{
+			return YES;
+		}
+
+		if([tweakInfo.filterBundles containsObject:[daemonInfo displayName]])
 		{
 			return YES;
 		}

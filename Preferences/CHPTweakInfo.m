@@ -39,7 +39,7 @@
 
 		//If a plist filters classes, treat it as UIKit (maybe inaccurate, maybe not)
 		NSArray* classes = [filter objectForKey:@"Classes"];
-		if(classes && classes.count > 0 && ![self.filterBundles containsObject:@"com.apple.UIKit"])
+		if(classes && classes.count > 0 && ![self.filterBundles containsObject:@"com.apple.Security"])
 		{
 			if(!self.filterBundles)
 			{
@@ -47,7 +47,7 @@
 			}
 			else
 			{
-				self.filterBundles = [self.filterBundles arrayByAddingObject:@"com.apple.UIKit"];
+				self.filterBundles = [self.filterBundles arrayByAddingObject:@"com.apple.Security"];
 			}
 		}
 	}

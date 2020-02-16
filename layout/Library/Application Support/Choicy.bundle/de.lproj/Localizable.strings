@@ -32,7 +32,8 @@
 "CREDITS" = "Credits";
 "RESPRING" = "Respring";
 "WARNING_ALERT_TITLE" = "Warnung";
-"WARNING_ALERT_MESSAGE" = "Es wurde festgestellt, dass Globale Tweak Konfiguration und prozessspezifische benutzerdefinierte Optionen auf diesem Gerät nicht funktionieren werden, da %@ Choicy nicht zuerst lädt, die Optionen wurden daher deaktiviert. Zur Umgehung des Problems kann ChoicyLoader von der Quelle https://opa334.github.io installiert werden.";
+"WARNING_ALERT_MESSAGE" = "Es wurde festgestellt, dass Globale Tweak Konfiguration und prozessspezifische benutzerdefinierte Optionen auf diesem Gerät nicht funktionieren werden, da Substrate Choicy nicht zuerst lädt, die Optionen wurden daher deaktiviert. Zur Umgehung des Problems kann ChoicyLoader von der Quelle https://opa334.github.io installiert werden.";
 "OPEN_REPO" = "Quelle öffnen";
 "DONT_SHOW_AGAIN" = "Nie wieder anzeigen";
 "CLOSE" = "Schließen";
+"DAEMON_LIST_BOTTOM_NOTICE" = "Hintergrunddienste in welche kein Tweak geladen wird, werden automatisch ausgeblendet";

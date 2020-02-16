@@ -23,8 +23,6 @@
 #import "CHPDaemonList.h"
 #import "CHPTweakList.h"
 
-int hookingPlatform = 0;
-
 BOOL customTweakConfigurationWorks;
 
 #import <dirent.h>
@@ -100,18 +98,7 @@ void reloadPreferences()
 
 		if(![dontShowAgainNum boolValue])
 		{
-			NSString* hookingPlatformName;
-
-			if(hookingPlatform == 1)
-			{
-				hookingPlatformName = @"Substrate";
-			}
-			else if(hookingPlatform == 2)
-			{
-				hookingPlatformName = @"Substitute";
-			}
-
-			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:[NSString stringWithFormat:localize(@"WARNING_ALERT_MESSAGE"), hookingPlatformName] preferredStyle:UIAlertControllerStyleAlert];
+			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:localize(@"WARNING_ALERT_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
 		
 			UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
 			{
@@ -164,17 +151,10 @@ extern void initCHPPreferencesTableDataSource();
 
 void checkIfCustomTweakConfigurationWorks()
 {
-	NSString* targetLoaderPath;
-
-	if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+	if(![[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
 	{
-		targetLoaderPath = @"/usr/lib/substrate/SubstrateLoader.dylib";
-		hookingPlatform = 1;
-	}
-	else if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substitute-inserter.dylib"])
-	{
-		targetLoaderPath = @"/usr/lib/substitute-loader.dylib";
-		hookingPlatform = 2;
+		customTweakConfigurationWorks = YES;
+		return;
 	}
 	
 	DIR *dir;
@@ -202,11 +182,11 @@ void checkIfCustomTweakConfigurationWorks()
 
 	if(!customTweakConfigurationWorks)
 	{
-		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:targetLoaderPath error:nil];
+		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 
 		if([[targetLoaderAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeSymbolicLink])
 		{
-			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:targetLoaderPath error:nil];
+			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 			if([destination isEqualToString:@"/usr/lib/ChoicyLoader.dylib"])
 			{
 				customTweakConfigurationWorks = YES;

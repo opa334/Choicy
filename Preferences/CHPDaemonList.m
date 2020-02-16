@@ -89,30 +89,27 @@
 	for(NSURL* daemonPlistURL in daemonPlists)
 	{
 		NSDictionary* daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
-		NSNumber* disabled = [daemonDictionary objectForKey:@"Disabled"];
-		if(!disabled.boolValue)
+		
+		CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+
+		info.executablePath = [daemonDictionary objectForKey:@"Program"];
+
+		if(!info.executablePath)
 		{
-			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
-
-			info.executablePath = [daemonDictionary objectForKey:@"Program"];
-
-			if(!info.executablePath)
+			NSArray* programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
+			if(programArguments.count > 0)
 			{
-				NSArray* programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
-				if(programArguments.count > 0)
-				{
-					info.executablePath = programArguments.firstObject;
-				}
+				info.executablePath = programArguments.firstObject;
 			}
+		}
 
-			info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
+		info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
 
-			if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:@"com.apple.SpringBoard"]) //Filter out some useless entries
+		if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:@"com.apple.SpringBoard"]) //Filter out some useless entries
+		{
+			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
 			{
-				if(![self daemonList:daemonListM containsDisplayName:info.displayName])
-				{
-				   [daemonListM addObject:info];
-				}
+				[daemonListM addObject:info];
 			}
 		}
 	}
@@ -169,7 +166,7 @@
 
 	// On A12 unc0ver, using contentsOfDirectoryAtURL on /usr/libexec locks the thread and leaves a kernel thread looping
 	// This causes all sorts of issues and heats the device up
-	// This will eventually be fixed inside unc0ver
+	// This has been fixed in unc0ver 4.0, but we still use the old solution because some people might not be updated to 4.0
 	// The C API is not affected by this issue, so we just use it instead
 	DIR *dir;
     struct dirent* dp;
