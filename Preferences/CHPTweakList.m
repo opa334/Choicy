@@ -58,13 +58,19 @@
 	self.tweakList = [tweakListM copy];
 }
 
-- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers
+- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier executableName:(NSString*)executableName linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers
 {
 	NSMutableArray* tweakListForApplication = [NSMutableArray new];
 
 	for(CHPTweakInfo* tweakInfo in self.tweakList)
 	{
 		if([tweakInfo.filterBundles containsObject:identifier])
+		{
+			[tweakListForApplication addObject:tweakInfo];
+			continue;
+		}
+
+		if([tweakInfo.filterExecutables containsObject:executableName])
 		{
 			[tweakListForApplication addObject:tweakInfo];
 			continue;

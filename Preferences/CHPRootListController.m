@@ -23,7 +23,7 @@
 #import "CHPDaemonList.h"
 #import "CHPTweakList.h"
 
-BOOL customTweakConfigurationWorks;
+NSArray* dylibsBeforeChoicy;
 
 #import <dirent.h>
 
@@ -78,9 +78,7 @@ void reloadPreferences()
 {
 	[super viewDidLoad];
 
-	[self updateGlobalConfigurationAvailability];
-
-	if(!customTweakConfigurationWorks)
+	if(dylibsBeforeChoicy)
 	{
 		PSSpecifier* dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
 						target:self
@@ -98,14 +96,39 @@ void reloadPreferences()
 
 		if(![dontShowAgainNum boolValue])
 		{
-			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:localize(@"WARNING_ALERT_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
-		
-			UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-			{
-				[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://opa334.github.io"]];
-			}];
+			NSString* loader = localize(@"THE_INJECTION_PLATFORM");
 
-			[warningAlert addAction:openRepoAction];
+			if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/TweakInject.dylib"])
+			{
+				loader = @"TweakInject";
+			}
+			else if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substitute-inserter.dylib"])
+			{
+				loader = @"Substitute";
+			}
+			else if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+			{
+				loader = @"Substrate";
+			}
+
+			NSString* message = [NSString stringWithFormat:localize(@"WARNING_ALERT_MESSAGE"), loader];
+
+			if([loader isEqualToString:@"Substrate"])
+			{
+				message = [message stringByAppendingString:[@" " stringByAppendingString:localize(@"CHOICYLOADER_ADVICE")]];
+			}
+
+			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
+		
+			if([loader isEqualToString:@"Substrate"])
+			{
+				UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
+				{
+					[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://opa334.github.io"]];
+				}];
+
+				[warningAlert addAction:openRepoAction];
+			}
 
 			UIAlertAction* dontShowAgainAction = [UIAlertAction actionWithTitle:localize(@"DONT_SHOW_AGAIN") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
 			{
@@ -128,59 +151,56 @@ void reloadPreferences()
 	}
 }
 
-- (void)updateGlobalConfigurationAvailability
-{
-	if(!customTweakConfigurationWorks)
-	{
-		PSSpecifier* globalTweakConfiguration = [self specifierForID:@"GLOBAL_TWEAK_CONFIGURATION"];
-		[globalTweakConfiguration setProperty:@NO forKey:@"enabled"];
-		[self reloadSpecifier:globalTweakConfiguration];
-	}
-}
-
-- (void)reloadSpecifiers
-{
-	[super reloadSpecifiers];
-	[self updateGlobalConfigurationAvailability];
-}
-
 @end
 
 extern void initCHPApplicationPreferenceViewController();
 extern void initCHPPreferencesTableDataSource();
 
-void checkIfCustomTweakConfigurationWorks()
+void determineLoadingOrder()
 {
+	NSMutableArray* dylibsInOrder = [NSMutableArray new];
+
 	if(![[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
 	{
-		customTweakConfigurationWorks = YES;
-		return;
+		//Anything but substrate sorts the dylibs alphabetically
+		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/Library/MobileSubstrate/DynamicLibraries" error:nil] mutableCopy];
+		NSArray* plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
+		for(NSString* plist in plists)
+		{
+			NSString* dylibName = [plist stringByDeletingPathExtension];
+			[dylibsInOrder addObject:dylibName];
+		}
+		[dylibsInOrder sortUsingSelector:@selector(caseInsensitiveCompare:)];
 	}
-	
-	DIR *dir;
-    struct dirent* dp;
-    dir = opendir("/Library/MobileSubstrate/DynamicLibraries");
-	dp=readdir(dir); //.
-	dp=readdir(dir); //..
-
-	while((dp = readdir(dir)) != NULL)
+	else
 	{
-		NSString* filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
-
-		if([filename isEqualToString:@"000_Choicy.dylib"])
+		//SubstrateLoader doesn't sort anything and instead process the raw output of readdir
+		DIR *dir;
+		struct dirent* dp;
+		dir = opendir("/Library/MobileSubstrate/DynamicLibraries");
+		dp=readdir(dir); //.
+		dp=readdir(dir); //..
+		while((dp = readdir(dir)) != NULL)
 		{
-			customTweakConfigurationWorks = YES;
-			break;
-		}
+			NSString* filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
 
-		if([filename.pathExtension isEqualToString:@"dylib"])
-		{
-			customTweakConfigurationWorks = NO;
-			break;
+			if([filename.pathExtension isEqualToString:@"dylib"])
+			{
+				[dylibsInOrder addObject:[filename stringByDeletingPathExtension]];
+			}
 		}
 	}
 
-	if(!customTweakConfigurationWorks)
+	NSUInteger choicyIndex = [dylibsInOrder indexOfObject:CHOICY_DYLIB_NAME];
+
+	if(choicyIndex == NSNotFound) return;
+
+	if(choicyIndex != 0)
+	{
+		dylibsBeforeChoicy = [dylibsInOrder subarrayWithRange:NSMakeRange(0,choicyIndex)];
+	}
+
+	if(dylibsBeforeChoicy)
 	{
 		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 
@@ -189,7 +209,7 @@ void checkIfCustomTweakConfigurationWorks()
 			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 			if([destination isEqualToString:@"/usr/lib/ChoicyLoader.dylib"])
 			{
-				customTweakConfigurationWorks = YES;
+				dylibsBeforeChoicy = nil;
 			}
 		}
 	}
@@ -211,5 +231,5 @@ static void init(void)
 		initCHPPreferencesTableDataSource();
 	}
 
-	checkIfCustomTweakConfigurationWorks();
+	determineLoadingOrder();
 }

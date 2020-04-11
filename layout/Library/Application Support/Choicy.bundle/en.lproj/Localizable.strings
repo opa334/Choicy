@@ -32,7 +32,9 @@
 "CREDITS" = "Credits";
 "RESPRING" = "Respring";
 "WARNING_ALERT_TITLE" = "Warning";
-"WARNING_ALERT_MESSAGE" = "It was determined that global tweak configuration and process specific custom options will not work on your device due to Substrate not loading Choicy first, the options have been disabled to avoid confusion. If you want to work around this issue, install ChoicyLoader from the repo https://opa334.github.io";
+"THE_INJECTION_PLATFORM" = "the injection platform";
+"WARNING_ALERT_MESSAGE" = "It was determined that disabling certain tweaks with anything but the 'Disable Tweak Injection' toggle on apps will not work due to %@ not loading Choicy first, the affected tweaks have been greyed out to avoid confusion.";
+"CHOICYLOADER_ADVICE" = "If you want to work around this issue, install ChoicyLoader from the repo https://opa334.github.io";
 "OPEN_REPO" = "Open Repo";
 "DONT_SHOW_AGAIN" = "Don't Show Again";
 "CLOSE" = "Close";

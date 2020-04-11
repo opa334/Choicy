@@ -63,21 +63,6 @@ BOOL isTweakDylib(NSString* dylibPath)
 					}
 				}
 			}
-
-			/*NSDictionary* bundles = [filter objectForKey:@"Bundles"];
-			NSDictionary* executables = [filter objectForKey:@"Executables"];
-			NSDictionary* classes = [filter objectForKey:@"Classes"];
-
-			HBLogDebug(@"filter = %@", filter);
-			HBLogDebug(@"bundles = %@", bundles);
-			HBLogDebug(@"executables = %@", executables);
-			HBLogDebug(@"classes = %@", classes);
-
-			if(bundles.count > 0 || executables.count > 0 || classes.count > 0)
-			{
-				
-				return YES;
-			}*/
 		}
 	}
 

@@ -21,6 +21,7 @@
 #import "CHPGlobalTweakConfigurationController.h"
 #import "CHPTweakList.h"
 #import "CHPTweakInfo.h"
+#import "CHPRootListController.h"
 #import "../Shared.h"
 
 @implementation CHPGlobalTweakConfigurationController
@@ -45,7 +46,7 @@
 
 		for(CHPTweakInfo* tweakInfo in [CHPTweakList sharedInstance].tweakList)
 		{
-			if([tweakInfo.dylibName containsString:@"Choicy"])
+			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"])
 			{
 				continue;
 			}
@@ -57,8 +58,15 @@
 						  detail:nil
 						  cell:PSSwitchCell
 						  edit:nil];
+
+			BOOL enabled = YES;
+
+			if([dylibsBeforeChoicy containsObject:tweakInfo.dylibName])
+			{
+				enabled = NO;
+			}
 			
-			[tweakSpecifier setProperty:@YES forKey:@"enabled"];
+			[tweakSpecifier setProperty:@(enabled) forKey:@"enabled"];
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@YES forKey:@"default"];
 
@@ -90,7 +98,14 @@
 
 - (id)readValueForTweakWithSpecifier:(PSSpecifier*)specifier
 {
-	if([_globalTweakBlacklist containsObject:[specifier propertyForKey:@"key"]])
+	NSString* key = [specifier propertyForKey:@"key"];
+
+	if([dylibsBeforeChoicy containsObject:key])
+	{
+		return @1;
+	}
+
+	if([_globalTweakBlacklist containsObject:key])
 	{
 		return @0;
 	}

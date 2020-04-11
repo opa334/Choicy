@@ -20,7 +20,8 @@
 
 #import "CHPListController.h"
 
+extern NSArray* dylibsBeforeChoicy;
+
 @interface CHPRootListController : CHPListController
 - (void)openTwitterWithUsername:(NSString*)username;
-- (void)updateGlobalConfigurationAvailability;
 @end

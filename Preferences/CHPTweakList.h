@@ -24,7 +24,7 @@
 @property (nonatomic) NSArray* tweakList;
 + (instancetype)sharedInstance;
 - (void)updateTweakList;
-- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers;
+- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier executableName:(NSString*)executableName linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers;
 - (NSArray*)tweakListForDaemon:(CHPDaemonInfo*)daemonInfo;
 - (BOOL)oneOrMoreTweaksInjectIntoDaemon:(CHPDaemonInfo*)daemonInfo;
 @end

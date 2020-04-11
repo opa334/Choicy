@@ -35,5 +35,6 @@
 - (void)readAppDaemonSettingsFromMainPropertyList;
 - (void)writeAppDaemonSettingsToMainPropertyList;
 - (void)updateTopSwitchesAvailability;
+- (void)updateTweakConfigurationAvailability;
 - (NSString*)dictionaryName;
 @end

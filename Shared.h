@@ -27,6 +27,7 @@ extern NSString* localize(NSString* key);
 extern NSDictionary* preferences;
 
 #define CHPPlistPath @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist"
+#define CHOICY_DYLIB_NAME @"   Choicy"
 
 extern NSDictionary* preferencesForApplicationWithID(NSString* applicationID);
 extern NSDictionary* preferencesForDaemonWithDisplayName(NSString* daemonDisplayName);
