@@ -32,7 +32,7 @@
 "CREDITS" = "Credits";
 "RESPRING" = "Respring";
 "WARNING_ALERT_TITLE" = "Warnung";
-"THE_INJECTION_PLATFORM" = "die Injektionsplatform";
+"THE_INJECTION_PLATFORM" = "die Injektionsplattform";
 "WARNING_ALERT_MESSAGE" = "Es wurde festgestellt, dass einige Tweaks nicht konfiguriert werden können (außer über den 'Tweaks deaktivieren' Schalter bei Apps), da %@ Choicy nicht zuerst lädt, die betroffenen Tweaks werden daher ausgegraut.";
 "CHOICYLOADER_ADVICE" = "Zur Umgehung des Problems kann ChoicyLoader von der Quelle https://opa334.github.io installiert werden.";
 "OPEN_REPO" = "Quelle öffnen";
