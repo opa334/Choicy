@@ -23,6 +23,9 @@
 #import <dlfcn.h>
 //#import <mach-o/dyld.h>
 
+BOOL tweakInjectionDisabled = NO;
+BOOL customTweakConfigurationEnabled = NO;
+
 NSArray* tweakWhitelist;
 NSArray* tweakBlacklist;
 
@@ -77,24 +80,40 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
 
 		HBLogDebug(@"Checking whether %@ should be loaded", dylibName);
-		HBLogDebug(@"tweakWhitelist = %@", tweakWhitelist);
-		HBLogDebug(@"tweakBlacklist = %@", tweakBlacklist);
-		HBLogDebug(@"globalTweakBlacklist = %@", globalTweakBlacklist);
 
+		//Don't prevent ChoicySB from loading into SpringBoard cause otherwise the 3d shortcuts and disabling tweaks inside applications doesn't work
 		if([dylibName isEqualToString:@"ChoicySB"])
 		{
 			HBLogDebug(@"Loaded because ChoicySB");
 			return YES;
 		}
 
+		//Don't prevent AppList from loading into SpringBoard cause otherwise the Choicy application settings break
+		if([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"] && [dylibName isEqualToString:@"AppList"])
+		{
+			HBLogDebug(@"Loaded because AppList");
+			return YES;
+		}
+
 		if(isApplication)
 		{
+			//Don't prevent PreferenceLoader from loading into Preferences.app cause otherwise once disabled it could never be reenabled
 			if([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.Preferences"] && [dylibName isEqualToString:@"PreferenceLoader"])
 			{
 				HBLogDebug(@"Loaded because PreferenceLoader");
 				return YES;
 			}
 		}
+
+		if(tweakInjectionDisabled)
+		{
+			HBLogDebug(@"Not loading because tweakInjectionDisabled is enabled");
+			return NO;
+		}
+
+		HBLogDebug(@"tweakWhitelist = %@", tweakWhitelist);
+		HBLogDebug(@"tweakBlacklist = %@", tweakBlacklist);
+		HBLogDebug(@"globalTweakBlacklist = %@", globalTweakBlacklist);
 
 		BOOL tweakIsInWhitelist = [tweakWhitelist containsObject:dylibName];
 		BOOL tweakIsInBlacklist = [tweakBlacklist containsObject:dylibName];
@@ -139,36 +158,6 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 	return YES;
 }
 
-%group BlockAllTweaks
-
-%hookf(void *, dlopen, const char *path, int mode)
-{
-	@autoreleasepool
-	{
-		if(path != NULL)
-		{
-			NSString* dylibPath = @(path);
-
-			if(isTweakDylib(dylibPath))
-			{
-				if(![dylibPath.lastPathComponent isEqualToString:@"ChoicySB.dylib"])
-				{
-					HBLogDebug(@"%@ not loaded because all tweaks blocked", dylibPath.lastPathComponent);
-					return NULL;
-				}
-			}
-
-			HBLogDebug(@"%@ loaded because not a tweak", dylibPath.lastPathComponent);
-		}
-	}
-	
-	return %orig;
-}
-
-%end
-
-%group CustomConfiguration
-
 %hookf(void *, dlopen, const char *path, int mode)
 {
 	@autoreleasepool
@@ -189,8 +178,6 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 	return %orig;
 }
-
-%end
 
 %ctor
 {
@@ -220,8 +207,6 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		allowBlacklistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowBlacklistOverwrites"]).boolValue;
 		allowWhitelistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowWhitelistOverwrites"]).boolValue;
 
-		BOOL tweakInjectionDisabled = NO;
-		BOOL customTweakConfigurationEnabled = NO;
 		NSInteger whitelistBlacklistSegment = 0;
 
 		if(settings)
@@ -231,22 +216,19 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 			whitelistBlacklistSegment = ((NSNumber*)[settings objectForKey:@"whitelistBlacklistSegment"]).intValue;
 		}
 
-		if(tweakInjectionDisabled)
+		if(tweakInjectionDisabled || customTweakConfigurationEnabled || globalTweakBlacklist.count > 0)
 		{
-			if(isApplication)
+			//If tweakInjectionDisabled is true for an application other than SpringBoard,
+			//it means that tweak injection was enabled for one launch via 3D touch and we should not do anything
+			if(isApplication && tweakInjectionDisabled)
 			{
 				if(![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
 				{
-					HBLogDebug(@"exiting cause application and tweakInjectionDisabled");
+					HBLogDebug(@"tweak injection has been enabled via 3D touch, bye!");
 					return;
 				}
 			}
 
-			HBLogDebug(@"blocking all tweaks");
-			%init(BlockAllTweaks);
-		}
-		else if(customTweakConfigurationEnabled || globalTweakBlacklist.count > 0)
-		{
 			if(customTweakConfigurationEnabled)
 			{
 				if(whitelistBlacklistSegment == 2) //blacklist
@@ -259,8 +241,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 				}
 			}
 
-			HBLogDebug(@"initialising custom configuration");
-			%init(CustomConfiguration);
+			%init();
 		}
 	}
 }

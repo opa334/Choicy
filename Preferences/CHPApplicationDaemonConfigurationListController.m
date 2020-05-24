@@ -163,7 +163,7 @@
 
 		for(CHPTweakInfo* tweakInfo in tweakList)
 		{
-			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"])
+			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"] || [tweakInfo.dylibName containsString:@"AppList"])
 			{
 				continue;
 			}
