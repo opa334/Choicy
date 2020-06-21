@@ -118,6 +118,12 @@
 				}				
 			}
 
+			//Applist fails to provide the executable path for springboard, so we just set it manually
+			if([applicationIdentifier isEqualToString:@"com.apple.springboard"])
+			{
+				applicationExecutablePath = @"/System/Library/CoreServices/SpringBoard.app/SpringBoard";
+			}
+
 			if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
 			{
 				[specifiers removeObjectAtIndex:0];

@@ -37,7 +37,7 @@
 		self.filterBundles = [filter objectForKey:@"Bundles"];
 		self.filterExecutables = [filter objectForKey:@"Executables"];
 
-		//If a plist filters classes, treat it as UIKit (maybe inaccurate, maybe not)
+		//If a plist filters classes, treat it as Security (not very accurate, but better safe than sorry)
 		NSArray* classes = [filter objectForKey:@"Classes"];
 		if(classes && classes.count > 0 && ![self.filterBundles containsObject:@"com.apple.Security"])
 		{
