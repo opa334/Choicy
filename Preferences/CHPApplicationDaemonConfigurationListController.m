@@ -104,7 +104,7 @@
 		if(_isApplication)
 		{
 			NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
-			NSString* applicationExecutablePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"info.choicy_executablePath" forDisplayIdentifier:applicationIdentifier];
+			NSString* applicationExecutablePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"info.executableURL.path" forDisplayIdentifier:applicationIdentifier];
 			if(!applicationExecutablePath)
 			{
 				NSString* bundlePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"path" forDisplayIdentifier:applicationIdentifier];
@@ -129,7 +129,7 @@
 				[specifiers removeObjectAtIndex:0];
 			}
 
-			NSSet* linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(nil, applicationExecutablePath);
+			NSSet* linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(applicationExecutablePath);
 			tweakList = [[CHPTweakList sharedInstance] tweakListForApplicationWithIdentifier:applicationIdentifier executableName:applicationExecutablePath.lastPathComponent linkedFrameworkIdentifiers:linkedFrameworkIdentifiers];
 		}
 		else

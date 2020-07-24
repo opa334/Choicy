@@ -21,6 +21,8 @@
 #import "SpringBoard.h"
 #import "../Shared.h"
 
+NSBundle* choicyBundle;
+
 void reloadPreferences()
 {
 	if(preferences)
@@ -121,32 +123,6 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 %end
 %end
 
-%hook SBApplicationInfo
-
-- (id)valueForKey:(NSString*)key
-{
-	if([key isEqualToString:@"choicy_executablePath"])
-	{
-		return self.executableURL.path;
-	}
-
-	if([key isEqualToString:@"choicy_hasHiddenTag"])
-	{
-		if([self respondsToSelector:@selector(hasHiddenTag)])
-		{
-			return @(self.hasHiddenTag);
-		}
-		else if([self respondsToSelector:@selector(tags)])
-		{
-			return @([self.tags containsObject:@"hidden"]);
-		}
-	}
-
-	return %orig;
-}
-
-%end
-
 %hook FBProcessManager
 
 %new
@@ -214,16 +190,20 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	{
 		SBSApplicationShortcutItem* toggleSafeModeOnceItem = [[%c(SBSApplicationShortcutItem) alloc] init];
 
+		UIImage* iconImage;
+
 		if(isSafeMode)
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITH_TWEAKS");
+			iconImage = [UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil];
 		}
 		else
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITHOUT_TWEAKS");
+			iconImage = [UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil];
 		}
-		
-		//toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutSystemItem) alloc] initWithSystemImageName:@"fx"];
+
+		toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutCustomImageIcon) alloc] initWithImagePNGData:UIImagePNGRepresentation(iconImage)];
 		toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
 		toggleSafeModeOnceItem.type = @"com.opa334.choicy.toggleSafeModeOnce";
 
@@ -278,7 +258,6 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITHOUT_TWEAKS");
 		}
 		
-		//toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutSystemItem) alloc] init];
 		toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
 		toggleSafeModeOnceItem.type = @"com.opa334.choicy.toggleSafeModeOnce";
 
@@ -314,6 +293,24 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 
 %end
 
+%hook SBUIAction
+
+- (id)initWithTitle:(id)title subtitle:(id)arg2 image:(id)image badgeView:(id)arg4 handler:(id)arg5
+{
+    if([title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
+	{
+        image = [[UIImage imageNamed:@"AppLaunchIcon_Crossed_Big" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    }
+	else if([title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
+	{
+		image = [[UIImage imageNamed:@"AppLaunchIcon_Big" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+	}
+
+    return %orig;
+}
+
+%end
+
 %end
 
 @interface FBSystemService
@@ -333,6 +330,8 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	reloadPreferences();
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, respring, CFSTR("com.opa334.choicy/respring"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+
+	choicyBundle = [NSBundle bundleWithPath:@"/Library/Application Support/Choicy.bundle"];
 
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_13_0)
 	{

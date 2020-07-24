@@ -225,7 +225,7 @@
 
 	for(CHPDaemonInfo* daemonInfo in [daemonListM reverseObjectEnumerator])
 	{
-		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(nil, daemonInfo.executablePath);
+		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(daemonInfo.executablePath);
 
 		if(![tweakList oneOrMoreTweaksInjectIntoDaemon:daemonInfo])
 		{

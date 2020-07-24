@@ -34,6 +34,33 @@ BOOL allowBlacklistOverwrites;
 BOOL allowWhitelistOverwrites;
 BOOL isApplication;
 
+NSString* bundleIdentifier;
+
+//methods of getting executablePath and bundleIdentifier with at least side effects as possible
+//for more information, check out https://github.com/checkra1n/BugTracker/issues/343
+extern char*** _NSGetArgv();
+NSString* safe_getExecutablePath()
+{
+	char* executablePathC = **_NSGetArgv();
+	return [NSString stringWithUTF8String:executablePathC];
+}
+
+NSString* safe_getBundleIdentifier()
+{
+	CFBundleRef mainBundle = CFBundleGetMainBundle();
+
+	if(mainBundle != NULL)
+	{
+		CFStringRef bundleIdentifierCF = CFBundleGetIdentifier(mainBundle);
+
+		return (__bridge NSString*)bundleIdentifierCF;
+	}
+
+	return nil;
+}
+
+
+
 BOOL isTweakDylib(NSString* dylibPath)
 {
 	if([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"])
@@ -89,7 +116,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		}
 
 		//Don't prevent AppList from loading into SpringBoard cause otherwise the Choicy application settings break
-		if([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"] && [dylibName isEqualToString:@"AppList"])
+		if([bundleIdentifier isEqualToString:@"com.apple.springboard"] && [dylibName isEqualToString:@"AppList"])
 		{
 			HBLogDebug(@"Loaded because AppList");
 			return YES;
@@ -98,7 +125,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 		if(isApplication)
 		{
 			//Don't prevent PreferenceLoader from loading into Preferences.app cause otherwise once disabled it could never be reenabled
-			if([[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.Preferences"] && [dylibName isEqualToString:@"PreferenceLoader"])
+			if([bundleIdentifier isEqualToString:@"com.apple.Preferences"] && [dylibName isEqualToString:@"PreferenceLoader"])
 			{
 				HBLogDebug(@"Loaded because PreferenceLoader");
 				return YES;
@@ -187,14 +214,15 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 		preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 
-		NSString* executablePath = [[NSClassFromString(@"NSProcessInfo") processInfo] arguments].firstObject;
+		NSString* executablePath = safe_getExecutablePath();
+		bundleIdentifier = safe_getBundleIdentifier();
 
 		isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
 		NSDictionary* settings;
 
 		if(isApplication)
 		{
-			settings = preferencesForApplicationWithID([NSBundle mainBundle].bundleIdentifier);
+			settings = preferencesForApplicationWithID(bundleIdentifier);
 		}
 		else
 		{
@@ -222,7 +250,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 			//it means that tweak injection was enabled for one launch via 3D touch and we should not do anything
 			if(isApplication && tweakInjectionDisabled)
 			{
-				if(![[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.apple.springboard"])
+				if(![bundleIdentifier isEqualToString:@"com.apple.springboard"])
 				{
 					HBLogDebug(@"tweak injection has been enabled via 3D touch, bye!");
 					return;

@@ -18,5 +18,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-extern NSSet* frameworkBundleIDsForMachoAtPath(NSMutableSet* alreadyParsedPaths, NSString* path);
-extern NSArray* dependenciesForMachoAtPath(NSString* path);
+extern NSSet* frameworkBundleIDsForMachoAtPath(NSString* path);
+extern NSArray* dependenciesForMachoAtPath(NSString* path, NSArray** rpaths);

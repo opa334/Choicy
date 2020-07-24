@@ -139,7 +139,7 @@
 					<key>icon-size</key>
 					<string>29</string>
 					<key>predicate</key>
-					<string>(info.choicy_hasHiddenTag = TRUE OR isWebApplication = TRUE)</string>
+					<string>('hidden' IN info.tags OR isWebApplication = TRUE)</string>
 					<key>suppress-hidden-apps</key>
 					<false/>
 					<key>title</key>
