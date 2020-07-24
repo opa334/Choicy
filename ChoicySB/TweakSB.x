@@ -190,20 +190,15 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	{
 		SBSApplicationShortcutItem* toggleSafeModeOnceItem = [[%c(SBSApplicationShortcutItem) alloc] init];
 
-		UIImage* iconImage;
-
 		if(isSafeMode)
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITH_TWEAKS");
-			iconImage = [UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil];
 		}
 		else
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITHOUT_TWEAKS");
-			iconImage = [UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil];
 		}
 
-		toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutCustomImageIcon) alloc] initWithImagePNGData:UIImagePNGRepresentation(iconImage)];
 		toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
 		toggleSafeModeOnceItem.type = @"com.opa334.choicy.toggleSafeModeOnce";
 
@@ -222,6 +217,24 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	}
 
 	%orig;
+}
+
+%end
+
+%hook _UIContextMenuActionView
+
+- (instancetype)initWithTitle:(NSString*)title subtitle:(NSString*)subtitle image:(UIImage*)image
+{
+	if([title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
+	{
+        image = [[UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+    }
+	else if([title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
+	{
+		image = [[UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+	}
+
+	return %orig;
 }
 
 %end

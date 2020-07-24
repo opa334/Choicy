@@ -47,14 +47,6 @@
 @interface SBSApplicationShortcutIcon : NSObject
 @end
 
-@interface SBSApplicationShortcutCustomImageIcon : SBSApplicationShortcutIcon
-- (id)initWithImagePNGData:(NSData*)arg1;
-@end
-
-@interface SBSApplicationShortcutSystemItem : SBSApplicationShortcutIcon
-- (instancetype)initWithSystemImageName:(NSString*)systemImageName;
-@end
-
 @interface SBSApplicationShortcutItem : NSObject
 @property (nonatomic,copy) NSString* type;
 @property (nonatomic,copy) NSString* localizedTitle;
