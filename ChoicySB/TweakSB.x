@@ -221,6 +221,11 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 
 %end
 
+%end
+
+//Replace the icon of the "Launch (without) Tweaks" option on iOS 13
+%group Shortcut_iOS13
+
 %hook _UIContextMenuActionView
 
 - (instancetype)initWithTitle:(NSString*)title subtitle:(NSString*)subtitle image:(UIImage*)image
@@ -235,6 +240,39 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	}
 
 	return %orig;
+}
+
+%end
+
+%end
+
+//Replace the icon of the "Launch (without) Tweaks" option on iOS 14(+?)
+%group Shortcut_iOS14Up
+
+%hook _UIContextMenuActionsListView
+
+- (void)_configureCell:(_UIContextMenuActionsListCell*)cell forElement:(UIMenuElement*)element section:(id)arg3
+{
+	%orig;
+
+	if(element && element.title)
+	{
+		UIImage* imageToSet;
+
+		if([element.title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
+		{
+			imageToSet = [[UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+		}
+		else if([element.title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
+		{
+			imageToSet = [[UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+		}
+
+		if(imageToSet)
+		{
+			[cell.actionView setTrailingImage:imageToSet];
+		}
+	}
 }
 
 %end
@@ -350,6 +388,15 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	{
 		%init(SafeMode_iOS13Up);
 		%init(Shortcut_iOS13Up);
+
+		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0)
+		{
+			%init(Shortcut_iOS14Up);
+		}
+		else
+		{
+			%init(Shortcut_iOS13);
+		}
 	}
 	else
 	{
