@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #import "Shared.h"
-
+#import <substrate.h>
 #import <dlfcn.h>
 //#import <mach-o/dyld.h>
 
@@ -115,6 +115,12 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 			return YES;
 		}
 
+		if([dylibName isEqualToString:@"   Choicy"])
+		{
+			HBLogDebug(@"Loaded because Choicy main dylib");
+			return YES;
+		}
+
 		//Don't prevent AppList from loading into SpringBoard cause otherwise the Choicy application settings break
 		if([bundleIdentifier isEqualToString:@"com.apple.springboard"] && [dylibName isEqualToString:@"AppList"])
 		{
@@ -183,6 +189,14 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 
 	HBLogDebug(@"Loaded");
 	return YES;
+}
+
+//dlopen_from can somehow cause a crash when dlopen is hooked, redirecting it to dlopen seems to work (may reduce performance or something but who gives a shit)
+//note that the crash is not caused because Choicy doesn't affect it, substrate only uses dlopen so there would be no point in hooking this if it didn't cause a crash
+void* (*dlopen_from_orig)(const char*, int, void*);
+void* $dlopen_from(const char* path, int mode, void* callerAddress)
+{
+	return dlopen(path, mode);
 }
 
 %hookf(void *, dlopen, const char *path, int mode)
@@ -267,6 +281,16 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 				{
 					tweakWhitelist = [settings objectForKey:@"tweakWhitelist"] ?: [NSArray new];
 				}
+			}
+
+			//Fix for iOS >=14.1
+			//Symbol only exists on 14.1 and above so we don't need to do version checks
+			MSImageRef image = MSGetImageByName("/usr/lib/system/libdyld.dylib");
+			void* _dlopen_from_ptr = MSFindSymbol(image, "_dlopen_from");
+			HBLogDebug(@"_dlopen_from_ptr = %p", _dlopen_from_ptr);
+			if(_dlopen_from_ptr)
+			{
+				MSHookFunction(_dlopen_from_ptr, (void *)$dlopen_from, (void **)&dlopen_from_orig);
 			}
 
 			%init();
