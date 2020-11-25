@@ -19,10 +19,12 @@
 // SOFTWARE.
 
 #import <Preferences/PSListController.h>
+#import <Preferences/PSSpecifier.h>
 
 @interface ALApplicationPreferenceViewController : PSListController
 - (id)valueTitleForCellAtIndexPath:(NSIndexPath *)indexPath;
 - (id)valueForCellAtIndexPath:(NSIndexPath *)indexPath;
+- (void)loadFromSpecifier:(PSSpecifier *)specifier;
 @end
 
 @interface ALApplicationTableDataSource : NSObject

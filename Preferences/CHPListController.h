@@ -21,9 +21,12 @@
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
 
-@interface CHPListController : PSListController
+@interface CHPListController : PSListController <UISearchResultsUpdating> {
+    NSString *_searchKey;
+}
 - (NSString*)topTitle;
 - (NSString*)plistName;
 - (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers;
 - (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier;
+- (void)loadSearchController;
 @end

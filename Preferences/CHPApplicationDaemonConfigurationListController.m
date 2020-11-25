@@ -39,6 +39,11 @@
 	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicy/respring"), NULL, NULL, YES);
 }
 
+- (void)loadView{
+	[super loadView];
+	[self loadSearchController];
+}
+
 - (void)viewDidLoad;
 {
 	_isApplication = ((NSNumber*)[[self specifier] propertyForKey:@"isApplication"]).boolValue;
@@ -171,6 +176,9 @@
 		{
 			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"] || [tweakInfo.dylibName isEqualToString:@"AppList"])
 			{
+				continue;
+			}
+			if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey]&&![_searchKey isEqualToString:@""]) {
 				continue;
 			}
 
