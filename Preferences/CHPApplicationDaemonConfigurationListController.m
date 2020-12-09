@@ -27,6 +27,7 @@
 #import "CHPTweakInfo.h"
 #import "CHPMachoParser.h"
 #import "CHPRootListController.h"
+#import "CHPDPKGFetcher.h"
 
 @interface PSSpecifier ()
 @property (nonatomic,retain) NSArray* values;
@@ -189,9 +190,16 @@
 						  cell:PSSwitchCell
 						  edit:nil];
 			
+			[tweakSpecifier setProperty:NSClassFromString(@"CHPSubtitleSwitch") forKey:@"cellClass"];
 			[tweakSpecifier setProperty:@(enabled) forKey:@"enabled"];
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@NO forKey:@"default"];
+
+			NSString* package = [[CHPDPKGFetcher sharedInstance] getPackageNameForDylibWithName:tweakInfo.dylibName];
+			if(package)
+			{
+				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), package] forKey:@"subtitle"];
+			}
 
 			[_customConfigurationSpecifiers addObject:tweakSpecifier];
 		}

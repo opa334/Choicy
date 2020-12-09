@@ -39,3 +39,4 @@
 "DONT_SHOW_AGAIN" = "Don't Show Again";
 "CLOSE" = "Close";
 "DAEMON_LIST_BOTTOM_NOTICE" = "Daemons that no tweak injects into are automatically hidden";
+"PACKAGE" = "Package";

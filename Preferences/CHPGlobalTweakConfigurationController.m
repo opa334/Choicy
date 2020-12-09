@@ -22,6 +22,7 @@
 #import "CHPTweakList.h"
 #import "CHPTweakInfo.h"
 #import "CHPRootListController.h"
+#import "CHPDPKGFetcher.h"
 #import "../Shared.h"
 
 @implementation CHPGlobalTweakConfigurationController
@@ -76,9 +77,16 @@
 				enabled = NO;
 			}
 			
+			[tweakSpecifier setProperty:NSClassFromString(@"CHPSubtitleSwitch") forKey:@"cellClass"];
 			[tweakSpecifier setProperty:@(enabled) forKey:@"enabled"];
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@YES forKey:@"default"];
+
+			NSString* package = [[CHPDPKGFetcher sharedInstance] getPackageNameForDylibWithName:tweakInfo.dylibName];
+			if(package)
+			{
+				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), package] forKey:@"subtitle"];
+			}
 
 			[specifiers addObject:tweakSpecifier];
 		}

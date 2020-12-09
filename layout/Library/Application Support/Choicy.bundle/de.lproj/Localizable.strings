@@ -39,3 +39,4 @@
 "DONT_SHOW_AGAIN" = "Nie wieder anzeigen";
 "CLOSE" = "Schließen";
 "DAEMON_LIST_BOTTOM_NOTICE" = "Hintergrunddienste in welche kein Tweak geladen wird, werden automatisch ausgeblendet";
+"PACKAGE" = "Packet";
