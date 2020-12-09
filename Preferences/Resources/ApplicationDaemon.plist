@@ -5,6 +5,10 @@
 		<key>items</key>
 		<array>
 			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+			</dict>
+			<dict>
 				<key>PostNotification</key>
 				<string>com.opa334.choicyprefs/ReloadPrefs</string>
 				<key>cell</key>

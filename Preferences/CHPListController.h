@@ -23,10 +23,12 @@
 
 @interface CHPListController : PSListController <UISearchResultsUpdating> {
     NSString *_searchKey;
+    UISearchController *_searchController;
 }
+- (void)applySearchControllerHideWhileScrolling:(BOOL)hideWhileScrolling;
 - (NSString*)topTitle;
 - (NSString*)plistName;
 - (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers;
 - (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier;
-- (void)loadSearchController;
+- (void)applySearchControllerHideWhileScrolling:(BOOL)hideWhileScrolling;
 @end

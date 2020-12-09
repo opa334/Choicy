@@ -36,10 +36,12 @@
 	return @"GlobalTweakConfiguration";
 }
 
-- (void)loadView{
-	[super loadView];
-	[self loadSearchController];
+- (void)viewDidLoad
+{
+	[self applySearchControllerHideWhileScrolling:YES];
+	[super viewDidLoad];
 }
+
 - (NSMutableArray*)specifiers
 {
 	if(![self valueForKey:@"_specifiers"])
@@ -54,7 +56,8 @@
 			{
 				continue;
 			}
-			if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey]&&![_searchKey isEqualToString:@""]) {
+			if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey] && ![_searchKey isEqualToString:@""])
+			{
 				continue;
 			}
 

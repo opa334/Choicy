@@ -91,11 +91,6 @@ NSString* previewStringForSettings(NSDictionary* settings)
     [self loadFromSpecifier:self.specifier];
 }
 
-- (void)pushController:(id)arg {
-    self.searchController.active=NO;
-    %orig;
-}
-
 - (void)dealloc
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];

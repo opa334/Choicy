@@ -29,13 +29,9 @@
 
 @implementation CHPDaemonListController
 
-- (void)loadView{
-	[super loadView];
-	[self loadSearchController];
-}
-
 - (void)viewDidLoad
 {
+	[self applySearchControllerHideWhileScrolling:NO];
 	[[CHPDaemonList sharedInstance] addObserver:self];
 
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadValueOfSelectedSpecifier) name:@"preferencesDidReload" object:nil];
@@ -92,6 +88,33 @@
 		}
 		else
 		{
+			NSString* toggleName;
+
+			if(_showsAllDaemons)
+			{
+				toggleName = localize(@"SHOW_RECOMMENDED_DAEMONS");
+			}
+			else
+			{
+				toggleName = localize(@"SHOW_ALL_DAEMONS");
+			}
+
+			PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:toggleName
+							target:self
+							set:nil
+							get:nil
+							detail:nil
+							cell:PSButtonCell
+							edit:nil];
+
+			[specifier setProperty:@YES forKey:@"enabled"];
+			specifier.buttonAction = @selector(daemonTogglePressed:);
+			[specifiers addObject:specifier];
+
+			PSSpecifier* daemonsGroup = [PSSpecifier emptyGroupSpecifier];
+			[daemonsGroup setProperty:localize(@"DAEMON_LIST_BOTTOM_NOTICE") forKey:@"footerText"];
+			[specifiers addObject:daemonsGroup];
+
 			NSArray<CHPDaemonInfo*>* daemonList = [CHPDaemonList sharedInstance].daemonList;
 
 			for(CHPDaemonInfo* info in daemonList)
@@ -117,41 +140,6 @@
 					[specifiers addObject:specifier];
 				}
 			}
-
-			PSSpecifier* buttonGroup = [PSSpecifier preferenceSpecifierNamed:@""
-							target:self
-							set:nil
-							get:nil
-							detail:nil
-							cell:PSGroupCell
-							edit:nil];
-
-			[buttonGroup setProperty:localize(@"DAEMON_LIST_BOTTOM_NOTICE") forKey:@"footerText"];
-
-			[specifiers addObject:buttonGroup];
-
-			NSString* toggleName;
-
-			if(_showsAllDaemons)
-			{
-				toggleName = localize(@"SHOW_RECOMMENDED_DAEMONS");
-			}
-			else
-			{
-				toggleName = localize(@"SHOW_ALL_DAEMONS");
-			}
-
-			PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:toggleName
-							target:self
-							set:nil
-							get:nil
-							detail:nil
-							cell:PSButtonCell
-							edit:nil];
-
-			[specifier setProperty:@YES forKey:@"enabled"];
-			specifier.buttonAction = @selector(daemonTogglePressed:);
-			[specifiers addObject:specifier];
 		}
 
 		[self setValue:specifiers forKey:@"_specifiers"];
