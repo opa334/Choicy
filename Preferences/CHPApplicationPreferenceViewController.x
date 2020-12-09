@@ -76,17 +76,31 @@ NSString* previewStringForSettings(NSDictionary* settings)
 }
 
 %new
-- (void)updateSearchResultsForSearchController:(UISearchController *)searchController{
-    NSString *searchKey=searchController.searchBar.text;
-    for(NSMutableDictionary* desc in self.specifier.properties[@"ALSectionDescriptors"]){
-    if(!desc[@"orig_predicate"]) desc[@"orig_predicate"]=desc[@"predicate"];
-        if([searchKey isEqualToString:@""]) {
-            desc[@"predicate"]=desc[@"orig_predicate"];
-        }
-        else {
-            desc[@"predicate"]=[NSString stringWithFormat:@"%@ AND displayName CONTAINS[cd] '%@'",desc[@"orig_predicate"],searchKey];
-        }
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController
+{
+    NSString *searchKey = searchController.searchBar.text;
+
+	NSMutableArray* descriptorsM = [self.specifier.properties[@"ALSectionDescriptors"] mutableCopy];
+
+    for(NSDictionary* desc in [descriptorsM reverseObjectEnumerator])
+	{
+		NSMutableDictionary* newDesc = [desc mutableCopy];
+
+    	if(!newDesc[@"orig_predicate"]) newDesc[@"orig_predicate"] = newDesc[@"predicate"];
+
+		if([searchKey isEqualToString:@""])
+		{
+			newDesc[@"predicate"] = newDesc[@"orig_predicate"];
+		}
+		else
+		{
+			newDesc[@"predicate"] = [NSString stringWithFormat:@"%@ AND displayName CONTAINS[cd] '%@'", newDesc[@"orig_predicate"], searchKey];
+		}
+
+		[descriptorsM replaceObjectAtIndex:[descriptorsM indexOfObject:desc] withObject:[newDesc copy]];
     }
+
+	[self.specifier setProperty:[descriptorsM copy] forKey:@"ALSectionDescriptors"];
 
     [self loadFromSpecifier:self.specifier];
 }
