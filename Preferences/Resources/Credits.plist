@@ -40,6 +40,22 @@
 			<key>label</key>
 			<string>UnSub (Nepeta)</string>
 		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>Search related contributions on GitHub.</string>
+        </dict>
+		<dict>
+			<key>action</key>
+			<string>openBrendonjkding</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>brendonjkding</string>
+		</dict>
 	</array>
 </dict>
 </plist>

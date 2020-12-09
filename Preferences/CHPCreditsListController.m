@@ -48,4 +48,9 @@
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/NepetaDev/UnSub"]];
 }
 
+- (void)openBrendonjkding
+{
+	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/brendonjkding"]];
+}
+
 @end
