@@ -74,6 +74,12 @@
 	{
 		specifiers = [NSMutableArray new];
 
+		if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
+		{
+			[specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
+			[specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
+		}
+
 		if(![CHPDaemonList sharedInstance].loaded)
 		{
 			PSSpecifier* loadingIndicator = [PSSpecifier preferenceSpecifierNamed:@""

@@ -41,20 +41,24 @@
 	_searchController.searchResultsUpdater = self;
 	if (@available(iOS 9.1, *)) _searchController.obscuresBackgroundDuringPresentation = NO;
 
-
-	if (@available(iOS 11.0, *)) {
-	  self.navigationItem.searchController = _searchController;
-	  self.navigationItem.hidesSearchBarWhenScrolling = hideWhileScrolling;
-	} else {
-	  self.table.tableHeaderView = _searchController.searchBar;
+	if (@available(iOS 11.0, *))
+	{
+		self.navigationItem.searchController = _searchController;
+		self.navigationItem.hidesSearchBarWhenScrolling = hideWhileScrolling;
+	}
+	else
+	{
+		self.table.tableHeaderView = _searchController.searchBar;
+		[self.table setContentOffset:CGPointMake(0,44) animated:NO];
 	}
 
 	_searchKey = @"";
 }
 
-- (void)updateSearchResultsForSearchController:(UISearchController *)searchController{
-  _searchKey=searchController.searchBar.text;
-  [self reloadSpecifiers];
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController
+{
+	_searchKey = searchController.searchBar.text;
+	[self reloadSpecifiers];
 }
 
 - (NSMutableArray*)specifiers

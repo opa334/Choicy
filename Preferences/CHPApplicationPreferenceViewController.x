@@ -52,19 +52,22 @@ NSString* previewStringForSettings(NSDictionary* settings)
 
 - (id)initForContentSize:(CGSize)size
 {
-	id orig = %orig;
+	CHPApplicationPreferenceViewController* orig = %orig;
 
 	UISearchController *searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
-    self.searchController=searchController;
+	self.searchController = searchController;
 	searchController.searchResultsUpdater = (id<UISearchResultsUpdating>) self;
 	if (@available(iOS 9.1, *)) searchController.obscuresBackgroundDuringPresentation = NO;
 
-
-	if (@available(iOS 11.0, *)) {
-	  self.navigationItem.searchController = searchController;
-	  self.navigationItem.hidesSearchBarWhenScrolling=NO;
-	} else {
-	  self.table.tableHeaderView = searchController.searchBar;
+	if (@available(iOS 11.0, *))
+	{
+		self.navigationItem.searchController = searchController;
+		self.navigationItem.hidesSearchBarWhenScrolling=NO;
+	}
+	else
+	{
+		UITableView* tableView = [orig valueForKey:@"_tableView"];
+		tableView.tableHeaderView = searchController.searchBar;
 	}
 
 	ALPreferencesTableDataSource* dataSource = [self valueForKey:@"_dataSource"];
