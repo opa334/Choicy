@@ -40,3 +40,5 @@
 "CLOSE" = "Close";
 "DAEMON_LIST_BOTTOM_NOTICE" = "Daemons that no tweak injects into are automatically hidden";
 "PACKAGE" = "Package";
+"APPLIST_ROCKETBOOTSTRAP_ERROR_TITLE" = "AppList / RocketBootstrap Error";
+"APPLIST_ROCKETBOOTSTRAP_ERROR_MESSAGE" = "AppList does not seem to work on your device, pressing 'Applications' will either crash the settings application or show an error. Make sure your jailbreak and RocketBootstrap (Repo: https://rpetri.ch/repo) are up to date.";

@@ -40,3 +40,5 @@
 "CLOSE" = "Schließen";
 "DAEMON_LIST_BOTTOM_NOTICE" = "Hintergrunddienste in welche kein Tweak geladen wird, werden automatisch ausgeblendet";
 "PACKAGE" = "Packet";
+"APPLIST_ROCKETBOOTSTRAP_ERROR_TITLE" = "AppList / RocketBootstrap Fehler";
+"APPLIST_ROCKETBOOTSTRAP_ERROR_MESSAGE" = "AppList funktioniert auf deinem Gerät nicht, das Antippen von 'Applikationen' wird entweder die Einstellungsapp crashen oder einen Fehler anzeigen. Stelle sicher, dass du die neuste Version deines Jailbreaks beuntzt und die neuste Version von RocketBootstrap (Repo: https://rpetri.ch/repo) installiert ist.";

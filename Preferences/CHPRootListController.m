@@ -22,6 +22,7 @@
 #import "../Shared.h"
 #import "CHPDaemonList.h"
 #import "CHPTweakList.h"
+#import <AppList/AppList.h>
 
 NSArray* dylibsBeforeChoicy;
 
@@ -77,6 +78,22 @@ void reloadPreferences()
 - (void)viewDidLoad
 {
 	[super viewDidLoad];
+
+	if([ALApplicationList sharedApplicationList].applications.count == 0)
+	{
+		UIAlertController* errorAlert = [UIAlertController alertControllerWithTitle:localize(@"APPLIST_ROCKETBOOTSTRAP_ERROR_TITLE") message:localize(@"APPLIST_ROCKETBOOTSTRAP_ERROR_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
+		
+		UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
+		{
+			[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://rpetri.ch/repo"]];
+		}];
+		UIAlertAction* closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
+
+		[errorAlert addAction:openRepoAction];
+		[errorAlert addAction:closeAction];
+
+		[self presentViewController:errorAlert animated:YES completion:nil];
+	}
 
 	if(dylibsBeforeChoicy)
 	{
