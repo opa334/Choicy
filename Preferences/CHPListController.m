@@ -35,6 +35,27 @@
 	return nil;
 }
 
+- (void)loadSearchController{
+	UISearchController *searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+	searchController.searchResultsUpdater = self;
+	if (@available(iOS 9.1, *)) searchController.obscuresBackgroundDuringPresentation = NO;
+
+
+	if (@available(iOS 11.0, *)) {
+	  self.navigationItem.searchController = searchController;
+	  self.navigationItem.hidesSearchBarWhenScrolling=NO;
+	} else {
+	  self.table.tableHeaderView = searchController.searchBar;
+	}
+
+	_searchKey=@"";
+}
+
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController{
+  _searchKey=searchController.searchBar.text;
+  [self reloadSpecifiers];
+}
+
 - (NSMutableArray*)specifiers
 {
 	if(!_specifiers)

@@ -36,6 +36,10 @@
 	return @"GlobalTweakConfiguration";
 }
 
+- (void)loadView{
+	[super loadView];
+	[self loadSearchController];
+}
 - (NSMutableArray*)specifiers
 {
 	if(![self valueForKey:@"_specifiers"])
@@ -48,6 +52,9 @@
 		{
 			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"] || [tweakInfo.dylibName isEqualToString:@"AppList"])
 			{
+				continue;
+			}
+			if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey]&&![_searchKey isEqualToString:@""]) {
 				continue;
 			}
 
