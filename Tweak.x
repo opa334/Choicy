@@ -21,7 +21,6 @@
 #import "Shared.h"
 #import <substrate.h>
 #import <dlfcn.h>
-//#import <mach-o/dyld.h>
 
 BOOL tweakInjectionDisabled = NO;
 BOOL customTweakConfigurationEnabled = NO;
@@ -191,15 +190,8 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 	return YES;
 }
 
-//dlopen_from can somehow cause a crash when dlopen is hooked, redirecting it to dlopen seems to work (may reduce performance or something but who gives a shit)
-//note that the crash is not caused because Choicy doesn't affect it, substrate only uses dlopen so there would be no point in hooking this if it didn't cause a crash
-void* (*dlopen_from_orig)(const char*, int, void*);
-void* $dlopen_from(const char* path, int mode, void* callerAddress)
-{
-	return dlopen(path, mode);
-}
-
-%hookf(void *, dlopen, const char *path, int mode)
+void* (*dlopen_internal)(const char*, int, void*);
+void* $dlopen_internal(const char *path, int mode, void* lr)
 {
 	@autoreleasepool
 	{
@@ -216,8 +208,28 @@ void* $dlopen_from(const char* path, int mode, void* callerAddress)
 			HBLogDebug(@"%@ loaded", dylibPath.lastPathComponent);
 		}
 	}
+	return dlopen_internal(path, mode, lr);
+}
 
-	return %orig;
+void* (*dlopen_regular)(const char*, int);
+void* $dlopen_regular(const char *path, int mode)
+{
+	@autoreleasepool
+	{
+		if(path != NULL)
+		{
+			NSString* dylibPath = @(path);
+
+			if(!shouldLoadDylib(dylibPath))
+			{
+				HBLogDebug(@"%@ not loaded", dylibPath.lastPathComponent);
+				return NULL;
+			}
+
+			HBLogDebug(@"%@ loaded", dylibPath.lastPathComponent);
+		}
+	}
+	return dlopen_regular(path, mode);
 }
 
 %ctor
@@ -283,17 +295,16 @@ void* $dlopen_from(const char* path, int mode, void* callerAddress)
 				}
 			}
 
-			//Fix for iOS >=14.1
-			//Symbol only exists on 14.1 and above so we don't need to do version checks
-			MSImageRef image = MSGetImageByName("/usr/lib/system/libdyld.dylib");
-			void* _dlopen_from_ptr = MSFindSymbol(image, "_dlopen_from");
-			HBLogDebug(@"_dlopen_from_ptr = %p", _dlopen_from_ptr);
-			if(_dlopen_from_ptr)
-			{
-				MSHookFunction(_dlopen_from_ptr, (void *)$dlopen_from, (void **)&dlopen_from_orig);
-			}
+			MSImageRef libdyldImage = MSGetImageByName("/usr/lib/system/libdyld.dylib");
 
-			%init();
+			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0)
+			{
+				MSHookFunction(MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv"), (void*)$dlopen_internal, (void**)&dlopen_internal);
+			}
+			else
+			{
+				MSHookFunction(MSFindSymbol(libdyldImage, "_dlopen"), (void*)$dlopen_regular, (void**)&dlopen_regular);
+			}
 		}
 	}
 }
