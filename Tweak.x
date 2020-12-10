@@ -297,7 +297,7 @@ void* $dlopen_regular(const char *path, int mode)
 
 			MSImageRef libdyldImage = MSGetImageByName("/usr/lib/system/libdyld.dylib");
 
-			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0)
+			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
 			{
 				MSHookFunction(MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv"), (void*)$dlopen_internal, (void**)&dlopen_internal);
 			}
