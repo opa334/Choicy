@@ -30,5 +30,4 @@
 - (NSString*)plistName;
 - (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers;
 - (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier;
-- (void)applySearchControllerHideWhileScrolling:(BOOL)hideWhileScrolling;
 @end

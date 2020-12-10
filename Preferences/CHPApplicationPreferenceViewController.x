@@ -78,6 +78,18 @@ NSString* previewStringForSettings(NSDictionary* settings)
 	return orig;
 }
 
+- (void)pushController:(id)arg
+{
+	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
+	{
+		[UIView performWithoutAnimation:^
+		{
+			self.searchController.active=NO;
+		}];
+	}
+    %orig;
+}
+
 %new
 - (void)updateSearchResultsForSearchController:(UISearchController *)searchController
 {

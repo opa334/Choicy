@@ -27,6 +27,10 @@
 #import "CHPDaemonList.h"
 #import "CHPApplicationDaemonConfigurationListController.h"
 
+@interface PSListController()
+- (id)controllerForSpecifier:(PSSpecifier*)specifier;
+@end
+
 @implementation CHPDaemonListController
 
 - (void)viewDidLoad
@@ -203,6 +207,19 @@ extern NSString* previewStringForSettings(NSDictionary* settings);
 {
 	[self updateSuggestedDaemons];
 	[self reloadSpecifiers];
+}
+
+- (id)controllerForSpecifier:(PSSpecifier*)specifier
+{
+	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
+	{
+		[UIView performWithoutAnimation:^
+		{
+			_searchController.active = NO;
+		}];
+	}
+
+	return [super controllerForSpecifier:specifier];
 }
 
 @end
