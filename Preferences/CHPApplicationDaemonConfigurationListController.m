@@ -125,11 +125,6 @@
 				applicationExecutablePath = @"/System/Library/CoreServices/SpringBoard.app/SpringBoard";
 			}
 
-			if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
-			{
-				[specifiers removeObjectAtIndex:0];
-			}
-
 			NSSet* linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(applicationExecutablePath);
 			tweakList = [[CHPTweakList sharedInstance] tweakListForApplicationWithIdentifier:applicationIdentifier executableName:applicationExecutablePath.lastPathComponent linkedFrameworkIdentifiers:linkedFrameworkIdentifiers];
 		}
@@ -230,10 +225,25 @@
 	PSSpecifier* customTweakConfigurationSpecifier = [self specifierForID:@"CUSTOM_TWEAK_CONFIGURATION"];
 
 	NSNumber* disableTweakInjectionNum = [self readPreferenceValue:disableTweakInjectionSpecifier];
-	[customTweakConfigurationSpecifier setProperty:@(!disableTweakInjectionNum.boolValue) forKey:@"enabled"];
-
 	NSNumber* customTweakConfigurationNum = [self readPreferenceValue:customTweakConfigurationSpecifier];
-	[disableTweakInjectionSpecifier setProperty:@(!customTweakConfigurationNum.boolValue) forKey:@"enabled"];
+
+	//handle the edge case where a user managed to enable both at the same time
+	if([disableTweakInjectionNum boolValue] && [customTweakConfigurationNum boolValue])
+	{
+		[disableTweakInjectionSpecifier setProperty:@(YES) forKey:@"enabled"];
+		[customTweakConfigurationSpecifier setProperty:@(YES) forKey:@"enabled"];
+	}
+	else
+	{
+		[disableTweakInjectionSpecifier setProperty:@(!customTweakConfigurationNum.boolValue) forKey:@"enabled"];
+		[customTweakConfigurationSpecifier setProperty:@(!disableTweakInjectionNum.boolValue) forKey:@"enabled"];
+	}
+
+	NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
+	if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
+	{
+		[disableTweakInjectionSpecifier setProperty:@(NO) forKey:@"enabled"];
+	}
 
 	[self reloadSpecifier:disableTweakInjectionSpecifier];
 	[self reloadSpecifier:customTweakConfigurationSpecifier];

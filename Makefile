@@ -1,5 +1,7 @@
 export TARGET = iphone:clang:13.0:8.0
 
+export PREFIX = $(THEOS)/toolchain/Xcode11.xctoolchain/usr/bin/
+
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Choicy
