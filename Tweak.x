@@ -35,7 +35,7 @@ BOOL isApplication;
 
 NSString* bundleIdentifier;
 
-//methods of getting executablePath and bundleIdentifier with at least side effects as possible
+//methods of getting executablePath and bundleIdentifier with the least side effects possible
 //for more information, check out https://github.com/checkra1n/BugTracker/issues/343
 extern char*** _NSGetArgv();
 NSString* safe_getExecutablePath()
@@ -57,8 +57,6 @@ NSString* safe_getBundleIdentifier()
 
 	return nil;
 }
-
-
 
 BOOL isTweakDylib(NSString* dylibPath)
 {

@@ -242,7 +242,10 @@
 	NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
 	if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
 	{
-		[disableTweakInjectionSpecifier setProperty:@(NO) forKey:@"enabled"];
+		if(![disableTweakInjectionNum boolValue])
+		{
+			[disableTweakInjectionSpecifier setProperty:@(NO) forKey:@"enabled"];
+		}
 	}
 
 	[self reloadSpecifier:disableTweakInjectionSpecifier];

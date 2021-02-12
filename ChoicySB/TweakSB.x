@@ -70,7 +70,10 @@ BOOL shouldEnableSafeModeForApplicationWithID(NSString* applicationID)
 
 	if(settingsForApp && [settingsForApp isKindOfClass:[NSDictionary class]])
 	{
-		safeMode = ((NSNumber*)[settingsForApp objectForKey:@"tweakInjectionDisabled"]).boolValue;
+		if(![applicationID isEqualToString:@"com.apple.Preferences"])
+		{
+			safeMode = ((NSNumber*)[settingsForApp objectForKey:@"tweakInjectionDisabled"]).boolValue;
+		}
 	}
 
 	if([toggleOneTimeApplicationID isEqualToString:applicationID])

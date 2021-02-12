@@ -57,9 +57,12 @@
 			{
 				continue;
 			}
-			if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey] && ![_searchKey isEqualToString:@""])
+			if(_searchKey && ![_searchKey isEqualToString:@""])
 			{
-				continue;
+				if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey])
+				{
+					continue;
+				}
 			}
 
 			PSSpecifier* tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName

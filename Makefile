@@ -1,6 +1,13 @@
-export TARGET = iphone:clang:13.0:8.0
+export XCODE_12_SLICE ?= 0
 
-export PREFIX = $(THEOS)/toolchain/Xcode11.xctoolchain/usr/bin/
+ifeq ($(XCODE_12_SLICE), 1)
+	export ARCHS = arm64e
+else
+	export ARCHS = arm64 arm64e
+	export PREFIX = $(THEOS)/toolchain/Xcode11.xctoolchain/usr/bin/
+endif
+
+export TARGET = iphone:clang:13.0:8.0
 
 include $(THEOS)/makefiles/common.mk
 

@@ -131,9 +131,14 @@
 			{
 				if(_showsAllDaemons || [_suggestedDaemons containsObject:[info displayName]])
 				{
-					if(![[info displayName] localizedStandardContainsString:_searchKey]&&![_searchKey isEqualToString:@""]) {
-						continue;
+					if(_searchKey && ![_searchKey isEqualToString:@""])
+					{
+						if(![[info displayName] localizedStandardContainsString:_searchKey])
+						{
+							continue;
+						}
 					}
+					
 					PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:[info displayName]
 								target:self
 								set:nil
