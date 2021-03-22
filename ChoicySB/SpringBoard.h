@@ -47,6 +47,10 @@
 @interface SBSApplicationShortcutIcon : NSObject
 @end
 
+@interface SBSApplicationShortcutCustomImageIcon : SBSApplicationShortcutIcon
+- (id)initWithImageData:(id)arg1 dataType:(long long)arg2 isTemplate:(bool)arg3;
+@end
+
 @interface SBSApplicationShortcutItem : NSObject
 @property (nonatomic,copy) NSString* type;
 @property (nonatomic,copy) NSString* localizedTitle;
@@ -64,12 +68,4 @@
 
 @interface SBUIAppIconForceTouchControllerDataProvider : NSObject
 - (NSString*)applicationBundleIdentifier;
-@end
-
-@interface _UIContextMenuActionView : UIView
-- (void)setTrailingImage:(UIImage*)arg1;
-@end
-
-@interface _UIContextMenuActionsListCell : UICollectionViewCell
-@property (nonatomic,readonly) _UIContextMenuActionView *actionView;
 @end
