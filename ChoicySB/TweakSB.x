@@ -192,15 +192,21 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	if(shouldShow3DTouchOptionForSafeModeState(isSafeMode))
 	{
 		SBSApplicationShortcutItem* toggleSafeModeOnceItem = [[%c(SBSApplicationShortcutItem) alloc] init];
+		NSString *imageName;
 
 		if(isSafeMode)
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITH_TWEAKS");
+			imageName = @"AppLaunchIcon";
 		}
 		else
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITHOUT_TWEAKS");
+			imageName = @"AppLaunchIcon_Crossed";
 		}
+
+		UIImage* imageToSet = [[UIImage imageNamed:imageName inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+		toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutCustomImageIcon) alloc] initWithImageData:UIImagePNGRepresentation(imageToSet) dataType:0 isTemplate:1];
 
 		toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
 		toggleSafeModeOnceItem.type = @"com.opa334.choicy.toggleSafeModeOnce";
@@ -220,62 +226,6 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	}
 
 	%orig;
-}
-
-%end
-
-%end
-
-//Replace the icon of the "Launch (without) Tweaks" option on iOS 13
-%group Shortcut_iOS13
-
-%hook _UIContextMenuActionView
-
-- (instancetype)initWithTitle:(NSString*)title subtitle:(NSString*)subtitle image:(UIImage*)image
-{
-	if([title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
-	{
-        image = [[UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-    }
-	else if([title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
-	{
-		image = [[UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-	}
-
-	return %orig;
-}
-
-%end
-
-%end
-
-//Replace the icon of the "Launch (without) Tweaks" option on iOS 14(+?)
-%group Shortcut_iOS14Up
-
-%hook _UIContextMenuActionsListView
-
-- (void)_configureCell:(_UIContextMenuActionsListCell*)cell forElement:(UIMenuElement*)element section:(id)arg3
-{
-	%orig;
-
-	if(element && element.title)
-	{
-		UIImage* imageToSet;
-
-		if([element.title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
-		{
-			imageToSet = [[UIImage imageNamed:@"AppLaunchIcon_Crossed" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-		}
-		else if([element.title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
-		{
-			imageToSet = [[UIImage imageNamed:@"AppLaunchIcon" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
-		}
-
-		if(imageToSet)
-		{
-			[cell.actionView setTrailingImage:imageToSet];
-		}
-	}
 }
 
 %end
@@ -391,15 +341,6 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	{
 		%init(SafeMode_iOS13Up);
 		%init(Shortcut_iOS13Up);
-
-		if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0)
-		{
-			%init(Shortcut_iOS14Up);
-		}
-		else
-		{
-			%init(Shortcut_iOS13);
-		}
 	}
 	else
 	{
