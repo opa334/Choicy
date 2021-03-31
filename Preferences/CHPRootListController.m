@@ -23,6 +23,7 @@
 #import "CHPDaemonList.h"
 #import "CHPTweakList.h"
 #import <AppList/AppList.h>
+#import <mach-o/dyld.h>
 
 NSArray* dylibsBeforeChoicy;
 
@@ -34,6 +35,40 @@ void reloadPreferences()
 {
 	preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	[[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:@"preferencesDidReload" object:nil]];
+}
+
+NSString* getInjectionPlatform()
+{
+	static NSString* injectionPlatform = nil;
+
+	if(!injectionPlatform)
+	{
+		for (uint32_t i = 0; i < _dyld_image_count(); i++)
+		{
+			const char *pathC = _dyld_get_image_name(i);
+			NSString* path = [NSString stringWithUTF8String:pathC];
+
+			if([path isEqualToString:@"/usr/lib/substitute-inserter.dylib"])
+			{
+				injectionPlatform = @"Substitute";
+			}
+			else if([path isEqualToString:@"/usr/lib/TweakInject.dylib"])
+			{
+				injectionPlatform = @"libhooker";
+			}
+			else if([path isEqualToString:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+			{
+				injectionPlatform = @"Substrate";
+			}
+		}
+
+		if(!injectionPlatform)
+		{
+			injectionPlatform = localize(@"THE_INJECTION_PLATFORM");
+		}
+	}
+
+	return injectionPlatform;
 }
 
 @implementation CHPRootListController
@@ -113,31 +148,18 @@ void reloadPreferences()
 
 		if(![dontShowAgainNum boolValue])
 		{
-			NSString* loader = localize(@"THE_INJECTION_PLATFORM");
+			NSString* injectionPlatform = getInjectionPlatform();
 
-			if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/TweakInject.dylib"])
-			{
-				loader = @"TweakInject";
-			}
-			else if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substitute-inserter.dylib"])
-			{
-				loader = @"Substitute";
-			}
-			else if([[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
-			{
-				loader = @"Substrate";
-			}
+			NSString* message = [NSString stringWithFormat:localize(@"WARNING_ALERT_MESSAGE"), injectionPlatform];
 
-			NSString* message = [NSString stringWithFormat:localize(@"WARNING_ALERT_MESSAGE"), loader];
-
-			if([loader isEqualToString:@"Substrate"])
+			if([injectionPlatform isEqualToString:@"Substrate"])
 			{
 				message = [message stringByAppendingString:[@" " stringByAppendingString:localize(@"CHOICYLOADER_ADVICE")]];
 			}
 
 			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
 		
-			if([loader isEqualToString:@"Substrate"])
+			if([injectionPlatform isEqualToString:@"Substrate"])
 			{
 				UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
 				{
@@ -177,19 +199,8 @@ void determineLoadingOrder()
 {
 	NSMutableArray* dylibsInOrder = [NSMutableArray new];
 
-	if(![[NSFileManager defaultManager] fileExistsAtPath:@"/usr/lib/substrate/SubstrateInserter.dylib"])
-	{
-		//Anything but substrate sorts the dylibs alphabetically
-		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/Library/MobileSubstrate/DynamicLibraries" error:nil] mutableCopy];
-		NSArray* plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
-		for(NSString* plist in plists)
-		{
-			NSString* dylibName = [plist stringByDeletingPathExtension];
-			[dylibsInOrder addObject:dylibName];
-		}
-		[dylibsInOrder sortUsingSelector:@selector(caseInsensitiveCompare:)];
-	}
-	else
+	BOOL isSubstrate = [getInjectionPlatform() isEqualToString:@"Substrate"];
+	if(isSubstrate)
 	{
 		//SubstrateLoader doesn't sort anything and instead process the raw output of readdir
 		DIR *dir;
@@ -207,6 +218,18 @@ void determineLoadingOrder()
 			}
 		}
 	}
+	else
+	{
+		//Anything but substrate sorts the dylibs alphabetically
+		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/Library/MobileSubstrate/DynamicLibraries" error:nil] mutableCopy];
+		NSArray* plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
+		for(NSString* plist in plists)
+		{
+			NSString* dylibName = [plist stringByDeletingPathExtension];
+			[dylibsInOrder addObject:dylibName];
+		}
+		[dylibsInOrder sortUsingSelector:@selector(caseInsensitiveCompare:)];
+	}
 
 	NSUInteger choicyIndex = [dylibsInOrder indexOfObject:CHOICY_DYLIB_NAME];
 
@@ -217,7 +240,7 @@ void determineLoadingOrder()
 		dylibsBeforeChoicy = [dylibsInOrder subarrayWithRange:NSMakeRange(0,choicyIndex)];
 	}
 
-	if(dylibsBeforeChoicy)
+	if(dylibsBeforeChoicy && isSubstrate)
 	{
 		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 
@@ -226,6 +249,7 @@ void determineLoadingOrder()
 			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
 			if([destination isEqualToString:@"/usr/lib/ChoicyLoader.dylib"])
 			{
+				// If ChoicyLoader is installed on Substrate, Choicy always loads first
 				dylibsBeforeChoicy = nil;
 			}
 		}
