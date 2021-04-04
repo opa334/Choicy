@@ -55,6 +55,11 @@
 	return self;
 }
 
+- (NSComparisonResult)caseInsensitiveCompare:(CHPTweakInfo*)info
+{
+	return [self.dylibName caseInsensitiveCompare:info.dylibName];
+}
+
 - (NSString*)description
 {
 	return [NSString stringWithFormat:@"<CHPTweakInfo: dylibName = %@, filterBundles = %@, filterExecutables = %@>", self.dylibName, self.filterBundles, self.filterExecutables];

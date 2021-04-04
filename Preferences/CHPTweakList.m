@@ -55,6 +55,8 @@
 		}
 	}
 
+	[tweakListM sortUsingSelector:@selector(caseInsensitiveCompare:)];
+
 	self.tweakList = [tweakListM copy];
 }
 
