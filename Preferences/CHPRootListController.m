@@ -34,7 +34,6 @@ NSDictionary* preferences;
 void reloadPreferences()
 {
 	preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
-	[[NSNotificationCenter defaultCenter] postNotification:[NSNotification notificationWithName:@"preferencesDidReload" object:nil]];
 }
 
 NSString* getInjectionPlatform()
@@ -114,22 +113,6 @@ NSString* getInjectionPlatform()
 {
 	[super viewDidLoad];
 
-	if([ALApplicationList sharedApplicationList].applications.count == 0)
-	{
-		UIAlertController* errorAlert = [UIAlertController alertControllerWithTitle:localize(@"APPLIST_ROCKETBOOTSTRAP_ERROR_TITLE") message:localize(@"APPLIST_ROCKETBOOTSTRAP_ERROR_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
-		
-		UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-		{
-			[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://rpetri.ch/repo"]];
-		}];
-		UIAlertAction* closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
-
-		[errorAlert addAction:openRepoAction];
-		[errorAlert addAction:closeAction];
-
-		[self presentViewController:errorAlert animated:YES completion:nil];
-	}
-
 	if(dylibsBeforeChoicy)
 	{
 		PSSpecifier* dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
@@ -191,9 +174,6 @@ NSString* getInjectionPlatform()
 }
 
 @end
-
-extern void initCHPApplicationPreferenceViewController();
-extern void initCHPPreferencesTableDataSource();
 
 void determineLoadingOrder()
 {
@@ -260,17 +240,7 @@ __attribute__((constructor))
 static void init(void)
 {
 	[[CHPTweakList sharedInstance] updateTweakList];
-
 	reloadPreferences();
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
-
-	NSBundle* applistBundle = [NSBundle bundleWithPath:@"/System/Library/PreferenceBundles/AppList.bundle"];
-	if(applistBundle)
-	{
-		[applistBundle load];
-		initCHPApplicationPreferenceViewController();
-		initCHPPreferencesTableDataSource();
-	}
-
 	determineLoadingOrder();
 }

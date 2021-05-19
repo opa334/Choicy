@@ -29,8 +29,6 @@
 			<string>PROCESS_CONFIGURATION_FOOTER</string>
 		</dict>
 		<dict>
-			<key>key</key>
-			<string>com.apple.springboard</string>
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
@@ -39,136 +37,31 @@
 			<true/>
 			<key>label</key>
 			<string>SpringBoard</string>
-			<key>isApplication</key>
-			<true/>
-			<key>isSpringboard</key>
-			<true/>
+			<key>applicationIdentifier</key>
+			<string>com.apple.springboard</string>
 		</dict>
 		<dict>
 			<key>cell</key>
-			<string>PSLinkCell</string>
-			<key>detail</key>
-			<string>CHPApplicationPreferenceViewController</string>
-			<key>isController</key>
-			<string>1</string>
+			<string>PSLinkListCell</string>
 			<key>label</key>
 			<string>APPLICATIONS</string>
-			<key>ALAllowsSelection</key>
-			<string>1</string>
-			<key>ALSettingsKeyPrefix</key>
-			<string></string>
-			<key>ALSettingsDefaultValue</key>
-			<string></string>
-			<key>ALSettingsPath</key>
-			<string>/var/mobile/Library/Preferences/com.opa334.choicyprefs</string>
-			<key>ALSingleEnabledMode</key>
-			<false/>
-			<key>ALSectionDescriptors</key>
+			<key>detail</key>
+			<string>CHPApplicationListSubcontrollerController</string>
+			<key>subcontrollerClass</key>
+			<string>CHPApplicationDaemonConfigurationListController</string>
+			<key>sections</key>
 			<array>
 				<dict>
-					<key>cell-class-name</key>
-					<string>ALDisclosureIndicatedCell</string>
-					<key>icon-size</key>
-					<string>29</string>
-					<key>predicate</key>
-					<string>(isSystemApplication = TRUE AND isWebApplication = FALSE)</string>
-					<key>suppress-hidden-apps</key>
-					<string>1</string>
-					<key>title</key>
-					<string>SYSTEM_APPLICATIONS</string>
-					<key>display-identifier-macro</key>
-					<string>DISPLAY_IDENTIFIER</string>
-					<key>action</key>
-					<string>showPreferences</string>
-					<key>entry</key>
-					<dict>
-						<key>key</key>
-						<string>DISPLAY_IDENTIFIER</string>
-						<key>cell</key>
-						<string>PSLinkCell</string>
-						<key>detail</key>
-						<string>CHPApplicationDaemonConfigurationListController</string>
-						<key>isController</key>
-						<true/>
-						<key>overridePrincipalClass</key>
-						<true/>
-						<key>bundle</key>
-						<string>AppList</string>
-						<key>isApplication</key>
-						<true/>
-					</dict>
+					<key>sectionType</key>
+					<string>Visible</string>
 				</dict>
 				<dict>
-					<key>cell-class-name</key>
-					<string>ALDisclosureIndicatedCell</string>
-					<key>icon-size</key>
-					<string>29</string>
-					<key>predicate</key>
-					<string>(isSystemApplication = FALSE AND isWebApplication = FALSE)</string>
-					<key>suppress-hidden-apps</key>
-					<string>1</string>
-					<key>title</key>
-					<string>USER_APPLICATIONS</string>
-					<key>display-identifier-macro</key>
-					<string>DISPLAY_IDENTIFIER</string>
-					<key>action</key>
-					<string>showPreferences</string>
-					<key>bundle</key>
-					<string>ChoicyPrefs</string>
-					<key>entry</key>
-					<dict>
-						<key>key</key>
-						<string>DISPLAY_IDENTIFIER</string>
-						<key>cell</key>
-						<string>PSLinkCell</string>
-						<key>detail</key>
-						<string>CHPApplicationDaemonConfigurationListController</string>
-						<key>isController</key>
-						<true/>
-						<key>overridePrincipalClass</key>
-						<true/>
-						<key>bundle</key>
-						<string>AppList</string>
-						<key>isApplication</key>
-						<true/>
-					</dict>
-				</dict>
-				<dict>
-					<key>cell-class-name</key>
-					<string>ALDisclosureIndicatedCell</string>
-					<key>icon-size</key>
-					<string>29</string>
-					<key>predicate</key>
-					<string>('hidden' IN info.tags OR isWebApplication = TRUE)</string>
-					<key>suppress-hidden-apps</key>
-					<false/>
-					<key>title</key>
-					<string>HIDDEN_APPLICATIONS</string>
-					<key>display-identifier-macro</key>
-					<string>DISPLAY_IDENTIFIER</string>
-					<key>action</key>
-					<string>showPreferences</string>
-					<key>bundle</key>
-					<string>ChoicyPrefs</string>
-					<key>entry</key>
-					<dict>
-						<key>key</key>
-						<string>DISPLAY_IDENTIFIER</string>
-						<key>cell</key>
-						<string>PSLinkCell</string>
-						<key>detail</key>
-						<string>CHPApplicationDaemonConfigurationListController</string>
-						<key>isController</key>
-						<true/>
-						<key>overridePrincipalClass</key>
-						<true/>
-						<key>bundle</key>
-						<string>AppList</string>
-						<key>isApplication</key>
-						<true/>
-					</dict>
+					<key>sectionType</key>
+					<string>Hidden</string>
 				</dict>
 			</array>
+			<key>useSearchBar</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>

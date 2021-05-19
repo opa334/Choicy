@@ -38,8 +38,6 @@
 	[self applySearchControllerHideWhileScrolling:NO];
 	[[CHPDaemonList sharedInstance] addObserver:self];
 
-	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(reloadValueOfSelectedSpecifier) name:@"preferencesDidReload" object:nil];
-
 	if(![CHPDaemonList sharedInstance].loaded)
 	{
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
@@ -53,11 +51,6 @@
 	}
 
 	[super viewDidLoad];
-}
-
-- (void)dealloc
-{
-	[[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (NSString*)topTitle
@@ -148,7 +141,7 @@
 								edit:nil];
 					
 					[specifier setProperty:@YES forKey:@"enabled"];
-					[specifier setProperty:[info displayName] forKey:@"key"];
+					[specifier setProperty:[info displayName] forKey:@"daemonName"];
 					[specifier setProperty:info forKey:@"daemonInfo"];
 					[specifier setProperty:@NO forKey:@"isApplication"];
 
@@ -167,12 +160,10 @@ extern NSString* previewStringForSettings(NSDictionary* settings);
 
 - (id)previewStringForSpecifier:(PSSpecifier*)specifier
 {
-	NSString* identifier = [specifier propertyForKey:@"key"];
+	NSString* daemonName = [specifier propertyForKey:@"daemonName"];
 
 	NSDictionary* daemonSettings = [preferences objectForKey:@"daemonSettings"];
-
-	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:identifier];
-
+	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:daemonName];
 	return previewStringForSettings(settingsForDaemon);
 }
 

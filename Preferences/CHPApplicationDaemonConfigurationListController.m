@@ -28,12 +28,30 @@
 #import "CHPMachoParser.h"
 #import "CHPRootListController.h"
 #import "CHPDPKGFetcher.h"
+#import "CoreServices.h"
 
 @interface PSSpecifier ()
 @property (nonatomic,retain) NSArray* values;
 @end
 
 @implementation CHPApplicationDaemonConfigurationListController
+
+- (NSString*)applicationIdentifier
+{
+	return [[self specifier] propertyForKey:@"applicationIdentifier"];
+}
+
+- (NSString*)daemonName
+{
+	return [[self specifier] propertyForKey:@"daemonName"];
+}
+
+- (NSString*)keyForPreferences
+{
+	NSString* applicationID = [self applicationIdentifier];
+	if(applicationID) return applicationID;
+	return [self daemonName];
+}
 
 - (void)respring
 {
@@ -42,10 +60,7 @@
 
 - (void)viewDidLoad;
 {
-	_isApplication = ((NSNumber*)[[self specifier] propertyForKey:@"isApplication"]).boolValue;
-	_isSpringboard = ((NSNumber*)[[self specifier] propertyForKey:@"isSpringboard"]).boolValue;
-
-	if(_isSpringboard)
+	if([[self applicationIdentifier] isEqualToString:@"com.apple.springboard"])
 	{
 		self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:localize(@"RESPRING") style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 	}
@@ -55,25 +70,24 @@
 	[self updateTopSwitchesAvailability];
 }
 
+- (void)viewWillDisappear:(BOOL)animated
+{
+	// reload preview string in previous page
+	PSListController* topVC = (PSListController*)self.navigationController.topViewController;
+	if([topVC respondsToSelector:@selector(reloadSpecifier:)])
+	{
+		[topVC reloadSpecifier:[self specifier]];
+	}
+}
+
 - (NSString*)topTitle
 {
-	if(_isSpringboard)
-	{
-		return @"SpringBoard";
-	}
-	else if(_isApplication)
-	{
-		return [[ALApplicationList sharedApplicationList] valueForKey:@"displayName" forDisplayIdentifier:[[[self specifier] properties] objectForKey:@"key"]];
-	}
-	else
-	{
-		return [[self specifier] propertyForKey:@"key"];
-	}
+	return [self specifier].name;
 }
 
 - (NSString*)dictionaryName
 {
-	if(_isApplication)
+	if([self applicationIdentifier])
 	{
 		return @"appSettings";
 	}
@@ -102,31 +116,23 @@
 		NSArray* tweakList;
 
 		//Get tweak list
-		if(_isApplication)
+		NSString* applicationID = [self applicationIdentifier];
+		if(applicationID)
 		{
-			NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
-			NSString* applicationExecutablePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"info.executableURL.path" forDisplayIdentifier:applicationIdentifier];
-			if(!applicationExecutablePath)
+			LSApplicationProxy* applicationProxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
+			NSString* applicationExecutablePath = applicationProxy.canonicalExecutablePath;
+			if([applicationProxy respondsToSelector:@selector(canonicalExecutablePath)])
 			{
-				NSString* bundlePath = [[ALApplicationList sharedApplicationList] valueForKeyPath:@"path" forDisplayIdentifier:applicationIdentifier];
-				if(bundlePath)
-				{
-					NSBundle* applicationBundle = [NSBundle bundleWithPath:bundlePath];
-					if(applicationBundle)
-					{
-						applicationExecutablePath = applicationBundle.executablePath;
-					}
-				}				
+				applicationExecutablePath = applicationProxy.canonicalExecutablePath;
 			}
-
-			//Applist fails to provide the executable path for springboard, so we just set it manually
-			if([applicationIdentifier isEqualToString:@"com.apple.springboard"])
+			else
 			{
-				applicationExecutablePath = @"/System/Library/CoreServices/SpringBoard.app/SpringBoard";
+				NSURL* executableURL = [applicationProxy.bundleURL URLByAppendingPathComponent:applicationProxy.bundleExecutable];
+				applicationExecutablePath = executableURL.path;
 			}
 
 			NSSet* linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(applicationExecutablePath);
-			tweakList = [[CHPTweakList sharedInstance] tweakListForApplicationWithIdentifier:applicationIdentifier executableName:applicationExecutablePath.lastPathComponent linkedFrameworkIdentifiers:linkedFrameworkIdentifiers];
+			tweakList = [[CHPTweakList sharedInstance] tweakListForApplicationWithIdentifier:applicationID executableName:applicationExecutablePath.lastPathComponent linkedFrameworkIdentifiers:linkedFrameworkIdentifiers];
 		}
 		else
 		{
@@ -239,8 +245,8 @@
 		[customTweakConfigurationSpecifier setProperty:@(!disableTweakInjectionNum.boolValue) forKey:@"enabled"];
 	}
 
-	NSString* applicationIdentifier = [[self specifier] propertyForKey:@"key"];
-	if([applicationIdentifier isEqualToString:@"com.apple.Preferences"])
+	NSString* applicationID = [[self specifier] propertyForKey:@"applicationIdentifier"];
+	if([applicationID isEqualToString:@"com.apple.Preferences"])
 	{
 		if(![disableTweakInjectionNum boolValue])
 		{
@@ -388,7 +394,7 @@
 	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
 	NSDictionary* appDaemonSettingsDict = [dict objectForKey:[self dictionaryName]];
 
-	_appDaemonSettings = [[appDaemonSettingsDict objectForKey:[[[self specifier] properties] objectForKey:@"key"]] mutableCopy];
+	_appDaemonSettings = [[appDaemonSettingsDict objectForKey:[self keyForPreferences]] mutableCopy];
 	if(!_appDaemonSettings)
 	{
 		_appDaemonSettings = [NSMutableDictionary new];
@@ -408,7 +414,7 @@
 		appDaemonSettingsDict = [NSMutableDictionary new];
 	}
 
-	[appDaemonSettingsDict setObject:[_appDaemonSettings copy] forKey:[[[self specifier] properties] objectForKey:@"key"]];
+	[appDaemonSettingsDict setObject:[_appDaemonSettings copy] forKey:[self keyForPreferences]];
 	[mutableDict setObject:[appDaemonSettingsDict copy] forKey:[self dictionaryName]];
 	[mutableDict writeToFile:CHPPlistPath atomically:YES];
 }

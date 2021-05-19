@@ -297,7 +297,11 @@ void* $dlopen_regular(const char *path, int mode)
 
 			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
 			{
-				MSHookFunction(MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv"), (void*)$dlopen_internal, (void**)&dlopen_internal);
+				//NSLog(@"hello from choicy on >=14.1");
+				void* dlopen_internal_ptr = MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv");
+				//NSLog(@"dlopen_internal_ptr: %p, hooking now...", dlopen_internal_ptr);
+				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
+				//NSLog(@"dlopen_internal hooked");
 			}
 			else
 			{

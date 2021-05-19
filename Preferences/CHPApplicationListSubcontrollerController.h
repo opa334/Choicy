@@ -1,0 +1,4 @@
+#import <AltList/ATLApplicationListSubcontrollerController.h>
+
+@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
+@end
