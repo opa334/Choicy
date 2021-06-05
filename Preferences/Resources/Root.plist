@@ -62,6 +62,8 @@
 			</array>
 			<key>useSearchBar</key>
 			<true/>
+			<key>showIdentifiersAsSubtitle</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>
