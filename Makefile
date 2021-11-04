@@ -5,7 +5,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Choicy
 
-Choicy_FILES = $(wildcard *.x)
+Choicy_FILES = Tweak.x Shared.m ChoicyPrefsMigrator.m
 Choicy_CFLAGS = -fobjc-arc -DTHEOS_LEAN_AND_MEAN # <- this makes theos not link against anything by default (we do not want to link UIKit cause we inject system wide)
 Choicy_FRAMEWORKS = Foundation
 

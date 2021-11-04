@@ -18,8 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "Shared.h"
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@interface ChoicyPrefsMigrator : NSObject
+
++ (BOOL)preferencesNeedMigration:(NSDictionary*)preferences;
++ (void)migratePreferences:(NSMutableDictionary*)preferences;
++ (void)updatePreferenceVersion:(NSMutableDictionary*)preferences;
+
 @end

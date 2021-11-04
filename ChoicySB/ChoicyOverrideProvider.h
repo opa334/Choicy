@@ -18,8 +18,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+enum
+{
+	Choicy_Override_DisableTweakInjection = 1 << 0,
+	Choicy_Override_CustomTweakConfiguration = 1 << 1,
+	Choicy_Override_OverrideGlobalConfiguration = 1 << 2
+};
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@protocol ChoicyOverrideProvider
+
+@required
+- (uint32_t)providedOverridesForApplication:(NSString*)applicationID;
+
+@optional
+- (BOOL)disableTweakInjectionOverrideForApplication:(NSString*)applicationID;
+- (BOOL)customTweakConfigurationEnabledOverrideForApplication:(NSString*)applicationID;
+- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString*)applicationID;
+- (NSArray*)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString*)applicationID;
+- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString*)applicationID;
+
 @end

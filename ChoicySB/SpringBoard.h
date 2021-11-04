@@ -29,7 +29,7 @@
 @end
 
 @interface FBProcessManager : NSObject
-- (void)handleSafeModeForExecutionContext:(FBProcessExecutionContext*)executionContext withApplicationID:(NSString*)applicationID;
+- (void)choicy_handleEnvironmentChangesForExecutionContext:(FBProcessExecutionContext*)executionContext withApplicationID:(NSString*)applicationID;
 @end
 
 

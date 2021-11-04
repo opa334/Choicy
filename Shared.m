@@ -22,7 +22,24 @@
 
 NSBundle* CHBundle;
 NSDictionary* englishLocalizations;
-NSDictionary* preferences;
+
+BOOL parseNumberBool(id number, BOOL default_)
+{
+	if(!number) return default_;
+	if(![number isKindOfClass:[NSNumber class]]) return default_;
+
+	NSNumber* numberNum = number;
+	return numberNum.boolValue;
+}
+
+NSInteger parseNumberInteger(id number, NSInteger default_)
+{
+	if(!number) return default_;
+	if(![number isKindOfClass:[NSNumber class]]) return default_;
+
+	NSNumber* numberNum = number;
+	return numberNum.integerValue;
+}
 
 NSString* localize(NSString* key)
 {	
@@ -62,14 +79,14 @@ NSString* localize(NSString* key)
 	return localizedString;
 }
 
-NSDictionary* preferencesForApplicationWithID(NSString* applicationID)
+NSDictionary* processPreferencesForApplication(NSDictionary* preferences, NSString* applicationID)
 {
-	NSDictionary* appSettings = [preferences objectForKey:@"appSettings"];
+	NSDictionary* appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	return [appSettings objectForKey:applicationID];
 }
 
-NSDictionary* preferencesForDaemonWithDisplayName(NSString* daemonDisplayName)
+NSDictionary* processPreferencesForDaemon(NSDictionary* preferences, NSString* daemonDisplayName)
 {
-	NSDictionary* daemonSettings = [preferences objectForKey:@"daemonSettings"];
+	NSDictionary* daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
 	return [daemonSettings objectForKey:daemonDisplayName];
 }

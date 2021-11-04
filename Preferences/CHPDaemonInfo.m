@@ -22,7 +22,7 @@
 
 @implementation CHPDaemonInfo
 
-- (NSString*)displayName
+- (NSString*)executableName
 {
     return [self.executablePath lastPathComponent];
 }

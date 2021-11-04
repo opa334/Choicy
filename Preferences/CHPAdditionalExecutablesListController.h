@@ -18,12 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-@interface CHPDPKGFetcher : NSObject
+#import <Preferences/PSListController.h>
+
+@interface PSEditableListController : PSListController
+- (BOOL)performDeletionActionForSpecifier:(id)arg1;
+@end
+
+@interface CHPAdditionalExecutablesListController : PSEditableListController
 {
-	NSDictionary* _packageNamesForDylibNames;
-	NSArray* _infos;
+	NSMutableArray* _additionalExecutables;
 }
-+ (instancetype)sharedInstance;
-- (void)_populatePackageNames;
-- (NSString*)getPackageNameForDylibWithName:(NSString*)dylibName;
+
 @end

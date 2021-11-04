@@ -20,18 +20,21 @@
 
 #import "SpringBoard.h"
 #import "../Shared.h"
+#import "ChoicyOverrideManager.h"
+#import "../ChoicyPrefsMigrator.h"
 
 NSBundle* choicyBundle;
+NSDictionary* preferences;
 
 void reloadPreferences()
 {
 	if(preferences)
 	{
 		NSDictionary* oldPreferences = [preferences copy];
-		preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
+		preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 
-		NSDictionary* appSettings = [preferences objectForKey:@"appSettings"];
-		NSDictionary* oldAppSettings = [oldPreferences objectForKey:@"appSettings"];
+		NSDictionary* appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
+		NSDictionary* oldAppSettings = [oldPreferences objectForKey:kChoicyPrefsKeyAppSettings];
 
 		NSMutableSet* allApps = [NSMutableSet setWithArray:[appSettings allKeys]];
 		[allApps unionSet:[NSMutableSet setWithArray:[oldAppSettings allKeys]]];
@@ -48,7 +51,7 @@ void reloadPreferences()
 
 		for(NSString* applicationID in changedApps)
 		{
-			if(![applicationID isEqualToString:@"com.apple.springboard"] && ![applicationID isEqualToString:@"com.apple.Preferences"])
+			if(![applicationID isEqualToString:kSpringboardBundleID] && ![applicationID isEqualToString:kPreferencesBundleID])
 			{
 				BKSTerminateApplicationForReasonAndReportWithDescription(applicationID, 5, false, @"Choicy - prefs changed, killed");
 			}
@@ -56,23 +59,30 @@ void reloadPreferences()
 	}
 	else
 	{
-		preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
+		preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 	}
 }
 
 NSString* toggleOneTimeApplicationID;
 
-BOOL shouldEnableSafeModeForApplicationWithID(NSString* applicationID)
+BOOL shouldDisableTweakInjectionForApplication(NSString* applicationID)
 {
 	BOOL safeMode = NO;
 
-	NSDictionary* settingsForApp = preferencesForApplicationWithID(applicationID);
+	BOOL overrideExists;
+	BOOL disableTweakInjectionOverrideValue = [[ChoicyOverrideManager sharedManager] disableTweakInjectionOverrideForApplication:applicationID overrideExists:&overrideExists];
+	if(overrideExists)
+	{
+		return disableTweakInjectionOverrideValue;
+	}
+
+	NSDictionary* settingsForApp = processPreferencesForApplication(preferences, applicationID);
 
 	if(settingsForApp && [settingsForApp isKindOfClass:[NSDictionary class]])
 	{
-		if(![applicationID isEqualToString:@"com.apple.Preferences"])
+		if(![applicationID isEqualToString:kPreferencesBundleID])
 		{
-			safeMode = ((NSNumber*)[settingsForApp objectForKey:@"tweakInjectionDisabled"]).boolValue;
+			safeMode = ((NSNumber*)[settingsForApp objectForKey:kChoicyProcessPrefsKeyTweakInjectionDisabled]).boolValue;
 		}
 	}
 
@@ -86,11 +96,11 @@ BOOL shouldEnableSafeModeForApplicationWithID(NSString* applicationID)
 	return safeMode;
 }
 
-BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
+BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjectionState)
 {
 	BOOL shouldShow = NO;
 
-	if(safeModeState)
+	if(disableTweakInjectionState)
 	{
 		shouldShow = ((NSNumber*)[preferences objectForKey:@"launchWithTweaksOptionEnabled"]).boolValue;
 	}
@@ -110,52 +120,95 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 	return shouldShow;
 }
 
-%group iOS10Down
-%hook SBApplication
-
-- (id)valueForKeyPath:(NSString*)keyPath
-{
-	if([keyPath isEqualToString:@"info.choicy_hasHiddenTag"])
-	{
-		return [[self _appInfo] valueForKey:@"choicy_hasHiddenTag"];
-	}
-
-	return %orig;
-}
-
-%end
-%end
-
 %hook FBProcessManager
 
 %new
-- (void)handleSafeModeForExecutionContext:(FBProcessExecutionContext*)executionContext withApplicationID:(NSString*)applicationID
+- (void)choicy_handleEnvironmentChangesForExecutionContext:(FBProcessExecutionContext*)executionContext withApplicationID:(NSString*)applicationID
 {
-	if(shouldEnableSafeModeForApplicationWithID(applicationID))
+	NSMutableDictionary* environmentM = [executionContext.environment mutableCopy];
+
+	if(shouldDisableTweakInjectionForApplication(applicationID))
 	{
-		NSMutableDictionary* environmentM = [executionContext.environment mutableCopy];
 		[environmentM setObject:@(1) forKey:@"_MSSafeMode"];
 		[environmentM setObject:@(1) forKey:@"_SafeMode"];
-		executionContext.environment = [environmentM copy];
 	}
+	else
+	{
+		ChoicyOverrideManager* overrideManager = [ChoicyOverrideManager sharedManager];
+		BOOL overrideExists = NO;
+
+		BOOL customTweakConfigurationEnabledOverride = [overrideManager customTweakConfigurationEnabledOverwriteForApplication:applicationID overrideExists:&overrideExists];
+		if(overrideExists)
+		{
+			if(!customTweakConfigurationEnabledOverride)
+			{
+				// if custom tweak configuration has been overwritten with NO
+				// set up an empty deny list
+				[environmentM setObject:@"" forKey:@kEnvDeniedTweaksOverride];
+			}
+			else
+			{
+				BOOL customTweakAllowDenyOverride = [overrideManager customTweakConfigurationAllowDenyModeOverrideForApplication:applicationID overrideExists:&overrideExists];
+				NSArray* allowDenyList = [overrideManager customTweakConfigurationAllowOrDenyListOverrideForApplication:applicationID overrideExists:&overrideExists];
+
+				if(overrideManager && allowDenyList)
+				{
+					NSString* allowDenyString = [allowDenyList componentsJoinedByString:@"/"];
+
+					NSString* envName;
+					if(customTweakAllowDenyOverride) // DENY
+					{
+						envName = @kEnvDeniedTweaksOverride;
+					}
+					else //ALLOW
+					{
+						envName = @kEnvAllowedTweaksOverride;
+					}
+
+					NSLog(@"set %@ to %@", envName, allowDenyString);
+
+					[environmentM setObject:allowDenyString forKey:envName];
+				}
+			}
+		}
+
+		BOOL overwriteGlobalConfigurationOverride = [overrideManager overwriteGlobalConfigurationOverrideForApplication:applicationID overrideExists:&overrideExists];
+		NSLog(@"overwriteGlobalConfigurationOverride=%i overrideExists=%i", overwriteGlobalConfigurationOverride, overrideExists);
+		if(overrideExists)
+		{
+			NSString* envToSet;
+			if(overwriteGlobalConfigurationOverride)
+			{
+				envToSet = @"1";
+			}
+			else
+			{
+				envToSet = @"0";
+			}
+
+			[environmentM setObject:envToSet forKey:@kEnvOverwriteGlobalConfigurationOverride];
+		}
+	}
+
+	executionContext.environment = [environmentM copy];
 }
 
-%group SafeMode_iOS13Up
+%group ProcessEnvironment_iOS13Up
 
 - (id)_createProcessWithExecutionContext:(FBProcessExecutionContext*)executionContext
 {
-	[self handleSafeModeForExecutionContext:executionContext withApplicationID:executionContext.identity.embeddedApplicationIdentifier];
+	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:executionContext.identity.embeddedApplicationIdentifier];
 
 	return %orig;
 }
 
 %end
 
-%group SafeMode_iOS12Down
+%group ProcessEnvironment_iOS12Down
 
 - (id)createApplicationProcessForBundleID:(NSString*)bundleID withExecutionContext:(FBProcessExecutionContext*)executionContext
 {
-	[self handleSafeModeForExecutionContext:executionContext withApplicationID:bundleID];
+	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:bundleID];
 
 	return %orig;
 }
@@ -187,14 +240,14 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 		return orig;
 	}
 
-	BOOL isSafeMode = shouldEnableSafeModeForApplicationWithID(applicationID);
+	BOOL tweakInjectionDisabled = shouldDisableTweakInjectionForApplication(applicationID);
 
-	if(shouldShow3DTouchOptionForSafeModeState(isSafeMode))
+	if(shouldShow3DTouchOptionForDisableTweakInjectionState(tweakInjectionDisabled))
 	{
 		SBSApplicationShortcutItem* toggleSafeModeOnceItem = [[%c(SBSApplicationShortcutItem) alloc] init];
 		NSString *imageName;
 
-		if(isSafeMode)
+		if(tweakInjectionDisabled)
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITH_TWEAKS");
 			imageName = @"AppLaunchIcon";
@@ -247,13 +300,13 @@ BOOL shouldShow3DTouchOptionForSafeModeState(BOOL safeModeState)
 		return orig;
 	}
 
-	BOOL isSafeMode = shouldEnableSafeModeForApplicationWithID(applicationID);
+	BOOL disableTweakInjection = shouldDisableTweakInjectionForApplication(applicationID);
 
-	if(shouldShow3DTouchOptionForSafeModeState(isSafeMode))
+	if(shouldShow3DTouchOptionForDisableTweakInjectionState(disableTweakInjection))
 	{
 		SBSApplicationShortcutItem* toggleSafeModeOnceItem = [[%c(SBSApplicationShortcutItem) alloc] init];
 
-		if(isSafeMode)
+		if(disableTweakInjection)
 		{
 			toggleSafeModeOnceItem.localizedTitle = localize(@"LAUNCH_WITH_TWEAKS");
 		}
@@ -332,6 +385,15 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	%init();
 
 	reloadPreferences();
+	if(preferences && [ChoicyPrefsMigrator preferencesNeedMigration:preferences])
+	{
+		NSMutableDictionary* preferencesM = preferences.mutableCopy;
+		[ChoicyPrefsMigrator migratePreferences:preferencesM];
+		[ChoicyPrefsMigrator updatePreferenceVersion:preferencesM];
+		[preferencesM writeToFile:kChoicyPrefsPlistPath atomically:NO];
+		reloadPreferences();
+	}
+
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, respring, CFSTR("com.opa334.choicy/respring"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
@@ -339,17 +401,12 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_13_0)
 	{
-		%init(SafeMode_iOS13Up);
+		%init(ProcessEnvironment_iOS13Up);
 		%init(Shortcut_iOS13Up);
 	}
 	else
 	{
-		%init(SafeMode_iOS12Down);
+		%init(ProcessEnvironment_iOS12Down);
 		%init(Shortcut_iOS12Down);
-	}
-
-	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
-	{
-		%init(iOS10Down);
 	}
 }

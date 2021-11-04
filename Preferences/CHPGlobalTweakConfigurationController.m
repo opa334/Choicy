@@ -22,8 +22,10 @@
 #import "CHPTweakList.h"
 #import "CHPTweakInfo.h"
 #import "CHPRootListController.h"
-#import "CHPDPKGFetcher.h"
+#import "CHPPackageInfo.h"
 #import "../Shared.h"
+#import "CHPPreferences.h"
+#import "../ChoicyPrefsMigrator.h"
 
 @implementation CHPGlobalTweakConfigurationController
 
@@ -45,39 +47,46 @@
 
 - (NSMutableArray*)specifiers
 {
-	if(![self valueForKey:@"_specifiers"])
+	if(!_specifiers)
 	{
-		NSMutableArray* specifiers = [super specifiers];
+		_specifiers = [super specifiers];
 
 		[self loadGlobalTweakBlacklist];
 
-		for(CHPTweakInfo* tweakInfo in [CHPTweakList sharedInstance].tweakList)
+		PSSpecifier* groupSpecifier = [PSSpecifier emptyGroupSpecifier];
+		groupSpecifier.name = localize(@"TWEAKS");
+		[groupSpecifier setProperty:localize(@"GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE") forKey:@"footerText"];
+
+		[_specifiers addObject:groupSpecifier];
+
+		CHPTweakList* sharedTweakList = [CHPTweakList sharedInstance];
+
+		__block BOOL atLeastOneTweakDisabled = NO;
+
+		[sharedTweakList.tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo* tweakInfo, NSUInteger idx, BOOL* stop)
 		{
-			if([tweakInfo.dylibName containsString:@"Choicy"] || [tweakInfo.dylibName isEqualToString:@"PreferenceLoader"] || [tweakInfo.dylibName isEqualToString:@"AppList"])
-			{
-				continue;
-			}
+			if([sharedTweakList isTweakHiddenForAnyProcess:tweakInfo]) return;
+
 			if(_searchKey && ![_searchKey isEqualToString:@""])
 			{
 				if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey])
 				{
-					continue;
+					return;
 				}
 			}
 
 			PSSpecifier* tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName
 						  target:self
-						  set:@selector(setValue:forTweakWithSpecifier:)
+						  set:@selector(setPreferenceValue:forTweakWithSpecifier:)
 						  get:@selector(readValueForTweakWithSpecifier:)
 						  detail:nil
 						  cell:PSSwitchCell
 						  edit:nil];
 
-			BOOL enabled = YES;
-
-			if([dylibsBeforeChoicy containsObject:tweakInfo.dylibName])
+			BOOL enabled = ![dylibsBeforeChoicy containsObject:tweakInfo.dylibName];
+			if(!enabled)
 			{
-				enabled = NO;
+				atLeastOneTweakDisabled = YES;
 			}
 			
 			[tweakSpecifier setProperty:NSClassFromString(@"CHPSubtitleSwitch") forKey:@"cellClass"];
@@ -85,36 +94,53 @@
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@YES forKey:@"default"];
 
-			NSString* package = [[CHPDPKGFetcher sharedInstance] getPackageNameForDylibWithName:tweakInfo.dylibName];
-			if(package)
+			CHPPackageInfo* packageInfo = [CHPPackageInfo fetchPackageInfoForDylibName:tweakInfo.dylibName];
+			if(packageInfo)
 			{
-				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), package] forKey:@"subtitle"];
+				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), packageInfo.name] forKey:@"subtitle"];
 			}
 
-			[specifiers addObject:tweakSpecifier];
-		}
+			[_specifiers addObject:tweakSpecifier];
+		}];
 
-		[self setValue:specifiers forKey:@"_specifiers"];
+		if(atLeastOneTweakDisabled)
+		{
+			PSSpecifier* greyedOutInfoSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"GREYED_OUT_ENTRIES")
+						  target:self
+						  set:nil
+						  get:nil
+						  detail:nil
+						  cell:PSButtonCell
+						  edit:nil];
+			
+			[greyedOutInfoSpecifier setProperty:@YES forKey:@"enabled"];
+			greyedOutInfoSpecifier.buttonAction = @selector(presentNotLoadingFirstWarning);
+			[_specifiers addObject:greyedOutInfoSpecifier];
+		}
 	}
 
-	return [self valueForKey:@"_specifiers"];
+	return _specifiers;
 }
 
-- (void)setValue:(id)value forTweakWithSpecifier:(PSSpecifier*)specifier
+- (void)presentNotLoadingFirstWarning
+{
+	presentNotLoadingFirstWarning(self, NO);
+}
+
+- (void)setPreferenceValue:(id)value forTweakWithSpecifier:(PSSpecifier*)specifier
 {
 	NSNumber* numberValue = value;
 
 	if(numberValue.boolValue)
 	{
-		[_globalTweakBlacklist removeObject:[specifier propertyForKey:@"key"]];
+		[_globalDeniedTweaks removeObject:[specifier propertyForKey:@"key"]];
 	}
 	else
 	{
-		[_globalTweakBlacklist addObject:[specifier propertyForKey:@"key"]];
+		[_globalDeniedTweaks addObject:[specifier propertyForKey:@"key"]];
 	}
 
 	[self saveGlobalTweakBlacklist];
-	[self sendPostNotificationForSpecifier:specifier];
 }
 
 - (id)readValueForTweakWithSpecifier:(PSSpecifier*)specifier
@@ -126,7 +152,7 @@
 		return @1;
 	}
 
-	if([_globalTweakBlacklist containsObject:key])
+	if([_globalDeniedTweaks containsObject:key])
 	{
 		return @0;
 	}
@@ -138,20 +164,14 @@
 
 - (void)loadGlobalTweakBlacklist
 {
-	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
-	_globalTweakBlacklist = [[dict objectForKey:@"globalTweakBlacklist"] mutableCopy] ?: [NSMutableArray new];
+	_globalDeniedTweaks = [[preferences objectForKey:kChoicyPrefsKeyGlobalDeniedTweaks] mutableCopy] ?: [NSMutableArray new];
 }
 
 - (void)saveGlobalTweakBlacklist
 {
-	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:CHPPlistPath];
-	if(!mutableDict)
-	{
-		mutableDict = [NSMutableDictionary new];
-	}
-
-	[mutableDict setObject:[_globalTweakBlacklist copy] forKey:@"globalTweakBlacklist"];
-	[mutableDict writeToFile:CHPPlistPath atomically:YES];
+	NSMutableDictionary* mutablePrefs = preferencesForWriting();
+	mutablePrefs[kChoicyPrefsKeyGlobalDeniedTweaks] = [_globalDeniedTweaks copy];
+	writePreferences(mutablePrefs);
 }
 
 @end

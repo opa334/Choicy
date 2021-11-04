@@ -28,9 +28,10 @@
 @property(nonatomic,readonly) BOOL loading;
 @property(nonatomic,readonly) NSArray* daemonList;
 + (instancetype)sharedInstance;
-- (BOOL)daemonList:(NSArray*)daemonList containsDisplayName:(NSString*)displayName;
+- (BOOL)daemonList:(NSArray*)daemonList containsExecutableName:(NSString*)executableName;
 - (void)updateDaemonListIfNeeded;
 - (void)addObserver:(id<CHPDaemonListObserver>)observer;
 - (void)removeObserver:(id<CHPDaemonListObserver>)observer;
 - (void)sendReloadToObservers;
+- (NSString*)executablePathForDaemonName:(NSString*)daemonName;
 @end

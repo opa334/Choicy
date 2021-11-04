@@ -22,7 +22,7 @@
 
 @interface CHPGlobalTweakConfigurationController : CHPListController
 {
-	NSMutableArray* _globalTweakBlacklist;
+	NSMutableArray* _globalDeniedTweaks;
 }
 
 - (void)loadGlobalTweakBlacklist;

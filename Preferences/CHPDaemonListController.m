@@ -19,13 +19,15 @@
 // SOFTWARE.
 
 #import "CHPDaemonListController.h"
+#import "CHPPreferences.h"
 
 #import <AppList/AppList.h>
 #import "../Shared.h"
 
 #import "CHPDaemonInfo.h"
 #import "CHPDaemonList.h"
-#import "CHPApplicationDaemonConfigurationListController.h"
+#import "CHPProcessConfigurationListController.h"
+#import "CHPApplicationListSubcontrollerController.h"
 
 @interface PSListController()
 - (id)controllerForSpecifier:(PSSpecifier*)specifier;
@@ -65,16 +67,14 @@
 
 - (NSMutableArray*)specifiers
 {
-	NSMutableArray* specifiers = [self valueForKey:@"_specifiers"];
-
-	if(!specifiers)
+	if(!_specifiers)
 	{
-		specifiers = [NSMutableArray new];
+		_specifiers = [NSMutableArray new];
 
 		if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
 		{
-			[specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
-			[specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
+			[_specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
+			[_specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
 		}
 
 		if(![CHPDaemonList sharedInstance].loaded)
@@ -87,7 +87,7 @@
 							cell:[PSTableCell cellTypeFromString:@"PSSpinnerCell"]
 							edit:nil];
 
-			[specifiers addObject:loadingIndicator];
+			[_specifiers addObject:loadingIndicator];
 		}
 		else
 		{
@@ -102,7 +102,7 @@
 				toggleName = localize(@"SHOW_ALL_DAEMONS");
 			}
 
-			PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:toggleName
+			PSSpecifier* daemonToggleSpecifier = [PSSpecifier preferenceSpecifierNamed:toggleName
 							target:self
 							set:nil
 							get:nil
@@ -110,61 +110,55 @@
 							cell:PSButtonCell
 							edit:nil];
 
-			[specifier setProperty:@YES forKey:@"enabled"];
-			specifier.buttonAction = @selector(daemonTogglePressed:);
-			[specifiers addObject:specifier];
+			[daemonToggleSpecifier setProperty:@YES forKey:@"enabled"];
+			daemonToggleSpecifier.buttonAction = @selector(daemonTogglePressed:);
+			[_specifiers addObject:daemonToggleSpecifier];
 
 			PSSpecifier* daemonsGroup = [PSSpecifier emptyGroupSpecifier];
 			[daemonsGroup setProperty:localize(@"DAEMON_LIST_BOTTOM_NOTICE") forKey:@"footerText"];
-			[specifiers addObject:daemonsGroup];
+			[_specifiers addObject:daemonsGroup];
 
 			NSArray<CHPDaemonInfo*>* daemonList = [CHPDaemonList sharedInstance].daemonList;
 
 			for(CHPDaemonInfo* info in daemonList)
 			{
-				if(_showsAllDaemons || [_suggestedDaemons containsObject:[info displayName]])
+				if(_showsAllDaemons || [_suggestedDaemons containsObject:[info executableName]])
 				{
 					if(_searchKey && ![_searchKey isEqualToString:@""])
 					{
-						if(![[info displayName] localizedStandardContainsString:_searchKey])
+						if(![[info executableName] localizedStandardContainsString:_searchKey])
 						{
 							continue;
 						}
 					}
 					
-					PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:[info displayName]
+					PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:[info executableName]
 								target:self
 								set:nil
 								get:@selector(previewStringForSpecifier:)
-								detail:[CHPApplicationDaemonConfigurationListController class]
+								detail:[CHPProcessConfigurationListController class]
 								cell:PSLinkListCell
 								edit:nil];
 					
 					[specifier setProperty:@YES forKey:@"enabled"];
-					[specifier setProperty:[info displayName] forKey:@"daemonName"];
-					[specifier setProperty:info forKey:@"daemonInfo"];
-					[specifier setProperty:@NO forKey:@"isApplication"];
+					[specifier setProperty:info.executablePath forKey:@"executablePath"];
 
-					[specifiers addObject:specifier];
+					[_specifiers addObject:specifier];
 				}
 			}
 		}
-
-		[self setValue:specifiers forKey:@"_specifiers"];
 	}
 
-	return specifiers;
+	return _specifiers;
 }
-
-extern NSString* previewStringForSettings(NSDictionary* settings);
 
 - (id)previewStringForSpecifier:(PSSpecifier*)specifier
 {
-	NSString* daemonName = [specifier propertyForKey:@"daemonName"];
+	NSString* executablePath = [specifier propertyForKey:@"executablePath"];
 
-	NSDictionary* daemonSettings = [preferences objectForKey:@"daemonSettings"];
-	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:daemonName];
-	return previewStringForSettings(settingsForDaemon);
+	NSDictionary* daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
+	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
+	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
 }
 
 - (void)daemonTogglePressed:(PSSpecifier*)specifier
@@ -192,7 +186,7 @@ extern NSString* previewStringForSettings(NSDictionary* settings);
 	{
 		if([info.linkedFrameworkIdentifiers containsObject:@"com.apple.UIKit"])
 		{
-			[suggestedDaemons addObject:[info displayName]];
+			[suggestedDaemons addObject:[info executableName]];
 		}
 	}
 

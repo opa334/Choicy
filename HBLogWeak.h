@@ -18,8 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+// HBLogDebugWeak is ommited from release builds
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
-@end
+#import <HBLog.h>
+#ifdef __DEBUG__
+	#define HBLogDebugWeak(args ...) HBLogDebug(args)
+#else
+	#define HBLogDebugWeak(...)
+#endif

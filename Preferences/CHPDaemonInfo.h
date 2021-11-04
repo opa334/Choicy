@@ -24,6 +24,6 @@
 @property(nonatomic) NSString* plistIdentifier;
 @property(nonatomic) NSSet* linkedFrameworkIdentifiers;
 
-- (NSString*)displayName;
+- (NSString*)executableName;
 
 @end

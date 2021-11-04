@@ -18,8 +18,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "CHPListController.h"
+#import "CHPDaemonListObserver.h"
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@class CHPTweakInfo, CHPPackageInfo;
+
+@interface CHPTweakTroubleshootListController : CHPListController <CHPDaemonListObserver>
+{
+	NSArray* _packageList;
+	CHPPackageInfo* _selectedPackageWhileWaitingOnLoad;
+	UIAlertController* _loadingAlertController;
+}
+
+- (PSSpecifier*)newSpecifierForPackage:(CHPPackageInfo*)packageInfo;
+
 @end

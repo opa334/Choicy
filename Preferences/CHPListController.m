@@ -20,8 +20,23 @@
 
 #import "CHPListController.h"
 #import "../Shared.h"
+#import "../ChoicyPrefsMigrator.h"
 
 @implementation CHPListController
+
++ (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier
+{
+	NSString* postNotification = [specifier propertyForKey:@"PostNotification"];
+	if(postNotification)
+	{
+		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)postNotification, NULL, NULL, YES);
+	}
+}
+
++ (void)sendChoicyPrefsPostNotification
+{
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, NULL, YES);
+}
 
 //Must be overwritten by subclass
 - (NSString*)topTitle
@@ -69,7 +84,7 @@
 
 		if(plistName)
 		{
-			_specifiers = [self loadSpecifiersFromPlistName:plistName target:self];
+			_specifiers = [self loadSpecifiersFromPlistName:plistName target:self bundle:[NSBundle bundleForClass:[CHPListController class]]];
 			[self parseLocalizationsForSpecifiers:_specifiers];
 		}
 	}
@@ -99,20 +114,21 @@
 
 - (void)setPreferenceValue:(id)value specifier:(PSSpecifier*)specifier
 {
-	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:CHPPlistPath];
+	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 	if(!mutableDict)
 	{
 		mutableDict = [NSMutableDictionary new];
+		[ChoicyPrefsMigrator updatePreferenceVersion:mutableDict];
 	}
 	[mutableDict setObject:value forKey:[[specifier properties] objectForKey:@"key"]];
-	[mutableDict writeToFile:CHPPlistPath atomically:YES];
+	[mutableDict writeToFile:kChoicyPrefsPlistPath atomically:YES];
 
-	[self sendPostNotificationForSpecifier:specifier];
+	[[self class] sendPostNotificationForSpecifier:specifier];
 }
 
 - (id)readPreferenceValue:(PSSpecifier*)specifier
 {
-	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
+	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 
 	id obj = [dict objectForKey:[[specifier properties] objectForKey:@"key"]];
 
@@ -122,15 +138,6 @@
 	}
 
 	return obj;
-}
-
-- (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier
-{
-	NSString* postNotification = [specifier propertyForKey:@"PostNotification"];
-	if(postNotification)
-	{
-		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)postNotification, NULL, NULL, YES);
-	}
 }
 
 @end

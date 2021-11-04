@@ -18,8 +18,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "CHPBlackTextTableCell.h"
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+//Button with black text color (white in dark mode)
+
+@implementation CHPBlackTextTableCell
+
+- (void)layoutSubviews
+{
+	[super layoutSubviews];
+	if(@available(iOS 13, *))
+	{
+		self.textLabel.textColor = [UIColor labelColor];
+		self.textLabel.highlightedTextColor = [UIColor labelColor];
+	}
+	else
+	{
+		self.textLabel.textColor = [UIColor blackColor];
+		self.textLabel.highlightedTextColor = [UIColor blackColor];
+	}
+}
+
 @end

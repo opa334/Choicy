@@ -2,6 +2,8 @@
 "PROCESS_CONFIGURATION_FOOTER" = "Διαδικασία διαμόρφωσης footer";
 "APPLICATIONS" = "Εφαρμογές";
 "DAEMONS" = "Υπηρεσία συστήματος";
+/*ADDITIONAL_EXECUTABLES*/
+/*OVERWRITE_GLOBAL_TWEAK_CONFIGURATION*/
 "DISABLE_TWEAK_INJECTION" = "Απενεργοποίηση διακοπής tweak";
 "LAUNCH_WITHOUT_TWEAKS" = "Λειτουργία χωρίς tweaks";
 "LAUNCH_WITH_TWEAKS" = "Λειτουργία με tweaks";
@@ -10,10 +12,13 @@
 "APP_OPTIONS" = "Επιλογές εφαρμογής";
 "APP_OPTIONS_FOOTER" = "Επιλογές εφαρμογής footer";
 "CUSTOM_TWEAK_CONFIGURATION" = "Προσαρμοσμένη διαμόρφωση tweak";
-"BLACKLIST" = "Μάυρη λίστα";
-"WHITELIST" = "Επιτρεπόμενη λίστα";
+/*ALLOW*/
+/*DENY*/
+/*GREYED_OUT_ENTRIES*/
+/*APP_PLUGINS*/
 "TWEAKS_DISABLED" = "Απενεργοποίηση tweaks";
 "CUSTOM" = "Προσαρμοσμένο";
+/*GLOBAL_OVERWRITE*/
 "SHOW_RECOMMENDED_DAEMONS" = "Προειδοποίηση υπηρεσίας συστήματος";
 "SHOW_ALL_DAEMONS" = "Προβολή όλων των υπηρεσιών συστημάτων";
 "SYSTEM_APPLICATIONS" = "Σύστημα εφαρμογών";
@@ -21,10 +26,17 @@
 "HIDDEN_APPLICATIONS" = "Κρυμμένες εφαρμοφές";
 "GLOBAL_CONFIGURATION" = "Διεθνής διαμόρφωση";
 "GLOBAL_TWEAK_CONFIGURATION" = "Διεθνής διαμόρφωση tweak";
-"ALLOW_BLACKLIST_OVERWRITES" = "Επιτρέψτε υπογραφή μαύρης λίστας";
-"ALLOW_BLACKLIST_OVERWRITES_FOOTER" = "Επιτρέψτε υπογραφή μαύρης λίστας footer";
-"ALLOW_WHITELIST_OVERWRITES" = "Επιτρέψτε υπογραφή επιτρεπόμενης λίστας";
-"ALLOW_WHITELIST_OVERWRITES_FOOTER" = "Επιτρέψτε υπογραφή επιτρεπόμενης λίστας footer";
+/*ADDITIONAL_EXECUTABLES_FOOTER*/
+/*SELECT_EXECUTABLE*/
+/*SELECT_EXECUTABLE_MESSAGE*/
+/*ERROR*/
+/*ERROR_FILE_NOT_FOUND*/
+/*ERROR_FILE_NO_EXECUTABLE*/
+/*ERROR_NO_TWEAKS_INJECT*/
+/*ADD*/
+/*PATH*/
+/*TWEAKS*/
+/*GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE*/
 "OTHER" = "Άλλα";
 "FOLLOW_ME_ON_TWITTER" = "Ακολουθήστε με στο twitter";
 "DONATE" = "Δωρεά";
@@ -33,9 +45,30 @@
 "RESPRING" = "Επανεκκίνηση/Επαναφορά";
 "WARNING_ALERT_TITLE" = "Προειδοποίηση τίτλου";
 "THE_INJECTION_PLATFORM" = "Διακοπή πλατφορμας";
-"WARNING_ALERT_MESSAGE" = "Μήνυμα προειδοποίησης";
+"TWEAKS_LOADING_BEFORE_CHOICY_ALERT_MESSAGE" = "Μήνυμα προειδοποίησης";
 "CHOICYLOADER_ADVICE" = "Συμβουλές επιλογής φορτίων";
 "OPEN_REPO" = "Άνοιγμα repo";
 "DONT_SHOW_AGAIN" = "Να μην εμφανιστεί ξανά";
 "CLOSE" = "Κλείστε";
 "DAEMON_LIST_BOTTOM_NOTICE" = "Υπηρεσία συστήματος γνωστοποίησης";
+/*PACKAGE*/
+/*TROUBLESHOOTING*/
+/*TWEAK_TROUBLESHOOTING*/
+/*TWEAK_TROUBLESHOOTING_FOOTER*/
+/*PACKAGES*/
+/*RESULTS*/
+/*RESULTS_GLOBAL_DENIED*/
+/*RESULTS_PROCESS*/
+/*RESULTS_APPLICATION*/
+/*NOTHING_FOUND_MESSAGE*/
+/*FIX*/
+/*CANCEL*/
+/*TROUBLESHOOT_LOG_ENABLED_IN_GLOBAL*/
+/*TROUBLESHOOT_LOG_DISABLED_TO_ALLOW*/
+/*TROUBLESHOOT_LOG_ADDED_TO_ALLOW*/
+/*TROUBLESHOOT_LOG_REMOVED_FROM_DENY*/
+/*APPLIED_CHANGES*/
+/*RESET_PREFERENCES*/
+/*RESET_PREFERENCES_MESSAGE*/
+/*CONTINUE*/
+

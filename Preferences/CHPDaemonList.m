@@ -22,6 +22,7 @@
 #import "CHPDaemonInfo.h"
 #import "CHPMachoParser.h"
 #import "CHPTweakList.h"
+#import "../Shared.h"
 
 #import <dirent.h>
 
@@ -48,11 +49,11 @@
 	return self;
 }
 
-- (BOOL)daemonList:(NSArray*)daemonList containsDisplayName:(NSString*)displayName
+- (BOOL)daemonList:(NSArray*)daemonList containsExecutableName:(NSString*)executableName
 {
 	for(CHPDaemonInfo* info in daemonList)
 	{
-		if([info.displayName isEqualToString:displayName])
+		if([info.executableName isEqualToString:executableName])
 		{
 			return YES;
 		}
@@ -105,9 +106,9 @@
 
 		info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
 
-		if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:@"com.apple.SpringBoard"]) //Filter out some useless entries
+		if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:kSpringboardBundleID]) //Filter out some useless entries
 		{
-			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
 			{
 				[daemonListM addObject:info];
 			}
@@ -155,7 +156,7 @@
 			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
 			info.executablePath = XPCExecutablePath;
 
-			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
 			{
 				[daemonListM addObject:info];
 			}
@@ -179,7 +180,6 @@
             if(filename)
 			{
 				NSURL* URL = [NSURL fileURLWithPath:[@"/usr/libexec" stringByAppendingPathComponent:filename]];
-				HBLogDebug(@"added %@", URL);
 				[additionalPotentialDaemons addObject:URL];
 			}
         }
@@ -209,7 +209,7 @@
 			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
 			info.executablePath = [URL path];
 
-			if(![self daemonList:daemonListM containsDisplayName:info.displayName])
+			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
 			{
 				[daemonListM addObject:info];
 			}
@@ -218,7 +218,7 @@
 
 	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo* a, CHPDaemonInfo* b)  //Sort alphabetically
 	{
-		return [[a displayName] localizedCaseInsensitiveCompare:[b displayName]];
+		return [[a executableName] localizedCaseInsensitiveCompare:[b executableName]];
 	}];
 
 	CHPTweakList* tweakList = [CHPTweakList sharedInstance];
@@ -226,8 +226,7 @@
 	for(CHPDaemonInfo* daemonInfo in [daemonListM reverseObjectEnumerator])
 	{
 		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(daemonInfo.executablePath);
-
-		if(![tweakList oneOrMoreTweaksInjectIntoDaemon:daemonInfo])
+		if(![tweakList oneOrMoreTweaksInjectIntoExecutableAtPath:daemonInfo.executablePath])
 		{
 			[daemonListM removeObject:daemonInfo];
 		}
@@ -265,6 +264,22 @@
 			[observer daemonListDidUpdate:self];
 		});
 	}
+}
+
+- (NSString*)executablePathForDaemonName:(NSString*)daemonName
+{
+	__block NSString* executablePath = nil;
+
+	[self.daemonList enumerateObjectsUsingBlock:^(CHPDaemonInfo* daemonInfo, NSUInteger idx, BOOL* stop)
+	{
+		if([daemonInfo.executablePath.lastPathComponent isEqualToString:daemonName])
+		{
+			executablePath = daemonInfo.executablePath;
+			*stop = YES;
+		}
+	}];
+
+	return executablePath;
 }
 
 @end

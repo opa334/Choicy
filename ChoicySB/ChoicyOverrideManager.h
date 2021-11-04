@@ -18,8 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "ChoicyOverrideProvider.h"
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@interface ChoicyOverrideManager : NSObject
+{
+	NSMutableArray* _overrideProviders;
+}
+
++ (instancetype)sharedManager;
+- (void)registerOverrideProvider:(id<ChoicyOverrideProvider>)provider;
+- (void)unregisterOverrideProvider:(id<ChoicyOverrideProvider>)provider;
+
+- (BOOL)disableTweakInjectionOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
+- (BOOL)customTweakConfigurationEnabledOverwriteForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
+- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists; // YES: Deny, NO: ALLOW
+- (NSArray*)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
+- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
+
 @end

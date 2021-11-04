@@ -32,7 +32,7 @@
 			<key>cell</key>
 			<string>PSLinkCell</string>
 			<key>detail</key>
-			<string>CHPApplicationDaemonConfigurationListController</string>
+			<string>CHPProcessConfigurationListController</string>
 			<key>isController</key>
 			<true/>
 			<key>label</key>
@@ -48,7 +48,7 @@
 			<key>detail</key>
 			<string>CHPApplicationListSubcontrollerController</string>
 			<key>subcontrollerClass</key>
-			<string>CHPApplicationDaemonConfigurationListController</string>
+			<string>CHPProcessConfigurationListController</string>
 			<key>sections</key>
 			<array>
 				<dict>
@@ -64,6 +64,8 @@
 			<true/>
 			<key>showIdentifiersAsSubtitle</key>
 			<true/>
+			<key>includeIdentifiersInSearch</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -72,6 +74,16 @@
 			<string>DAEMONS</string>
 			<key>detail</key>
 			<string>CHPDaemonListController</string>
+			<key>isController</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>ADDITIONAL_EXECUTABLES</string>
+			<key>detail</key>
+			<string>CHPAdditionalExecutablesListController</string>
 			<key>isController</key>
 			<true/>
 		</dict>
@@ -106,6 +118,24 @@
 			<string>launchWithTweaksOptionEnabled</string>
 			<key>label</key>
 			<string>LAUNCH_WITH_TWEAKS_OPTION</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>TROUBLESHOOTING</string>
+			<key>footerText</key>
+			<string>TWEAK_TROUBLESHOOTING_FOOTER</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSLinkCell</string>
+			<key>label</key>
+			<string>TWEAK_TROUBLESHOOTING</string>
+			<key>detail</key>
+			<string>CHPTweakTroubleshootListController</string>
+			<key>isController</key>
+			<true/>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -154,6 +184,20 @@
 			<string>CHPCreditsListController</string>
 			<key>label</key>
 			<string>CREDITS</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>resetPreferences</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>RESET_PREFERENCES</string>
+			<key>cellClass</key>
+			<string>CHPDestructiveTableCell</string>
 		</dict>
 		<dict>
 			<key>cell</key>

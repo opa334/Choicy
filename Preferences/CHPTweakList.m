@@ -19,9 +19,10 @@
 // SOFTWARE.
 
 #import "CHPTweakList.h"
-
 #import "CHPTweakInfo.h"
 #import "CHPDaemonInfo.h"
+#import "CHPMachoParser.h"
+#import "../Shared.h"
 
 @implementation CHPTweakList
 
@@ -35,6 +36,16 @@
 		sharedInstance = [[CHPTweakList alloc] init];
 	});
 	return sharedInstance;
+}
+
+- (instancetype)init
+{
+	self = [super init];
+	if(self)
+	{
+		[self updateTweakList];
+	}
+	return self;
 }
 
 - (void)updateTweakList
@@ -60,94 +71,97 @@
 	self.tweakList = [tweakListM copy];
 }
 
-- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier executableName:(NSString*)executableName linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers
+- (NSArray*)tweakListForExecutableAtPath:(NSString*)executablePath
 {
-	NSMutableArray* tweakListForApplication = [NSMutableArray new];
+	if(!executablePath) return nil;
 
-	for(CHPTweakInfo* tweakInfo in self.tweakList)
+	NSString* bundleID = [NSBundle bundleWithPath:executablePath.stringByDeletingLastPathComponent].bundleIdentifier;
+	NSString* executableName = executablePath.lastPathComponent;
+	NSSet* linkedFrameworks = frameworkBundleIDsForMachoAtPath(executablePath);
+
+	NSMutableArray* tweakListForExecutable = [NSMutableArray new];
+	[self.tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo* tweakInfo, NSUInteger idx, BOOL* stop)
 	{
-		if([tweakInfo.filterBundles containsObject:identifier])
+		if(bundleID)
 		{
-			[tweakListForApplication addObject:tweakInfo];
-			continue;
-		}
-
-		if([tweakInfo.filterExecutables containsObject:executableName])
-		{
-			[tweakListForApplication addObject:tweakInfo];
-			continue;
-		}
-
-		for(NSString* frameworkIdentifier in linkedFrameworkIdentifiers)
-		{
-			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
+			if([tweakInfo.filterBundles containsObject:bundleID])
 			{
-				[tweakListForApplication addObject:tweakInfo];
-				break;
+				[tweakListForExecutable addObject:tweakInfo];
+				return;
 			}
 		}
-	}
 
-	return [tweakListForApplication copy];
-}
-
-- (NSArray*)tweakListForDaemon:(CHPDaemonInfo*)daemonInfo
-{
-	NSMutableArray* tweakListForDaemon = [NSMutableArray new];
-
-	for(CHPTweakInfo* tweakInfo in self.tweakList)
-	{
-		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
+		if(executableName)
 		{
-			[tweakListForDaemon addObject:tweakInfo];
-			continue;
-		}
-
-		if([tweakInfo.filterBundles containsObject:[daemonInfo displayName]])
-		{
-			[tweakListForDaemon addObject:tweakInfo];
-			continue;
-		}
-
-		for(NSString* frameworkIdentifier in daemonInfo.linkedFrameworkIdentifiers)
-		{
-			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
+			if([tweakInfo.filterExecutables containsObject:executableName])
 			{
-				[tweakListForDaemon addObject:tweakInfo];
-				break;
+				[tweakListForExecutable addObject:tweakInfo];
+				return;
 			}
 		}
-	}
+		
+		if(linkedFrameworks)
+		{
+			[linkedFrameworks enumerateObjectsUsingBlock:^(NSString* frameworkID, BOOL* stop)
+			{
+				if([tweakInfo.filterBundles containsObject:frameworkID])
+				{
+					[tweakListForExecutable addObject:tweakInfo];
+					*stop = YES;
+				}
+			}];
+		}
+	}];
 
-	return [tweakListForDaemon copy];
+	return tweakListForExecutable;
 }
 
-- (BOOL)oneOrMoreTweaksInjectIntoDaemon:(CHPDaemonInfo*)daemonInfo
+- (BOOL)oneOrMoreTweaksInjectIntoExecutableAtPath:(NSString*)executablePath
 {
-	for(CHPTweakInfo* tweakInfo in self.tweakList)
+	for(CHPTweakInfo* tweakInfo in [self tweakListForExecutableAtPath:executablePath])
 	{
 		if([tweakInfo.dylibName containsString:@"Choicy"])
 		{
 			continue;
 		}
 		
-		if([tweakInfo.filterExecutables containsObject:[daemonInfo displayName]])
+		return YES;
+	}
+
+	return NO;
+}
+
+- (BOOL)isTweak:(CHPTweakInfo*)tweak hiddenForApplicationWithIdentifier:(NSString*)applicationID
+{
+	if([applicationID isEqualToString:kSpringboardBundleID])
+	{
+		if([kAlwaysInjectSpringboard containsObject:tweak.dylibName])
 		{
 			return YES;
 		}
+	}
 
-		if([tweakInfo.filterBundles containsObject:[daemonInfo displayName]])
+	if([applicationID isEqualToString:kPreferencesBundleID])
+	{
+		if([kAlwaysInjectPreferences containsObject:tweak.dylibName])
 		{
 			return YES;
 		}
+	}
 
-		for(NSString* frameworkIdentifier in daemonInfo.linkedFrameworkIdentifiers)
-		{
-			if([tweakInfo.filterBundles containsObject:frameworkIdentifier])
-			{
-				return YES;
-			}
-		}
+	return [kAlwaysInjectGlobal containsObject:tweak.dylibName];
+}
+
+- (BOOL)isTweakHiddenForAnyProcess:(CHPTweakInfo*)tweak
+{
+	if([self isTweak:tweak hiddenForApplicationWithIdentifier:kSpringboardBundleID])
+	{
+		return YES;
+	}
+
+	if([self isTweak:tweak hiddenForApplicationWithIdentifier:kPreferencesBundleID])
+	{
+		return YES;
 	}
 
 	return NO;

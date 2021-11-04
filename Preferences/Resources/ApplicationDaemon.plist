@@ -18,6 +18,24 @@
 				<key>defaults</key>
 				<string>com.opa334.choicyprefs</string>
 				<key>key</key>
+				<string>overwriteGlobalTweakConfiguration</string>
+				<key>label</key>
+				<string>OVERWRITE_GLOBAL_TWEAK_CONFIGURATION</string>
+            </dict>
+			<dict>
+				<key>cell</key>
+				<string>PSGroupCell</string>
+			</dict>
+			<dict>
+				<key>PostNotification</key>
+				<string>com.opa334.choicyprefs/ReloadPrefs</string>
+				<key>cell</key>
+				<string>PSSwitchCell</string>
+				<key>default</key>
+				<false/>
+				<key>defaults</key>
+				<string>com.opa334.choicyprefs</string>
+				<key>key</key>
 				<string>tweakInjectionDisabled</string>
 				<key>label</key>
 				<string>DISABLE_TWEAK_INJECTION</string>

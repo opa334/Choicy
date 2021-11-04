@@ -18,23 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import "CHPListController.h"
-@class PSSpecifier;
-
-@interface CHPApplicationDaemonConfigurationListController : CHPListController
-{
-	BOOL _isApplication;
-	BOOL _isSpringboard;
-	NSMutableDictionary* _appDaemonSettings;
-	NSMutableArray* _customConfigurationSpecifiers;
-	PSSpecifier* _segmentSpecifier;
-	NSMutableArray* _tweakWhitelist;
-	NSMutableArray* _tweakBlacklist;
-}
-
-- (void)readAppDaemonSettingsFromMainPropertyList;
-- (void)writeAppDaemonSettingsToMainPropertyList;
-- (void)updateTopSwitchesAvailability;
-- (void)updateTweakConfigurationAvailability;
-- (NSString*)dictionaryName;
+@interface CHPPackageInfo : NSObject
+@property (nonatomic, readonly) NSString* identifier;
+@property (nonatomic, readonly) NSString* name;
+@property (nonatomic, readonly) NSArray* tweakDylibs;
++ (NSArray*)allInstalledPackages;
+- (instancetype)initWithPackageIdentifier:(NSString*)packageID;
++ (instancetype)fetchPackageInfoForDylibName:(NSString*)dylibName;
 @end

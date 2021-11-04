@@ -24,6 +24,8 @@
 #import "CHPTweakList.h"
 #import <AppList/AppList.h>
 #import <mach-o/dyld.h>
+#import "CHPPreferences.h"
+#import "../ChoicyPrefsMigrator.h"
 
 NSArray* dylibsBeforeChoicy;
 
@@ -33,7 +35,27 @@ NSDictionary* preferences;
 
 void reloadPreferences()
 {
-	preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
+	preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
+}
+
+NSMutableDictionary* preferencesForWriting()
+{
+	if(preferences)
+	{
+		return preferences.mutableCopy;
+	}
+	else
+	{
+		NSMutableDictionary* mutablePrefs = [NSMutableDictionary new];
+		[ChoicyPrefsMigrator updatePreferenceVersion:mutablePrefs];
+		return mutablePrefs;
+	}
+}
+
+void writePreferences(NSMutableDictionary* mutablePrefs)
+{
+	[mutablePrefs writeToFile:kChoicyPrefsPlistPath atomically:YES];
+	[CHPListController sendChoicyPrefsPostNotification];
 }
 
 NSString* getInjectionPlatform()
@@ -109,67 +131,97 @@ NSString* getInjectionPlatform()
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=opa334@protonmail.com&item_name=iOS%20Tweak%20Development"]];
 }
 
+- (void)resetPreferences
+{
+	UIAlertController* resetPreferencesAlert = [UIAlertController alertControllerWithTitle:localize(@"RESET_PREFERENCES") message:localize(@"RESET_PREFERENCES_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
+
+	UIAlertAction* continueAction = [UIAlertAction actionWithTitle:localize(@"CONTINUE") style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action)
+	{
+		[[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:nil];
+		[[self class] sendChoicyPrefsPostNotification];
+	}];
+
+	UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:localize(@"CANCEL") style:UIAlertActionStyleDefault handler:nil];
+	
+	[resetPreferencesAlert addAction:continueAction];
+	[resetPreferencesAlert addAction:cancelAction];
+
+	[self presentViewController:resetPreferencesAlert animated:YES completion:nil];
+}
+
+void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgainOption)
+{
+	PSSpecifier* dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
+					target:plc
+					set:nil
+					get:nil
+					detail:nil
+					cell:0
+					edit:nil];
+
+	[dontShowAgainSpecifier setProperty:@"com.opa334.choicyprefs" forKey:@"defaults"];
+	[dontShowAgainSpecifier setProperty:@"dontShowWarningAgain" forKey:@"key"];
+	[dontShowAgainSpecifier setProperty:@"com.opa334.choicyprefs/ReloadPrefs" forKey:@"PostNotification"];
+
+	NSNumber* dontShowAgainNum = nil;
+	if(showDontShowAgainOption)
+	{
+		dontShowAgainNum = [plc readPreferenceValue:dontShowAgainSpecifier];
+	}
+
+	if(![dontShowAgainNum boolValue])
+	{
+		NSString* injectionPlatform = getInjectionPlatform();
+
+		NSString* message = [NSString stringWithFormat:localize(@"TWEAKS_LOADING_BEFORE_CHOICY_ALERT_MESSAGE"), injectionPlatform];
+
+		if([injectionPlatform isEqualToString:@"Substrate"])
+		{
+			message = [message stringByAppendingString:[@" " stringByAppendingString:localize(@"CHOICYLOADER_ADVICE")]];
+		}
+
+		UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
+	
+		if([injectionPlatform isEqualToString:@"Substrate"])
+		{
+			UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
+			{
+				[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://opa334.github.io"]];
+			}];
+
+			[warningAlert addAction:openRepoAction];
+		}
+
+		if(showDontShowAgainOption)
+		{
+			UIAlertAction* dontShowAgainAction = [UIAlertAction actionWithTitle:localize(@"DONT_SHOW_AGAIN") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
+			{
+				[plc setPreferenceValue:@1 specifier:dontShowAgainSpecifier];
+			}];
+
+			[warningAlert addAction:dontShowAgainAction];
+		}
+
+		UIAlertAction* closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
+
+		[warningAlert addAction:closeAction];
+
+		if([warningAlert respondsToSelector:@selector(setPreferredAction:)])
+		{
+			warningAlert.preferredAction = closeAction;
+		}
+
+		[plc presentViewController:warningAlert animated:YES completion:nil];
+	}
+}
+
 - (void)viewDidLoad
 {
 	[super viewDidLoad];
 
 	if(dylibsBeforeChoicy)
 	{
-		PSSpecifier* dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
-						target:self
-						set:nil
-						get:nil
-						detail:nil
-						cell:0
-						edit:nil];
-
-		[dontShowAgainSpecifier setProperty:@"com.opa334.choicyprefs" forKey:@"defaults"];
-		[dontShowAgainSpecifier setProperty:@"dontShowWarningAgain" forKey:@"key"];
-		[dontShowAgainSpecifier setProperty:@"com.opa334.choicyprefs/ReloadPrefs" forKey:@"PostNotification"];
-
-		NSNumber* dontShowAgainNum = [self readPreferenceValue:dontShowAgainSpecifier];
-
-		if(![dontShowAgainNum boolValue])
-		{
-			NSString* injectionPlatform = getInjectionPlatform();
-
-			NSString* message = [NSString stringWithFormat:localize(@"WARNING_ALERT_MESSAGE"), injectionPlatform];
-
-			if([injectionPlatform isEqualToString:@"Substrate"])
-			{
-				message = [message stringByAppendingString:[@" " stringByAppendingString:localize(@"CHOICYLOADER_ADVICE")]];
-			}
-
-			UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
-		
-			if([injectionPlatform isEqualToString:@"Substrate"])
-			{
-				UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-				{
-					[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://opa334.github.io"]];
-				}];
-
-				[warningAlert addAction:openRepoAction];
-			}
-
-			UIAlertAction* dontShowAgainAction = [UIAlertAction actionWithTitle:localize(@"DONT_SHOW_AGAIN") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-			{
-				[self setPreferenceValue:@1 specifier:dontShowAgainSpecifier];
-			}];
-
-			[warningAlert addAction:dontShowAgainAction];
-
-			UIAlertAction* closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
-
-			[warningAlert addAction:closeAction];
-
-			if([warningAlert respondsToSelector:@selector(setPreferredAction:)])
-			{
-				warningAlert.preferredAction = closeAction;
-			}
-
-			[self presentViewController:warningAlert animated:YES completion:nil];
-		}
+		presentNotLoadingFirstWarning(self, YES);
 	}
 }
 
@@ -211,7 +263,7 @@ void determineLoadingOrder()
 		[dylibsInOrder sortUsingSelector:@selector(caseInsensitiveCompare:)];
 	}
 
-	NSUInteger choicyIndex = [dylibsInOrder indexOfObject:CHOICY_DYLIB_NAME];
+	NSUInteger choicyIndex = [dylibsInOrder indexOfObject:kChoicyDylibName];
 
 	if(choicyIndex == NSNotFound) return;
 
@@ -239,7 +291,6 @@ void determineLoadingOrder()
 __attribute__((constructor))
 static void init(void)
 {
-	[[CHPTweakList sharedInstance] updateTweakList];
 	reloadPreferences();
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	determineLoadingOrder();

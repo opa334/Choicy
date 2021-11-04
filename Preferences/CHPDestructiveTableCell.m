@@ -18,8 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "CHPDestructiveTableCell.h"
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@implementation CHPDestructiveTableCell
+
+- (void)layoutSubviews
+{
+	[super layoutSubviews];
+	self.textLabel.textColor = [UIColor systemRedColor];
+	self.textLabel.highlightedTextColor = [UIColor systemRedColor];
+}
+
 @end

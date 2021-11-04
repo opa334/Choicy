@@ -24,13 +24,51 @@
 
 extern NSBundle* CHBundle;
 extern NSString* localize(NSString* key);
-extern NSDictionary* preferences;
+extern NSDictionary* processPreferencesForApplication(NSDictionary* preferences, NSString* applicationID);
+extern NSDictionary* processPreferencesForDaemon(NSDictionary* preferences, NSString* daemonDisplayName);
 
-#define CHPPlistPath @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist"
-#define CHOICY_DYLIB_NAME @"   Choicy"
+extern BOOL parseNumberBool(id number, BOOL default_);
+extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
-extern NSDictionary* preferencesForApplicationWithID(NSString* applicationID);
-extern NSDictionary* preferencesForDaemonWithDisplayName(NSString* daemonDisplayName);
+#define kChoicyPrefsPlistPath @"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist"
+#define kChoicyDylibName @"   Choicy"
+
+#define kChoicyPrefsKeyGlobalDeniedTweaks @"globalDeniedTweaks"
+#define kChoicyPrefsKeyAppSettings @"appSettings"
+#define kChoicyPrefsKeyDaemonSettings @"daemonSettings"
+#define kChoicyPrefsKeyAdditionalExecutables @"additionalExecutables"
+#define kChoicyProcessPrefsKeyTweakInjectionDisabled @"tweakInjectionDisabled"
+#define kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled @"customTweakConfigurationEnabled"
+#define kChoicyProcessPrefsKeyAllowDenyMode @"allowDenyMode"
+#define kChoicyProcessPrefsKeyDeniedTweaks @"deniedTweaks"
+#define kChoicyProcessPrefsKeyAllowedTweaks @"allowedTweaks"
+#define kChoicyProcessPrefsKeyOverwriteGlobalTweakConfiguration @"overwriteGlobalTweakConfiguration"
+
+// pre 1.4 keys
+#define kChoicyPrefsKeyGlobalDeniedTweaks_LEGACY @"globalTweakBlacklist"
+#define kChoicyProcessPrefsKeyAllowDenyMode_LEGACY @"whitelistBlacklistSegment"
+#define kChoicyProcessPrefsKeyDeniedTweaks_LEGACY @"tweakBlacklist"
+#define kChoicyProcessPrefsKeyAllowedTweaks_LEGACY @"tweakWhitelist"
+
+// pref migration
+#define kChoicyPrefMigration1_4_ChangedKeys @{kChoicyPrefsKeyGlobalDeniedTweaks_LEGACY : kChoicyPrefsKeyGlobalDeniedTweaks}
+#define kChoicyPrefMigration1_4_RemovedKeys @[@"allowBlacklistOverwrites", @"allowWhitelistOverwrites"]
+#define kChoicyProcessPrefMigration1_4_ChangedKeys @{kChoicyProcessPrefsKeyAllowDenyMode_LEGACY : kChoicyProcessPrefsKeyAllowDenyMode, kChoicyProcessPrefsKeyDeniedTweaks_LEGACY : kChoicyProcessPrefsKeyDeniedTweaks, kChoicyProcessPrefsKeyAllowedTweaks_LEGACY : kChoicyProcessPrefsKeyAllowedTweaks}
+
+#define kPreferencesBundleID @"com.apple.Preferences"
+#define kSpringboardBundleID @"com.apple.springboard"
+
+#define kEnvDeniedTweaksOverride "CHOICY_DENIED_TWEAKS_OVERRIDE"
+#define kEnvAllowedTweaksOverride "CHOICY_ALLOWED_TWEAKS_OVERRIDE"
+#define kEnvOverwriteGlobalConfigurationOverride "CHOICY_OVERWRITE_GLOBAL_TWEAK_CONFIGURATION_OVERRIDE"
+
+#define kNoDisableTweakInjectionToggle @[kPreferencesBundleID]
+#define kAlwaysInjectGlobal @[kChoicyDylibName, @"MobileSafety"]
+#define kAlwaysInjectSpringboard @[@"ChoicySB"]
+#define kAlwaysInjectPreferences @[@"PreferenceLoader", @"preferred"]
+
+#define kChoicyPrefsCurrentVersion 1
+#define kChoicyPrefsVersionKey @"preferenceVersion"
 
 extern void BKSTerminateApplicationForReasonAndReportWithDescription(NSString *bundleID, int reasonID, bool report, NSString *description);
 

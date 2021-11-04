@@ -18,8 +18,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import <AltList/ATLApplicationListSubcontrollerController.h>
+#import "CHPListController.h"
+@class PSSpecifier, LSPlugInKitProxy, LSBundleProxy;
 
-@interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
+@interface CHPProcessConfigurationListController : CHPListController
+{
+	LSBundleProxy* _bundleProxy;
+	BOOL _isSpringboard;
+	NSMutableArray* _customConfigurationSpecifiers;
+	PSSpecifier* _segmentSpecifier;
+	NSMutableArray* _allowedTweaks;
+	NSMutableArray* _deniedTweaks;
+	NSInteger _customTweakConfigurationSection;
+}
+@property (nonatomic) NSMutableDictionary* processPreferences;
++ (NSString*)executablePathForBundleProxy:(LSBundleProxy*)bundleProxy;
+- (void)readAppDaemonSettingsFromMainPropertyList;
+- (void)writeAppDaemonSettingsToMainPropertyList;
+- (void)updateSwitchesAvailability;
+- (NSString*)dictionaryName;
 @end

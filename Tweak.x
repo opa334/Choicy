@@ -18,22 +18,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#import "HBLogWeak.h"
+
 #import "Shared.h"
 #import <substrate.h>
 #import <dlfcn.h>
 
-BOOL tweakInjectionDisabled = NO;
-BOOL customTweakConfigurationEnabled = NO;
+BOOL g_tweakInjectionDisabled = NO;
+BOOL g_customTweakConfigurationEnabled = NO;
 
-NSArray* tweakWhitelist;
-NSArray* tweakBlacklist;
+NSArray* g_allowedTweaks = nil;
+NSArray* g_deniedTweaks = nil;
+NSArray* g_globalDeniedTweaks = nil;
+BOOL g_isApplication = NO;
 
-NSArray* globalTweakBlacklist;
-BOOL allowBlacklistOverwrites;
-BOOL allowWhitelistOverwrites;
-BOOL isApplication;
-
-NSString* bundleIdentifier;
+NSString* g_bundleIdentifier = nil;
 
 //methods of getting executablePath and bundleIdentifier with the least side effects possible
 //for more information, check out https://github.com/checkra1n/BugTracker/issues/343
@@ -58,20 +57,53 @@ NSString* safe_getBundleIdentifier()
 	return nil;
 }
 
+NSArray* env_getDeniedTweaksOverwrite()
+{
+	char* deniedTweaksC = getenv(kEnvDeniedTweaksOverride);
+	if(deniedTweaksC == NULL) return nil;
+	unsetenv(kEnvDeniedTweaksOverride);
+
+	NSString* deniedTweaksString = [NSString stringWithCString:deniedTweaksC encoding:NSUTF8StringEncoding];
+	return [deniedTweaksString componentsSeparatedByString:@"/"];
+}
+
+NSArray* env_getAllowedTweaksOverwrite()
+{
+	char* allowedTweaksC = getenv(kEnvAllowedTweaksOverride);
+	if(allowedTweaksC == NULL) return nil;
+	unsetenv(kEnvAllowedTweaksOverride);
+
+	NSString* allowedTweaksString = [NSString stringWithCString:allowedTweaksC encoding:NSUTF8StringEncoding];
+	return [allowedTweaksString componentsSeparatedByString:@"/"];
+}
+
+BOOL env_getOverwriteGlobalTweakConfigurationOverwrite(BOOL* envOverwriteExists)
+{
+	char* overwriteGlobalTweakConfigurationStr = getenv(kEnvOverwriteGlobalConfigurationOverride);
+	if(overwriteGlobalTweakConfigurationStr == NULL)
+	{
+		if(envOverwriteExists) *envOverwriteExists = NO;
+		return NO;
+	}
+	unsetenv(kEnvOverwriteGlobalConfigurationOverride);
+	if(envOverwriteExists) *envOverwriteExists = YES;
+	return !strcmp(overwriteGlobalTweakConfigurationStr, "1");
+}
+
 BOOL isTweakDylib(NSString* dylibPath)
 {
 	if([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"])
 	{
 		NSString* plistPath = [[dylibPath stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
 
-		HBLogDebug(@"plistPath = %@", plistPath);
+		HBLogDebugWeak(@"plistPath = %@", plistPath);
 
 		if([[NSFileManager defaultManager] fileExistsAtPath:plistPath])
 		{
 			//Shoutouts to libFLEX for having a plist with an empty bundles entry
 			NSDictionary* bundlePlistDict = [NSDictionary dictionaryWithContentsOfFile:plistPath];
 
-			HBLogDebug(@"bundlePlistDict = %@", bundlePlistDict);
+			HBLogDebugWeak(@"bundlePlistDict = %@", bundlePlistDict);
 
 			NSDictionary* filter = [bundlePlistDict objectForKey:@"Filter"];
 
@@ -85,7 +117,6 @@ BOOL isTweakDylib(NSString* dylibPath)
 
 					if(arrObj.count > 0)
 					{
-						HBLogDebug(@"%@ was determined to be a tweak", dylibPath.lastPathComponent);
 						return YES;
 					}
 				}
@@ -93,98 +124,71 @@ BOOL isTweakDylib(NSString* dylibPath)
 		}
 	}
 
-	HBLogDebug(@"%@ was determined NOT to be a tweak", dylibPath.lastPathComponent);
 	return NO;
 }
 
 BOOL shouldLoadDylib(NSString* dylibPath)
 {
+	NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
+	HBLogDebugWeak(@"Checking whether %@.dylib should be loaded...", dylibName);
+
 	if(isTweakDylib(dylibPath))
 	{
-		NSString* dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
-
-		HBLogDebug(@"Checking whether %@ should be loaded", dylibName);
-
-		//Don't prevent ChoicySB from loading into SpringBoard cause otherwise the 3d shortcuts and disabling tweaks inside applications doesn't work
-		if([dylibName isEqualToString:@"ChoicySB"])
+		// dylibs crucial for Choicy itself to work
+		if(g_isApplication)
 		{
-			HBLogDebug(@"Loaded because ChoicySB");
-			return YES;
-		}
-
-		if([dylibName isEqualToString:@"   Choicy"])
-		{
-			HBLogDebug(@"Loaded because Choicy main dylib");
-			return YES;
-		}
-
-		//Don't prevent AppList from loading into SpringBoard cause otherwise the Choicy application settings break
-		if([bundleIdentifier isEqualToString:@"com.apple.springboard"] && [dylibName isEqualToString:@"AppList"])
-		{
-			HBLogDebug(@"Loaded because AppList");
-			return YES;
-		}
-
-		if(isApplication)
-		{
-			//Don't prevent PreferenceLoader from loading into Preferences.app cause otherwise once disabled it could never be reenabled
-			if([bundleIdentifier isEqualToString:@"com.apple.Preferences"] && [dylibName isEqualToString:@"PreferenceLoader"])
+			NSArray* forceInjectedTweaks;
+			if([g_bundleIdentifier isEqualToString:kPreferencesBundleID])
 			{
-				HBLogDebug(@"Loaded because PreferenceLoader");
+				forceInjectedTweaks = kAlwaysInjectPreferences;
+			}
+			else if([g_bundleIdentifier isEqualToString:kSpringboardBundleID])
+			{
+				forceInjectedTweaks = kAlwaysInjectSpringboard;
+			}
+
+			if([forceInjectedTweaks containsObject:dylibName])
+			{
+				HBLogDebugWeak(@"%@.dylib ✅ (crucial)", dylibName);
 				return YES;
 			}
 		}
 
-		if(tweakInjectionDisabled)
+		if(g_tweakInjectionDisabled)
 		{
-			HBLogDebug(@"Not loading because tweakInjectionDisabled is enabled");
+			HBLogDebugWeak(@"%@.dylib ❌ (tweak injection disabled)", dylibName);
 			return NO;
 		}
 
-		HBLogDebug(@"tweakWhitelist = %@", tweakWhitelist);
-		HBLogDebug(@"tweakBlacklist = %@", tweakBlacklist);
-		HBLogDebug(@"globalTweakBlacklist = %@", globalTweakBlacklist);
-
-		BOOL tweakIsInWhitelist = [tweakWhitelist containsObject:dylibName];
-		BOOL tweakIsInBlacklist = [tweakBlacklist containsObject:dylibName];
-		BOOL tweakIsInGlobalBlacklist = [globalTweakBlacklist containsObject:dylibName];
-
-		HBLogDebug(@"tweakIsInWhitelist = %d", tweakIsInWhitelist);
-		HBLogDebug(@"tweakIsInBlacklist = %d", tweakIsInBlacklist);
-		HBLogDebug(@"tweakIsInGlobalBlacklist = %d", tweakIsInGlobalBlacklist);
+		BOOL tweakIsInWhitelist = [g_allowedTweaks containsObject:dylibName];
+		BOOL tweakIsInBlacklist = [g_deniedTweaks containsObject:dylibName];
+		BOOL tweakIsInGlobalBlacklist = [g_globalDeniedTweaks containsObject:dylibName];
 
 		if(tweakIsInGlobalBlacklist)
 		{
-			if(tweakWhitelist && tweakIsInWhitelist && allowWhitelistOverwrites)
-			{
-				HBLogDebug(@"Loaded because tweakWhitelist && tweakIsInWhitelist && allowWhitelistOverwrites");
-				return YES;
-			}
-
-			if(tweakBlacklist && !tweakIsInBlacklist && allowBlacklistOverwrites)
-			{
-				HBLogDebug(@"Loaded because tweakBlacklist && !tweakIsInBlacklist && allowBlacklistOverwrites");
-				return YES;
-			}
-
-			HBLogDebug(@"Not loaded because in global blacklist");
+			HBLogDebugWeak(@"%@.dylib ❌ (disabled in global tweak configuration)", dylibName);
 			return NO;
 		}
 
-		if(tweakWhitelist && !tweakIsInWhitelist)
+		if(g_allowedTweaks && !tweakIsInWhitelist)
 		{
-			HBLogDebug(@"Not loaded because not in whitelist");
+			HBLogDebugWeak(@"%@.dylib ❌ (custom tweak configuration on allow and tweak not allowed)", dylibName);
 			return NO;
 		}
 
-		if(tweakBlacklist && tweakIsInBlacklist)
+		if(g_deniedTweaks && tweakIsInBlacklist)
 		{
-			HBLogDebug(@"Not loaded because in blacklist");
+			HBLogDebugWeak(@"%@.dylib ❌ (custom tweak configuration on deny and tweak denied)", dylibName);
 			return NO;
 		}
 	}
+	else
+	{
+		HBLogDebugWeak(@"%@.dylib ✅ (not a tweak)", dylibName);
+		return YES;
+	}
 
-	HBLogDebug(@"Loaded");
+	HBLogDebugWeak(@"%@.dylib ✅ (allowed)", dylibName);
 	return YES;
 }
 
@@ -199,11 +203,8 @@ void* $dlopen_internal(const char *path, int mode, void* lr)
 
 			if(!shouldLoadDylib(dylibPath))
 			{
-				HBLogDebug(@"%@ not loaded", dylibPath.lastPathComponent);
 				return NULL;
 			}
-
-			HBLogDebug(@"%@ loaded", dylibPath.lastPathComponent);
 		}
 	}
 	return dlopen_internal(path, mode, lr);
@@ -220,11 +221,8 @@ void* $dlopen_regular(const char *path, int mode)
 
 			if(!shouldLoadDylib(dylibPath))
 			{
-				HBLogDebug(@"%@ not loaded", dylibPath.lastPathComponent);
 				return NULL;
 			}
-
-			HBLogDebug(@"%@ loaded", dylibPath.lastPathComponent);
 		}
 	}
 	return dlopen_regular(path, mode);
@@ -234,74 +232,110 @@ void* $dlopen_regular(const char *path, int mode)
 {
 	@autoreleasepool
 	{
-		HBLogDebug(@"CHOICY INIT");
+		HBLogDebugWeak(@"Choicy loaded");
 
-		preferences = [NSDictionary dictionaryWithContentsOfFile:CHPPlistPath];
-
+		// Determine information about this process
+		g_bundleIdentifier = safe_getBundleIdentifier();
 		NSString* executablePath = safe_getExecutablePath();
-		bundleIdentifier = safe_getBundleIdentifier();
+		g_isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
+		BOOL isAppPlugIn = [executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"appex"];
 
-		isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
-		NSDictionary* settings;
+		// Load global preferences
+		NSDictionary* preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 
-		if(isApplication)
+		// Load preferences specific to this process
+		NSDictionary* processPreferences;
+		if(g_isApplication)
 		{
-			settings = preferencesForApplicationWithID(bundleIdentifier);
+			processPreferences = processPreferencesForApplication(preferences, g_bundleIdentifier);
 		}
 		else
 		{
-			settings = preferencesForDaemonWithDisplayName(executablePath.lastPathComponent);
+			processPreferences = processPreferencesForDaemon(preferences, executablePath.lastPathComponent);
 		}
 
-		HBLogDebug(@"settings = %@", settings);
+		HBLogDebugWeak(@"Loaded Choicy process preferences: %@", processPreferences);
 
-		globalTweakBlacklist = [preferences objectForKey:@"globalTweakBlacklist"] ?: [NSArray new];
-		allowBlacklistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowBlacklistOverwrites"]).boolValue;
-		allowWhitelistOverwrites = ((NSNumber*)[preferences objectForKey:@"allowWhitelistOverwrites"]).boolValue;
-
-		NSInteger whitelistBlacklistSegment = 0;
-
-		if(settings)
+		// Check if the "Overwrite Global Tweak Configuration" toggle is enabled for this process or enabled via environment variable
+		BOOL overwriteGlobalTweakConfiguration = parseNumberBool(processPreferences[kChoicyProcessPrefsKeyOverwriteGlobalTweakConfiguration], NO);
+		BOOL overwriteGlobalTweakConfiguration_envOverwriteExists;
+		BOOL overwriteGlobalTweakConfiguration_envOverwrite = env_getOverwriteGlobalTweakConfigurationOverwrite(&overwriteGlobalTweakConfiguration_envOverwriteExists);
+		if(overwriteGlobalTweakConfiguration_envOverwriteExists)
 		{
-			tweakInjectionDisabled = ((NSNumber*)[settings objectForKey:@"tweakInjectionDisabled"]).boolValue;
-			customTweakConfigurationEnabled = ((NSNumber*)[settings objectForKey:@"customTweakConfigurationEnabled"]).boolValue;
-			whitelistBlacklistSegment = ((NSNumber*)[settings objectForKey:@"whitelistBlacklistSegment"]).intValue;
+			overwriteGlobalTweakConfiguration = overwriteGlobalTweakConfiguration_envOverwrite;
 		}
 
-		if(tweakInjectionDisabled || customTweakConfigurationEnabled || globalTweakBlacklist.count > 0)
+		if(!overwriteGlobalTweakConfiguration)
 		{
-			//If tweakInjectionDisabled is true for an application other than SpringBoard,
-			//it means that tweak injection was enabled for one launch via 3D touch and we should not do anything
-			if(isApplication && tweakInjectionDisabled)
+			// If not, load tweaks disabled via global tweak configuration
+			g_globalDeniedTweaks = preferences[kChoicyPrefsKeyGlobalDeniedTweaks];
+		}
+
+		HBLogDebugWeak(@"g_globalDeniedTweaks = %@", g_globalDeniedTweaks);
+
+		NSInteger allowDenyMode = 0;
+		if(processPreferences)
+		{
+			// If this process has non default preferences, load them into variables
+			g_tweakInjectionDisabled = parseNumberBool(processPreferences[kChoicyProcessPrefsKeyTweakInjectionDisabled], NO);
+			g_customTweakConfigurationEnabled = parseNumberBool(processPreferences[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled], NO);
+			allowDenyMode = parseNumberInteger(processPreferences[kChoicyProcessPrefsKeyAllowDenyMode], 1);
+		}
+
+		// Load list overwrites from environment
+		NSArray* env_deniedTweaks = env_getDeniedTweaksOverwrite();
+		NSArray* env_allowedTweaks = env_getAllowedTweaksOverwrite();
+
+		BOOL performedOverwrite = NO;
+
+		// Perform overwrites if neccessary
+		if(env_deniedTweaks)
+		{
+			g_customTweakConfigurationEnabled = YES;
+			allowDenyMode = 2; // DENY
+			g_deniedTweaks = env_deniedTweaks;
+			performedOverwrite = YES;
+		}
+		else if(env_allowedTweaks)
+		{
+			g_customTweakConfigurationEnabled = YES;
+			allowDenyMode = 1; // ALLOW
+			g_allowedTweaks = env_allowedTweaks;
+			performedOverwrite = YES;
+		}
+
+		if(g_tweakInjectionDisabled || g_customTweakConfigurationEnabled || g_globalDeniedTweaks.count > 0)
+		{
+			// If g_tweakInjectionDisabled is true for an application other than SpringBoard,
+			// it means that tweak injection was enabled for one launch via 3D touch and we should not do anything
+			if(g_isApplication && !isAppPlugIn && g_tweakInjectionDisabled)
 			{
-				if(![bundleIdentifier isEqualToString:@"com.apple.springboard"])
+				if(![g_bundleIdentifier isEqualToString:kSpringboardBundleID])
 				{
-					HBLogDebug(@"tweak injection has been enabled via 3D touch, bye!");
+					HBLogDebugWeak(@"Tweak injection has been enabled via 3D touch, Choicy will do nothing!");
 					return;
 				}
 			}
 
-			if(customTweakConfigurationEnabled)
+			// If custom tweak configuration is enabled for this process, load the allow / deny list based on what mode is selected
+			if(g_customTweakConfigurationEnabled && !performedOverwrite)
 			{
-				if(whitelistBlacklistSegment == 2) //blacklist
+				if(allowDenyMode == 2) //DENY
 				{
-					tweakBlacklist = [settings objectForKey:@"tweakBlacklist"] ?: [NSArray new];
+					g_deniedTweaks = processPreferences[kChoicyProcessPrefsKeyDeniedTweaks];
 				}
-				else //whitelist
+				else if(allowDenyMode == 1) //ALLOW
 				{
-					tweakWhitelist = [settings objectForKey:@"tweakWhitelist"] ?: [NSArray new];
+					g_allowedTweaks = processPreferences[kChoicyProcessPrefsKeyAllowedTweaks];
 				}
 			}
 
+			// Apply Choicy dlopen hooks
 			MSImageRef libdyldImage = MSGetImageByName("/usr/lib/system/libdyld.dylib");
-
 			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
 			{
-				//NSLog(@"hello from choicy on >=14.1");
 				void* dlopen_internal_ptr = MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv");
-				//NSLog(@"dlopen_internal_ptr: %p, hooking now...", dlopen_internal_ptr);
 				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
-				//NSLog(@"dlopen_internal hooked");
 			}
 			else
 			{

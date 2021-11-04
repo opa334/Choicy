@@ -19,12 +19,14 @@
 // SOFTWARE.
 
 @class CHPDaemonInfo;
+@class CHPTweakInfo;
 
 @interface CHPTweakList : NSObject
 @property (nonatomic) NSArray* tweakList;
 + (instancetype)sharedInstance;
 - (void)updateTweakList;
-- (NSArray*)tweakListForApplicationWithIdentifier:(NSString*)identifier executableName:(NSString*)executableName linkedFrameworkIdentifiers:(NSSet*)linkedFrameworkIdentifiers;
-- (NSArray*)tweakListForDaemon:(CHPDaemonInfo*)daemonInfo;
-- (BOOL)oneOrMoreTweaksInjectIntoDaemon:(CHPDaemonInfo*)daemonInfo;
+- (NSArray*)tweakListForExecutableAtPath:(NSString*)executablePath;
+- (BOOL)oneOrMoreTweaksInjectIntoExecutableAtPath:(NSString*)executablePath;
+- (BOOL)isTweak:(CHPTweakInfo*)tweak hiddenForApplicationWithIdentifier:(NSString*)applicationID;
+- (BOOL)isTweakHiddenForAnyProcess:(CHPTweakInfo*)tweakName;
 @end

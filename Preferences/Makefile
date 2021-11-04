@@ -2,7 +2,7 @@ include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = ChoicyPrefs
 
-ChoicyPrefs_FILES = $(wildcard *.m) $(wildcard *.x) ../Shared.x
+ChoicyPrefs_FILES = $(wildcard *.m) $(wildcard *.x) ../Shared.m ../ChoicyPrefsMigrator.m
 ChoicyPrefs_INSTALL_PATH = /Library/PreferenceBundles
 ChoicyPrefs_FRAMEWORKS = UIKit
 ChoicyPrefs_PRIVATE_FRAMEWORKS = Preferences MobileCoreServices
