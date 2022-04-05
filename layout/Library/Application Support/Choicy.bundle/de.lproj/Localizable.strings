@@ -54,7 +54,7 @@
 "PACKAGE" = "Packet";
 "TROUBLESHOOTING" = "Fehlerbehebung";
 "TWEAK_TROUBLESHOOTING" = "Tweak Fehlerbehebung";
-"TWEAK_TROUBLESHOOTING_FOOTER" = "Wenn der Verdacht besteht, dass Choicy einen Tweak davon abhält korrekt zu funktionineren, kann der Tweak in dieser Sektion angewählt werden um herrauszufinden, ob einer Dylib des Tweaks die Injektion verweigert wird.";
+"TWEAK_TROUBLESHOOTING_FOOTER" = "Wenn der Verdacht besteht, dass Choicy einen Tweak davon abhält korrekt zu funktionieren, kann der Tweak in dieser Sektion ausgewählt werden um herrauszufinden, ob einer Dylib des Tweaks die Injektion verweigert wird.";
 "PACKAGES" = "Pakete";
 "RESULTS" = "Ergebnis";
 "RESULTS_GLOBAL_DENIED" = "Die folgenden Tweak Dylibs wurden in der Globalen Tweak Konfiguration deaktiviert:";

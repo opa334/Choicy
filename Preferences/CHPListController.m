@@ -58,6 +58,15 @@
 
 	if (@available(iOS 11.0, *))
 	{
+		if(@available(iOS 13.0, *))
+		{
+			_searchController.hidesNavigationBarDuringPresentation = YES;
+		}
+		else
+		{
+			_searchController.hidesNavigationBarDuringPresentation = NO;
+		}
+
 		self.navigationItem.searchController = _searchController;
 		self.navigationItem.hidesSearchBarWhenScrolling = hideWhileScrolling;
 	}
