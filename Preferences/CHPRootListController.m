@@ -58,6 +58,46 @@ void writePreferences(NSMutableDictionary* mutablePrefs)
 	[CHPListController sendChoicyPrefsPostNotification];
 }
 
+NSArray* getInjectionLibraries()
+{
+	static NSArray* injectionLibraries = nil;
+
+	if(!injectionLibraries)
+	{
+		NSMutableArray* injectionLibrariesM = [NSMutableArray new];
+
+		for (uint32_t i = 0; i < _dyld_image_count(); i++)
+		{
+			const char *pathC = _dyld_get_image_name(i);
+			NSString* path = [NSString stringWithUTF8String:pathC];
+
+			if([path isEqualToString:@"/usr/lib/substitute-inserter.dylib"])
+			{
+				[injectionLibrariesM addObject:path];
+			}
+			else if([path isEqualToString:@"/usr/lib/substitute-loader.dylib"])
+			{
+				[injectionLibrariesM addObject:path];
+			}
+			else if([path isEqualToString:@"/usr/lib/TweakInject.dylib"])
+			{
+				[injectionLibrariesM addObject:path];
+			}
+			else if([path isEqualToString:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+			{
+				[injectionLibrariesM addObject:path];
+			} else if([path isEqualToString:@"/usr/lib/substrate/SubstrateLoader.dylib"])
+			{
+				[injectionLibrariesM addObject:path];
+			}
+		}
+
+		injectionLibraries = injectionLibrariesM.copy;
+	}
+
+	return injectionLibraries;
+}
+
 NSString* getInjectionPlatform()
 {
 	static NSString* injectionPlatform = nil;

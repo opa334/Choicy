@@ -23,6 +23,7 @@
 #import "CHPMachoParser.h"
 #import "CHPTweakList.h"
 #import "../Shared.h"
+#import "../HBLogWeak.h"
 
 #import <dirent.h>
 
@@ -64,6 +65,8 @@
 
 - (void)updateDaemonListIfNeeded
 {
+	HBLogDebugWeak(@"updateDaemonListIfNeeded");
+
 	if(_loaded || _loading)
 	{
 		return;
@@ -115,6 +118,8 @@
 		}
 	}
 
+	HBLogDebugWeak(@"XPC before");
+
 	NSDirectoryEnumerator* systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
 	{
 		return YES;
@@ -162,6 +167,8 @@
 			}
 		}
 	}
+
+	HBLogDebugWeak(@"XPC after");
 
 	NSMutableArray* additionalPotentialDaemons = [NSMutableArray new];
 
@@ -221,6 +228,8 @@
 		return [[a executableName] localizedCaseInsensitiveCompare:[b executableName]];
 	}];
 
+	HBLogDebugWeak(@"updateDaemonListIfNeeded loaded files");
+
 	CHPTweakList* tweakList = [CHPTweakList sharedInstance];
 
 	for(CHPDaemonInfo* daemonInfo in [daemonListM reverseObjectEnumerator])
@@ -235,6 +244,8 @@
 	_daemonList = [daemonListM copy];
 	_loading = NO;
 	_loaded = YES;
+
+	HBLogDebugWeak(@"updateDaemonListIfNeeded end");
 
 	[self sendReloadToObservers];
 }
