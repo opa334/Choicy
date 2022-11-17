@@ -165,7 +165,7 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 						envName = @kEnvAllowedTweaksOverride;
 					}
 
-					NSLog(@"set %@ to %@", envName, allowDenyString);
+					//NSLog(@"set %@ to %@", envName, allowDenyString);
 
 					[environmentM setObject:allowDenyString forKey:envName];
 				}
@@ -173,7 +173,7 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 		}
 
 		BOOL overwriteGlobalConfigurationOverride = [overrideManager overwriteGlobalConfigurationOverrideForApplication:applicationID overrideExists:&overrideExists];
-		NSLog(@"overwriteGlobalConfigurationOverride=%i overrideExists=%i", overwriteGlobalConfigurationOverride, overrideExists);
+		//NSLog(@"overwriteGlobalConfigurationOverride=%i overrideExists=%i", overwriteGlobalConfigurationOverride, overrideExists);
 		if(overrideExists)
 		{
 			NSString* envToSet;
@@ -193,8 +193,15 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 	executionContext.environment = [environmentM copy];
 }
 
-%group ProcessEnvironment_iOS13Up
+// iOS >= 15
+- (id)_createProcessWithExecutionContext:(FBProcessExecutionContext*)executionContext error:(id*)arg2
+{
+	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:executionContext.identity.embeddedApplicationIdentifier];
 
+	return %orig;
+}
+
+// iOS 13 - 14
 - (id)_createProcessWithExecutionContext:(FBProcessExecutionContext*)executionContext
 {
 	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:executionContext.identity.embeddedApplicationIdentifier];
@@ -202,18 +209,13 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 	return %orig;
 }
 
-%end
-
-%group ProcessEnvironment_iOS12Down
-
+// iOS <= 12
 - (id)createApplicationProcessForBundleID:(NSString*)bundleID withExecutionContext:(FBProcessExecutionContext*)executionContext
 {
 	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:bundleID];
 
 	return %orig;
 }
-
-%end
 
 %end
 
@@ -401,12 +403,10 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_13_0)
 	{
-		%init(ProcessEnvironment_iOS13Up);
 		%init(Shortcut_iOS13Up);
 	}
 	else
 	{
-		%init(ProcessEnvironment_iOS12Down);
 		%init(Shortcut_iOS12Down);
 	}
 }

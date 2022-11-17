@@ -332,7 +332,17 @@ void* $dlopen_regular(const char *path, int mode)
 
 			// Apply Choicy dlopen hooks
 			MSImageRef libdyldImage = MSGetImageByName("/usr/lib/system/libdyld.dylib");
-			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
+
+			void* dlopen_global_var_ptr = MSFindSymbol(libdyldImage, "__ZN5dyld45gDyldE");
+			if(dlopen_global_var_ptr) // if this var exists, it means we're on a version where we can hook dlopen directly again
+			{
+				void* dlopen_from_ptr = MSFindSymbol(libdyldImage, "_dlopen_from");
+				void* dlopen_ptr = MSFindSymbol(libdyldImage, "_dlopen");
+				//dlopen_from and dlopen_internal have the same function signature so we can just reuse the internal hook
+				MSHookFunction(dlopen_from_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
+				MSHookFunction(dlopen_ptr, (void*)$dlopen_regular, (void**)&dlopen_regular);
+			}
+			else if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
 			{
 				void* dlopen_internal_ptr = MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv");
 				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
