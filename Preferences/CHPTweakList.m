@@ -23,6 +23,7 @@
 #import "CHPDaemonInfo.h"
 #import "CHPMachoParser.h"
 #import "../Shared.h"
+#import "../HBLogWeak.h"
 
 @implementation CHPTweakList
 
@@ -73,6 +74,7 @@
 
 - (NSArray*)tweakListForExecutableAtPath:(NSString*)executablePath
 {
+	HBLogDebugWeak(@"tweakListForExecutableAtPath:%@", executablePath);
 	if(!executablePath) return nil;
 
 	NSString* bundleID = [NSBundle bundleWithPath:executablePath.stringByDeletingLastPathComponent].bundleIdentifier;

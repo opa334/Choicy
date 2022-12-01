@@ -59,10 +59,21 @@
 		}
 	}
 
-	if(!bundleExecutablePath && [bundleProxy isKindOfClass:[LSPlugInKitProxy class]] && NSClassFromString(@"LSApplicationExtensionRecord"))
+	if(!bundleExecutablePath && [bundleProxy isKindOfClass:[LSPlugInKitProxy class]])
 	{
-		LSApplicationExtensionRecord* appexRecord = [bundleProxy valueForKey:@"_appexRecord"];
-		bundleExecutablePath = appexRecord.executableURL.path;
+		if(NSClassFromString(@"LSApplicationExtensionRecord"))
+		{
+			LSApplicationExtensionRecord* appexRecord = [bundleProxy valueForKey:@"_appexRecord"];
+			bundleExecutablePath = appexRecord.executableURL.path;
+		}
+		else
+		{
+			NSString* bundleExecutable = ((LSPlugInKitProxy*)bundleProxy).infoPlist[@"CFBundleExecutable"];
+			if(bundleExecutable)
+			{
+				bundleExecutablePath = [bundleProxy.bundleURL URLByAppendingPathComponent:bundleExecutable].path;
+			}
+		}
 	}
 
 	return bundleExecutablePath;
