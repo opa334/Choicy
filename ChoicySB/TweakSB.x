@@ -22,6 +22,7 @@
 #import "../Shared.h"
 #import "ChoicyOverrideManager.h"
 #import "../ChoicyPrefsMigrator.h"
+#import "../rootless.h"
 
 NSBundle* choicyBundle;
 NSDictionary* preferences;
@@ -399,7 +400,7 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, respring, CFSTR("com.opa334.choicy/respring"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-	choicyBundle = [NSBundle bundleWithPath:@"/Library/Application Support/Choicy.bundle"];
+	choicyBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
 
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_13_0)
 	{

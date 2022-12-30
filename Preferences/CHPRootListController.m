@@ -26,6 +26,7 @@
 #import <mach-o/dyld.h>
 #import "CHPPreferences.h"
 #import "../ChoicyPrefsMigrator.h"
+#import "../rootless.h"
 
 NSArray* dylibsBeforeChoicy;
 
@@ -71,22 +72,22 @@ NSArray* getInjectionLibraries()
 			const char *pathC = _dyld_get_image_name(i);
 			NSString* path = [NSString stringWithUTF8String:pathC];
 
-			if([path isEqualToString:@"/usr/lib/substitute-inserter.dylib"])
+			if([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"])
 			{
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path isEqualToString:@"/usr/lib/substitute-loader.dylib"])
+			else if([path hasSuffix:@"/usr/lib/substitute-loader.dylib"])
 			{
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path isEqualToString:@"/usr/lib/TweakInject.dylib"])
+			else if([path hasSuffix:@"/usr/lib/TweakInject.dylib"])
 			{
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path isEqualToString:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+			else if([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"])
 			{
 				[injectionLibrariesM addObject:path];
-			} else if([path isEqualToString:@"/usr/lib/substrate/SubstrateLoader.dylib"])
+			} else if([path hasSuffix:@"/usr/lib/substrate/SubstrateLoader.dylib"])
 			{
 				[injectionLibrariesM addObject:path];
 			}
@@ -109,15 +110,15 @@ NSString* getInjectionPlatform()
 			const char *pathC = _dyld_get_image_name(i);
 			NSString* path = [NSString stringWithUTF8String:pathC];
 
-			if([path isEqualToString:@"/usr/lib/substitute-inserter.dylib"])
+			if([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"])
 			{
 				injectionPlatform = @"Substitute";
 			}
-			else if([path isEqualToString:@"/usr/lib/TweakInject.dylib"])
+			else if([path hasSuffix:@"/usr/lib/TweakInject.dylib"])
 			{
 				injectionPlatform = @"libhooker";
 			}
-			else if([path isEqualToString:@"/usr/lib/substrate/SubstrateInserter.dylib"])
+			else if([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"])
 			{
 				injectionPlatform = @"Substrate";
 			}
@@ -270,6 +271,7 @@ void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgain
 void determineLoadingOrder()
 {
 	NSMutableArray* dylibsInOrder = [NSMutableArray new];
+	NSString* injectionLibrariesPath = [CHPTweakList injectionLibrariesPath];
 
 	BOOL isSubstrate = [getInjectionPlatform() isEqualToString:@"Substrate"];
 	if(isSubstrate)
@@ -277,7 +279,7 @@ void determineLoadingOrder()
 		//SubstrateLoader doesn't sort anything and instead process the raw output of readdir
 		DIR *dir;
 		struct dirent* dp;
-		dir = opendir("/Library/MobileSubstrate/DynamicLibraries");
+		dir = opendir(injectionLibrariesPath.UTF8String);
 		dp=readdir(dir); //.
 		dp=readdir(dir); //..
 		while((dp = readdir(dir)) != NULL)
@@ -293,7 +295,7 @@ void determineLoadingOrder()
 	else
 	{
 		//Anything but substrate sorts the dylibs alphabetically
-		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:@"/Library/MobileSubstrate/DynamicLibraries" error:nil] mutableCopy];
+		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:injectionLibrariesPath error:nil] mutableCopy];
 		NSArray* plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
 		for(NSString* plist in plists)
 		{
@@ -314,12 +316,12 @@ void determineLoadingOrder()
 
 	if(dylibsBeforeChoicy && isSubstrate)
 	{
-		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
+		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
 
 		if([[targetLoaderAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeSymbolicLink])
 		{
-			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:@"/usr/lib/substrate/SubstrateLoader.dylib" error:nil];
-			if([destination isEqualToString:@"/usr/lib/ChoicyLoader.dylib"])
+			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
+			if([destination hasPrefix:@"/usr/lib/ChoicyLoader.dylib"])
 			{
 				// If ChoicyLoader is installed on Substrate, Choicy always loads first
 				dylibsBeforeChoicy = nil;

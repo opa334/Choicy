@@ -237,7 +237,7 @@ void* $dlopen_regular(const char *path, int mode)
 		// Determine information about this process
 		g_bundleIdentifier = safe_getBundleIdentifier();
 		NSString* executablePath = safe_getExecutablePath();
-		g_isApplication = [executablePath containsString:@"/Application"] || [executablePath containsString:@"/CoreServices"];
+		g_isApplication = [executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"app"];
 		BOOL isAppPlugIn = [executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"appex"];
 
 		// Load global preferences
@@ -333,23 +333,26 @@ void* $dlopen_regular(const char *path, int mode)
 			// Apply Choicy dlopen hooks
 			MSImageRef libdyldImage = MSGetImageByName("/usr/lib/system/libdyld.dylib");
 
-			void* dlopen_global_var_ptr = MSFindSymbol(libdyldImage, "__ZN5dyld45gDyldE");
-			if(dlopen_global_var_ptr) // if this var exists, it means we're on a version where we can hook dlopen directly again
-			{
-				void* dlopen_from_ptr = MSFindSymbol(libdyldImage, "_dlopen_from");
-				void* dlopen_ptr = MSFindSymbol(libdyldImage, "_dlopen");
-				//dlopen_from and dlopen_internal have the same function signature so we can just reuse the internal hook
-				MSHookFunction(dlopen_from_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
-				MSHookFunction(dlopen_ptr, (void*)$dlopen_regular, (void**)&dlopen_regular);
-			}
-			else if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1)
+			void* dlopen_global_var_ptr = MSFindSymbol(libdyldImage, "__ZN5dyld45gDyldE"); // if this var exists, it means we're on a version new enough to hook dlopen directly again
+			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1 && !dlopen_global_var_ptr)
 			{
 				void* dlopen_internal_ptr = MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv");
 				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
 			}
 			else
 			{
-				MSHookFunction(MSFindSymbol(libdyldImage, "_dlopen"), (void*)$dlopen_regular, (void**)&dlopen_regular);
+				void* dlopen_ptr = MSFindSymbol(libdyldImage, "_dlopen");
+				if(dlopen_ptr)
+				{
+					MSHookFunction(dlopen_ptr, (void*)$dlopen_regular, (void**)&dlopen_regular);
+				}
+
+				void* dlopen_from_ptr = MSFindSymbol(libdyldImage, "_dlopen_from");
+				if(dlopen_from_ptr)
+				{
+					//dlopen_from and dlopen_internal have the same function signature so we can just reuse the internal hook
+					MSHookFunction(dlopen_from_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
+				}
 			}
 		}
 	}

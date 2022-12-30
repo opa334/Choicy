@@ -23,6 +23,8 @@
 
 @interface CHPTweakList : NSObject
 @property (nonatomic) NSArray* tweakList;
++ (NSString*)injectionLibrariesPath;
++ (NSURL*)injectionLibrariesURL;
 + (instancetype)sharedInstance;
 - (void)updateTweakList;
 - (NSArray*)tweakListForExecutableAtPath:(NSString*)executablePath;

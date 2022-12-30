@@ -19,6 +19,8 @@
 // SOFTWARE.
 
 #import "CHPPackageInfo.h"
+#import "CHPTweakList.h"
+#import "../rootless.h"
 
 NSDictionary* g_packageNamesByIdentifier;
 NSArray* g_packageInfos;
@@ -133,7 +135,7 @@ NSArray* g_packageInfos;
 		NSArray* infoLines = [dpkgInfo componentsSeparatedByString:@"\n"];
 		[infoLines enumerateObjectsUsingBlock:^(NSString* infoLine, NSUInteger idx, BOOL* stop)
 		{
-			if([infoLine hasPrefix:@"/Library/MobileSubstrate/DynamicLibraries"] && [infoLine.pathExtension isEqualToString:@"dylib"])
+			if([infoLine isEqualToString:[CHPTweakList injectionLibrariesPath]] && [infoLine.pathExtension isEqualToString:@"dylib"])
 			{
 				NSString* dylibName = infoLine.lastPathComponent.stringByDeletingPathExtension;
 				[tweakDylibsM addObject:dylibName];

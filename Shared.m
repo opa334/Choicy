@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #import "Shared.h"
+#import "rootless.h"
 
 NSBundle* CHBundle;
 NSDictionary* englishLocalizations;
@@ -50,7 +51,7 @@ NSString* localize(NSString* key)
 
 	if(!CHBundle)
 	{
-		CHBundle = [NSBundle bundleWithPath:@"/Library/Application Support/Choicy.bundle"];
+		CHBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
 	}
 
 	NSString* localizedString = [CHBundle localizedStringForKey:key value:key table:nil];

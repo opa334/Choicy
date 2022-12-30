@@ -24,6 +24,7 @@
 #import "CHPMachoParser.h"
 #import "../Shared.h"
 #import "../HBLogWeak.h"
+#import "../rootless.h"
 
 @implementation CHPTweakList
 
@@ -39,6 +40,30 @@
 	return sharedInstance;
 }
 
++ (NSString*)injectionLibrariesPath
+{
+	NSString* tweakInjectPath = ROOT_PATH_NS(@"/usr/lib/TweakInject");
+	NSString* substratePath = ROOT_PATH_NS(@"/Library/MobileSubstrate/DynamicLibraries");
+
+	if([[NSFileManager defaultManager] fileExistsAtPath:tweakInjectPath])
+	{
+		return tweakInjectPath;
+	}
+	else if([[NSFileManager defaultManager] fileExistsAtPath:substratePath])
+	{
+		return substratePath;
+	}
+	else
+	{
+		@throw [[NSException alloc] initWithName:@"TweakDirectoryException" reason:[NSString stringWithFormat:@"Unable to locate tweak installation directory"] userInfo:nil];
+	}
+}
+
++ (NSURL*)injectionLibrariesURL
+{
+	return [NSURL fileURLWithPath:[self injectionLibrariesPath]].URLByResolvingSymlinksInPath;
+}
+
 - (instancetype)init
 {
 	self = [super init];
@@ -52,7 +77,7 @@
 - (void)updateTweakList
 {
 	NSMutableArray* tweakListM = [NSMutableArray new];
-	NSArray* dynamicLibraries = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/MobileSubstrate/DynamicLibraries"].URLByResolvingSymlinksInPath includingPropertiesForKeys:nil options:0 error:nil];
+	NSArray* dynamicLibraries = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[CHPTweakList injectionLibrariesURL] includingPropertiesForKeys:nil options:0 error:nil];
 
 	for(NSURL* URL in dynamicLibraries)
 	{

@@ -24,6 +24,7 @@
 #import "CHPTweakList.h"
 #import "../Shared.h"
 #import "../HBLogWeak.h"
+#import "../rootless.h"
 
 #import <dirent.h>
 
@@ -79,6 +80,11 @@
 	[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/NanoLaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
 
 	[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
+
+	if([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb/Library/LaunchDaemons"])
+	{
+		[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/var/jb/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
+	}
 
 	for(NSURL* daemonPlistURL in [daemonPlists reverseObjectEnumerator])
 	{
