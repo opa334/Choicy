@@ -40,23 +40,35 @@
 	return sharedInstance;
 }
 
++ (NSArray*)possibleInjectionLibrariesPaths
+{
+	// /Library and /usr always gets converted to rootless paths on xina, so this workaround is neccessary
+	return @[[@"/" stringByAppendingString:@"Library/MobileSubstrate/DynamicLibraries"], [@"/" stringByAppendingString:@"usr/lib/TweakInject"], @"/var/jb/Library/MobileSubstrate/DynamicLibraries", @"/var/jb/usr/lib/TweakInject"];
+}
+
 + (NSString*)injectionLibrariesPath
 {
-	NSString* tweakInjectPath = ROOT_PATH_NS(@"/usr/lib/TweakInject");
-	NSString* substratePath = ROOT_PATH_NS(@"/Library/MobileSubstrate/DynamicLibraries");
+	for(NSString* possibleInjectionLibrariesPath in [self possibleInjectionLibrariesPaths])
+	{
+		if([[NSFileManager defaultManager] fileExistsAtPath:possibleInjectionLibrariesPath])
+		{
+			return possibleInjectionLibrariesPath;
+		}
+	}
 
-	if([[NSFileManager defaultManager] fileExistsAtPath:tweakInjectPath])
+	@throw [[NSException alloc] initWithName:@"TweakDirectoryException" reason:[NSString stringWithFormat:@"Unable to locate tweak installation directory"] userInfo:nil];
+}
+
++ (BOOL)isTweakLibraryPath:(NSString*)path
+{
+	if(![path.pathExtension isEqualToString:@"dylib"]) return NO;
+
+	for(NSString* possibleInjectionLibrariesPath in [self possibleInjectionLibrariesPaths])
 	{
-		return tweakInjectPath;
+		if([path hasPrefix:possibleInjectionLibrariesPath]) return YES;
 	}
-	else if([[NSFileManager defaultManager] fileExistsAtPath:substratePath])
-	{
-		return substratePath;
-	}
-	else
-	{
-		@throw [[NSException alloc] initWithName:@"TweakDirectoryException" reason:[NSString stringWithFormat:@"Unable to locate tweak installation directory"] userInfo:nil];
-	}
+
+	return NO;
 }
 
 + (NSURL*)injectionLibrariesURL

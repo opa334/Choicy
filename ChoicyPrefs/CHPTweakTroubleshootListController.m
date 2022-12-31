@@ -95,7 +95,7 @@
 
 	NSArray* executableTweaks = [[CHPTweakList sharedInstance] tweakListForExecutableAtPath:executablePath];
 	
-	__block BOOL tweakInjectsIntoExecutable;
+	__block BOOL tweakInjectsIntoExecutable = NO;
 	[executableTweaks enumerateObjectsUsingBlock:^(CHPTweakInfo* tweakInfo, NSUInteger idx, BOOL* stop)
 	{
 		if([tweakInfo.dylibName isEqualToString:tweakDylib])

@@ -135,7 +135,7 @@ NSArray* g_packageInfos;
 		NSArray* infoLines = [dpkgInfo componentsSeparatedByString:@"\n"];
 		[infoLines enumerateObjectsUsingBlock:^(NSString* infoLine, NSUInteger idx, BOOL* stop)
 		{
-			if([infoLine isEqualToString:[CHPTweakList injectionLibrariesPath]] && [infoLine.pathExtension isEqualToString:@"dylib"])
+			if([CHPTweakList isTweakLibraryPath:infoLine])
 			{
 				NSString* dylibName = infoLine.lastPathComponent.stringByDeletingPathExtension;
 				[tweakDylibsM addObject:dylibName];
