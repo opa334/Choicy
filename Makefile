@@ -9,7 +9,7 @@ Choicy_CFLAGS = -fobjc-arc -DTHEOS_LEAN_AND_MEAN # <- this makes theos not link 
 Choicy_FRAMEWORKS = Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
-SUBPROJECTS += Preferences
+SUBPROJECTS += ChoicyPrefs
 SUBPROJECTS += ChoicySB
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
