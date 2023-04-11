@@ -21,9 +21,6 @@
 #import "Shared.h"
 #import "rootless.h"
 
-NSBundle* CHBundle;
-NSDictionary* englishLocalizations;
-
 BOOL parseNumberBool(id number, BOOL default_)
 {
 	if(!number) return default_;
@@ -44,6 +41,9 @@ NSInteger parseNumberInteger(id number, NSInteger default_)
 
 NSString* localize(NSString* key)
 {	
+	static NSBundle* CHBundle;
+	static NSDictionary* englishLocalizations;
+
 	if(key == nil)
 	{
 		return nil;

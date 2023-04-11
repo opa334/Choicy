@@ -22,9 +22,9 @@
 #import "../Shared.h"
 #import "ChoicyOverrideManager.h"
 #import "../ChoicyPrefsMigrator.h"
-#import "../rootless.h"
+#import <rootless.h>
 
-NSBundle* choicyBundle;
+NSBundle* CHBundle;
 NSDictionary* preferences;
 
 void reloadPreferences()
@@ -60,6 +60,10 @@ void reloadPreferences()
 	}
 	else
 	{
+		NSString *parentDir = [kChoicyPrefsPlistPath stringByDeletingLastPathComponent];
+		if (![[NSFileManager defaultManager] fileExistsAtPath:parentDir]) {
+			[[NSFileManager defaultManager] createDirectoryAtPath:parentDir withIntermediateDirectories:YES attributes:nil error:nil];
+		}
 		preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 	}
 }
@@ -261,7 +265,7 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 			imageName = @"AppLaunchIcon_Crossed";
 		}
 
-		UIImage* imageToSet = [[UIImage imageNamed:imageName inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+		UIImage* imageToSet = [[UIImage imageNamed:imageName inBundle:CHBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 		toggleSafeModeOnceItem.icon = [[%c(SBSApplicationShortcutCustomImageIcon) alloc] initWithImageData:UIImagePNGRepresentation(imageToSet) dataType:0 isTemplate:1];
 
 		toggleSafeModeOnceItem.bundleIdentifierToLaunch = applicationID;
@@ -359,11 +363,11 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 {
     if([title isEqualToString:localize(@"LAUNCH_WITHOUT_TWEAKS")])
 	{
-        image = [[UIImage imageNamed:@"AppLaunchIcon_Crossed_Big" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        image = [[UIImage imageNamed:@"AppLaunchIcon_Crossed_Big" inBundle:CHBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     }
 	else if([title isEqualToString:localize(@"LAUNCH_WITH_TWEAKS")])
 	{
-		image = [[UIImage imageNamed:@"AppLaunchIcon_Big" inBundle:choicyBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+		image = [[UIImage imageNamed:@"AppLaunchIcon_Big" inBundle:CHBundle compatibleWithTraitCollection:nil] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
 	}
 
     return %orig;
@@ -400,7 +404,7 @@ void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, 
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, respring, CFSTR("com.opa334.choicy/respring"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-	choicyBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
+	CHBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
 
 	if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_13_0)
 	{

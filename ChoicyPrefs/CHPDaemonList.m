@@ -24,7 +24,7 @@
 #import "CHPTweakList.h"
 #import "../Shared.h"
 #import "../HBLogWeak.h"
-#import "../rootless.h"
+#import <rootless.h>
 
 #import <dirent.h>
 

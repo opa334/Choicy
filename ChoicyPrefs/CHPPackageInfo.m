@@ -20,7 +20,7 @@
 
 #import "CHPPackageInfo.h"
 #import "CHPTweakList.h"
-#import "../rootless.h"
+#import <rootless.h>
 
 NSDictionary* g_packageNamesByIdentifier;
 NSArray* g_packageInfos;

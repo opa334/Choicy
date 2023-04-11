@@ -192,7 +192,7 @@ BOOL shouldLoadDylib(NSString* dylibPath)
 	return YES;
 }
 
-void* (*dlopen_internal)(const char*, int, void*);
+void* (*dlopen_internal_orig)(const char*, int, void*);
 void* $dlopen_internal(const char *path, int mode, void* lr)
 {
 	@autoreleasepool
@@ -200,32 +200,30 @@ void* $dlopen_internal(const char *path, int mode, void* lr)
 		if(path != NULL)
 		{
 			NSString* dylibPath = @(path);
-
 			if(!shouldLoadDylib(dylibPath))
 			{
 				return NULL;
 			}
 		}
 	}
-	return dlopen_internal(path, mode, lr);
+	return dlopen_internal_orig(path, mode, lr);
 }
 
-void* (*dlopen_regular)(const char*, int);
-void* $dlopen_regular(const char *path, int mode)
+void* (*dlopen_orig)(const char*, int);
+void* $dlopen(const char *path, int mode)
 {
 	@autoreleasepool
 	{
 		if(path != NULL)
 		{
 			NSString* dylibPath = @(path);
-
 			if(!shouldLoadDylib(dylibPath))
 			{
 				return NULL;
 			}
 		}
 	}
-	return dlopen_regular(path, mode);
+	return dlopen_orig(path, mode);
 }
 
 %ctor
@@ -337,21 +335,14 @@ void* $dlopen_regular(const char *path, int mode)
 			if(kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_1 && !dlopen_global_var_ptr)
 			{
 				void* dlopen_internal_ptr = MSFindSymbol(libdyldImage, "__ZL15dlopen_internalPKciPv");
-				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
+				MSHookFunction(dlopen_internal_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal_orig);
 			}
 			else
 			{
-				void* dlopen_ptr = MSFindSymbol(libdyldImage, "_dlopen");
-				if(dlopen_ptr)
-				{
-					MSHookFunction(dlopen_ptr, (void*)$dlopen_regular, (void**)&dlopen_regular);
-				}
-
-				void* dlopen_from_ptr = MSFindSymbol(libdyldImage, "_dlopen_from");
-				if(dlopen_from_ptr)
-				{
-					//dlopen_from and dlopen_internal have the same function signature so we can just reuse the internal hook
-					MSHookFunction(dlopen_from_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal);
+				MSHookFunction(&dlopen, (void*)$dlopen, (void**)&dlopen_orig);
+				void *dlopen_from_ptr = dlsym(RTLD_DEFAULT, "dlopen_from");
+				if (dlopen_from_ptr) {
+					MSHookFunction(dlopen_from_ptr, (void*)$dlopen_internal, (void**)&dlopen_internal_orig);
 				}
 			}
 		}

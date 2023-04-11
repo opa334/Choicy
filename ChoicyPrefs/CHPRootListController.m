@@ -26,7 +26,7 @@
 #import <mach-o/dyld.h>
 #import "CHPPreferences.h"
 #import "../ChoicyPrefsMigrator.h"
-#import "../rootless.h"
+#import <rootless.h>
 
 NSArray* dylibsBeforeChoicy;
 
