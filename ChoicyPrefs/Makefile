@@ -8,7 +8,9 @@ ChoicyPrefs_FRAMEWORKS = UIKit
 ChoicyPrefs_PRIVATE_FRAMEWORKS = Preferences MobileCoreServices
 ChoicyPrefs_EXTRA_FRAMEWORKS = AltList
 ChoicyPrefs_CFLAGS = -fobjc-arc
+ifneq ($(THEOS_PACKAGE_SCHEME),rootless)
 ChoicyPrefs_CFLAGS += -DXINA_SUPPORT
+endif
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
