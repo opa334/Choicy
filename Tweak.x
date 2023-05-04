@@ -273,10 +273,10 @@ void *$dlopen(const char *path, int mode) {
 
 			// If custom tweak configuration is enabled for this process, load the allow / deny list based on what mode is selected
 			if (g_customTweakConfigurationEnabled && !performedOverwrite) {
-				if (allowDenyMode == 2) //DENY {
+				if (allowDenyMode == 2) { // DENY
 					g_deniedTweaks = processPreferences[kChoicyProcessPrefsKeyDeniedTweaks];
 				}
-				else if (allowDenyMode == 1) //ALLOW {
+				else if (allowDenyMode == 1) { // ALLOW
 					g_allowedTweaks = processPreferences[kChoicyProcessPrefsKeyAllowedTweaks];
 				}
 			}
