@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #import "ChoicyOverrideProvider.h"
+#import <Foundation/Foundation.h>
 
 @interface ChoicyOverrideManager : NSObject
 {

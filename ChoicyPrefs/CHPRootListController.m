@@ -22,7 +22,6 @@
 #import "../Shared.h"
 #import "CHPDaemonList.h"
 #import "CHPTweakList.h"
-#import <AppList/AppList.h>
 #import <mach-o/dyld.h>
 #import "CHPPreferences.h"
 #import "../ChoicyPrefsMigrator.h"

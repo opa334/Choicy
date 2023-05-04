@@ -7,7 +7,7 @@ ChoicyPrefs_INSTALL_PATH = /Library/PreferenceBundles
 ChoicyPrefs_FRAMEWORKS = UIKit
 ChoicyPrefs_PRIVATE_FRAMEWORKS = Preferences MobileCoreServices
 ChoicyPrefs_EXTRA_FRAMEWORKS = AltList
-ChoicyPrefs_CFLAGS = -fobjc-arc
+ChoicyPrefs_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
 ifneq ($(THEOS_PACKAGE_SCHEME),rootless)
 ChoicyPrefs_CFLAGS += -DXINA_SUPPORT
 endif

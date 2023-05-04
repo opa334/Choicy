@@ -18,10 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#import "SpringBoard.h"
 #import "../Shared.h"
-#import "ChoicyOverrideManager.h"
 #import "../ChoicyPrefsMigrator.h"
+#import "SpringBoard.h"
+#import "ChoicyOverrideManager.h"
+#import <UIKit/UIKit.h>
 #import <rootless.h>
 
 NSBundle* CHBundle;

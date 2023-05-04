@@ -33,24 +33,37 @@
 	return localize(@"CREDITS");
 }
 
+- (void)openURL:(NSURL *)URL
+{
+	if(@available(iOS 10, *))
+	{
+		[[UIApplication sharedApplication] openURL:URL options:@{} completionHandler:nil];
+	}
+	else
+	{
+		[[UIApplication sharedApplication] openURL:URL];
+	}
+}
+
 - (void)openQuickPrefs
 {
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/AnthoPakPak/QuickPrefs"]];
+	[self openURL:[NSURL URLWithString:@"https://github.com/AnthoPakPak/QuickPrefs"]];
 }
 
 - (void)openTweakConfigurator
 {
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/pixelomer/TweakConfigurator"]];
+
+	[self openURL:[NSURL URLWithString:@"https://github.com/pixelomer/TweakConfigurator"]];
 }
 
 - (void)openUnSub
 {
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/NepetaDev/UnSub"]];
+	[self openURL:[NSURL URLWithString:@"https://github.com/NepetaDev/UnSub"]];
 }
 
 - (void)openBrendonjkding
 {
-	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/brendonjkding"]];
+	[self openURL:[NSURL URLWithString:@"https://github.com/brendonjkding"]];
 }
 
 @end

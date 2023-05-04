@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #import "Shared.h"
+#import <Foundation/Foundation.h>
 
 @interface ChoicyPrefsMigrator : NSObject
 

@@ -21,7 +21,6 @@
 #import "CHPDaemonListController.h"
 #import "CHPPreferences.h"
 
-#import <AppList/AppList.h>
 #import "../Shared.h"
 
 #import "CHPDaemonInfo.h"

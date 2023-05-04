@@ -20,7 +20,6 @@
 
 #import "CHPProcessConfigurationListController.h"
 
-#import <AppList/AppList.h>
 #import <Preferences/PSSpecifier.h>
 #import "../Shared.h"
 #import "CHPTweakList.h"

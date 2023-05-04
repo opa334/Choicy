@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #import "CHPDaemonListObserver.h"
+#import <Foundation/Foundation.h>
 
 @interface CHPDaemonList : NSObject
 {
