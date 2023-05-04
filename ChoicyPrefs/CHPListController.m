@@ -24,11 +24,10 @@
 
 @implementation CHPListController
 
-+ (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier
++ (void)sendPostNotificationForSpecifier:(PSSpecifier *)specifier
 {
-	NSString* postNotification = [specifier propertyForKey:@"PostNotification"];
-	if(postNotification)
-	{
+	NSString *postNotification = [specifier propertyForKey:@"PostNotification"];
+	if (postNotification) {
 		CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)postNotification, NULL, NULL, YES);
 	}
 }
@@ -39,13 +38,13 @@
 }
 
 //Must be overwritten by subclass
-- (NSString*)topTitle
+- (NSString *)topTitle
 {
 	return nil;
 }
 
 //Must be overwritten by subclass
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return nil;
 }
@@ -56,22 +55,18 @@
 	_searchController.searchResultsUpdater = self;
 	if (@available(iOS 9.1, *)) _searchController.obscuresBackgroundDuringPresentation = NO;
 
-	if (@available(iOS 11.0, *))
-	{
-		if(@available(iOS 13.0, *))
-		{
+	if (@available(iOS 11.0, *)) {
+		if (@available(iOS 13.0, *)) {
 			_searchController.hidesNavigationBarDuringPresentation = YES;
 		}
-		else
-		{
+		else {
 			_searchController.hidesNavigationBarDuringPresentation = NO;
 		}
 
 		self.navigationItem.searchController = _searchController;
 		self.navigationItem.hidesSearchBarWhenScrolling = hideWhileScrolling;
 	}
-	else
-	{
+	else {
 		self.table.tableHeaderView = _searchController.searchBar;
 		[self.table setContentOffset:CGPointMake(0,44) animated:NO];
 	}
@@ -85,47 +80,42 @@
 	[self reloadSpecifiers];
 }
 
-- (NSMutableArray*)specifiers
+- (NSMutableArray *)specifiers
 {
-	if(!_specifiers)
-	{
-		NSString* plistName = [self plistName];
+	if (!_specifiers) {
+		NSString *plistName = [self plistName];
 
-		if(plistName)
-		{
+		if (plistName) {
 			_specifiers = [self loadSpecifiersFromPlistName:plistName target:self bundle:[NSBundle bundleForClass:[CHPListController class]]];
 			[self parseLocalizationsForSpecifiers:_specifiers];
 		}
 	}
 
-	NSString* title = [self topTitle];
-	if(title)
-	{
+	NSString *title = [self topTitle];
+	if (title) {
 		[(UINavigationItem *)self.navigationItem setTitle:title];
 	}
 
 	return _specifiers;
 }
 
-- (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers
+- (void)parseLocalizationsForSpecifiers:(NSArray *)specifiers
 {
 	//Localize specifiers
-	NSMutableArray* mutableSpecifiers = (NSMutableArray*)specifiers;
-	for(PSSpecifier* specifier in mutableSpecifiers)
-	{
+	NSMutableArray *mutableSpecifiers = (NSMutableArray *)specifiers;
+	for (PSSpecifier *specifier in mutableSpecifiers) {
 		HBLogDebug(@"title:%@",specifier.properties[@"label"]);
-		NSString* localizedTitle = localize(specifier.properties[@"label"]);
-		NSString* localizedFooter = localize(specifier.properties[@"footerText"]);
+		NSString *localizedTitle = localize(specifier.properties[@"label"]);
+		NSString *localizedFooter = localize(specifier.properties[@"footerText"]);
 		specifier.name = localizedTitle;
 		[specifier setProperty:localizedFooter forKey:@"footerText"];
 	}
 }
 
-- (void)setPreferenceValue:(id)value specifier:(PSSpecifier*)specifier
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier
 {
-	NSMutableDictionary* mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
-	if(!mutableDict)
-	{
+	NSMutableDictionary *mutableDict = [NSMutableDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
+	if (!mutableDict) {
 		mutableDict = [NSMutableDictionary new];
 		[ChoicyPrefsMigrator updatePreferenceVersion:mutableDict];
 	}
@@ -135,14 +125,13 @@
 	[[self class] sendPostNotificationForSpecifier:specifier];
 }
 
-- (id)readPreferenceValue:(PSSpecifier*)specifier
+- (id)readPreferenceValue:(PSSpecifier *)specifier
 {
-	NSDictionary* dict = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
+	NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 
 	id obj = [dict objectForKey:[[specifier properties] objectForKey:@"key"]];
 
-	if(!obj)
-	{
+	if (!obj) {
 		obj = [[specifier properties] objectForKey:@"default"];
 	}
 

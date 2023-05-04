@@ -32,10 +32,9 @@
 
 + (instancetype)sharedInstance
 {
-	static CHPDaemonList* sharedInstance = nil;
+	static CHPDaemonList *sharedInstance = nil;
 	static dispatch_once_t onceToken;
-	dispatch_once(&onceToken, ^
-	{
+	dispatch_once(&onceToken, ^ {
 		//Initialise instance
 		sharedInstance = [[CHPDaemonList alloc] init];
 	});
@@ -51,12 +50,10 @@
 	return self;
 }
 
-- (BOOL)daemonList:(NSArray*)daemonList containsExecutableName:(NSString*)executableName
+- (BOOL)daemonList:(NSArray *)daemonList containsExecutableName:(NSString *)executableName
 {
-	for(CHPDaemonInfo* info in daemonList)
-	{
-		if([info.executableName isEqualToString:executableName])
-		{
+	for (CHPDaemonInfo *info in daemonList) {
+		if ([info.executableName isEqualToString:executableName]) {
 			return YES;
 		}
 	}
@@ -68,57 +65,49 @@
 {
 	HBLogDebugWeak(@"updateDaemonListIfNeeded");
 
-	if(_loaded || _loading)
-	{
+	if (_loaded || _loading) {
 		return;
 	}
 
 	_loading = YES;
 
-	NSMutableArray<NSURL*>* daemonPlists = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil] mutableCopy];
+	NSMutableArray<NSURL*> *daemonPlists = [[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil] mutableCopy];
 
 	[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/NanoLaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
 
 	[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
 
-	if([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb/Library/LaunchDaemons"])
-	{
+	if ([[NSFileManager defaultManager] fileExistsAtPath:@"/var/jb/Library/LaunchDaemons"]) {
 		[daemonPlists addObjectsFromArray:[[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/var/jb/Library/LaunchDaemons"] includingPropertiesForKeys:nil options:0 error:nil]];
 	}
 
-	for(NSURL* daemonPlistURL in [daemonPlists reverseObjectEnumerator])
-	{
-		if(![daemonPlistURL.pathExtension isEqualToString:@"plist"])
-		{
+	for (NSURL *daemonPlistURL in [daemonPlists reverseObjectEnumerator]) {
+		if (![daemonPlistURL.pathExtension isEqualToString:@"plist"]) {
 			[daemonPlists removeObject:daemonPlistURL];
 		}
 	}
 
-	NSMutableArray* daemonListM = [NSMutableArray new];
+	NSMutableArray *daemonListM = [NSMutableArray new];
 
-	for(NSURL* daemonPlistURL in daemonPlists)
-	{
-		NSDictionary* daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
+	for (NSURL *daemonPlistURL in daemonPlists) {
+		NSDictionary *daemonDictionary = [NSDictionary dictionaryWithContentsOfURL:daemonPlistURL];
 		
-		CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+		CHPDaemonInfo *info = [[CHPDaemonInfo alloc] init];
 
 		info.executablePath = [daemonDictionary objectForKey:@"Program"];
 
-		if(!info.executablePath)
-		{
-			NSArray* programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
-			if(programArguments.count > 0)
-			{
+		if (!info.executablePath) {
+			NSArray *programArguments = [daemonDictionary objectForKey:@"ProgramArguments"];
+			if (programArguments.count > 0) {
 				info.executablePath = programArguments.firstObject;
 			}
 		}
 
 		info.plistIdentifier = [daemonPlistURL lastPathComponent].stringByDeletingPathExtension;
 
-		if(info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:kSpringboardBundleID]) //Filter out some useless entries
-		{
-			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
-			{
+		// Filter out some useless entries
+		if (info.executablePath && [[NSFileManager defaultManager] fileExistsAtPath:info.executablePath] && ![info.plistIdentifier hasSuffix:@"Jetsam"] && ![info.plistIdentifier hasSuffix:@"SimulateCrash"] && ![info.plistIdentifier hasSuffix:@"_v2"] && ![info.plistIdentifier isEqualToString:kSpringboardBundleID]) {
+			if (![self daemonList:daemonListM containsExecutableName:info.executableName]) {
 				[daemonListM addObject:info];
 			}
 		}
@@ -126,49 +115,40 @@
 
 	HBLogDebugWeak(@"XPC before");
 
-	NSDirectoryEnumerator* systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
-	{
+	NSDirectoryEnumerator *systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
 		return YES;
 	}];
 
-	NSDirectoryEnumerator* systemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error)
-	{
+	NSDirectoryEnumerator *systemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
 		return YES;
 	}];
 
-	NSMutableArray* XPCUrls = [NSMutableArray new];
+	NSMutableArray *XPCUrls = [NSMutableArray new];
 
-	for(NSURL* fileURL in systemLibraryFrameworksEnumerator)
-	{
-		if([fileURL.path hasSuffix:@".xpc"])
-		{
+	for (NSURL *fileURL in systemLibraryFrameworksEnumerator) {
+		if ([fileURL.path hasSuffix:@".xpc"]) {
 			[XPCUrls addObject:fileURL];
 		}
 	}
 
-	for(NSURL* fileURL in systemLibraryPrivateFrameworksEnumerator)
-	{
-		if([fileURL.path hasSuffix:@".xpc"])
-		{
+	for (NSURL *fileURL in systemLibraryPrivateFrameworksEnumerator) {
+		if ([fileURL.path hasSuffix:@".xpc"]) {
 			[XPCUrls addObject:fileURL];
 		}
 	}
 
-	for(NSURL* XPCUrl in XPCUrls)
-	{
-		NSString* XPCPath = XPCUrl.path;
+	for (NSURL *XPCUrl in XPCUrls) {
+		NSString *XPCPath = XPCUrl.path;
 
-		NSString* XPCName = [XPCUrl.lastPathComponent stringByReplacingOccurrencesOfString:@".xpc" withString:@""];
+		NSString *XPCName = [XPCUrl.lastPathComponent stringByReplacingOccurrencesOfString:@".xpc" withString:@""];
 
-		NSString* XPCExecutablePath = [XPCPath stringByAppendingPathComponent:XPCName];
+		NSString *XPCExecutablePath = [XPCPath stringByAppendingPathComponent:XPCName];
 
-		if([[NSFileManager defaultManager] fileExistsAtPath:XPCExecutablePath])
-		{
-			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+		if ([[NSFileManager defaultManager] fileExistsAtPath:XPCExecutablePath]) {
+			CHPDaemonInfo *info = [[CHPDaemonInfo alloc] init];
 			info.executablePath = XPCExecutablePath;
 
-			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
-			{
+			if (![self daemonList:daemonListM containsExecutableName:info.executableName]) {
 				[daemonListM addObject:info];
 			}
 		}
@@ -176,23 +156,21 @@
 
 	HBLogDebugWeak(@"XPC after");
 
-	NSMutableArray* additionalPotentialDaemons = [NSMutableArray new];
+	NSMutableArray *additionalPotentialDaemons = [NSMutableArray new];
 
 	// On A12 unc0ver, using contentsOfDirectoryAtURL on /usr/libexec locks the thread and leaves a kernel thread looping
 	// This causes all sorts of issues and heats the device up
 	// This has been fixed in unc0ver 4.0, but we still use the old solution because some people might not be updated to 4.0
 	// The C API is not affected by this issue, so we just use it instead
 	DIR *dir;
-    struct dirent* dp;
+    struct dirent *dp;
     dir = opendir("/usr/libexec");
-    while ((dp=readdir(dir)) != NULL)
-	{
+    while ((dp=readdir(dir)) != NULL) {
         if (!(!strcmp(dp->d_name, ".") || !strcmp(dp->d_name, "..")))
         {
-            NSString* filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
-            if(filename)
-			{
-				NSURL* URL = [NSURL fileURLWithPath:[@"/usr/libexec" stringByAppendingPathComponent:filename]];
+            NSString *filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
+            if (filename) {
+				NSURL *URL = [NSURL fileURLWithPath:[@"/usr/libexec" stringByAppendingPathComponent:filename]];
 				[additionalPotentialDaemons addObject:URL];
 			}
         }
@@ -215,34 +193,28 @@
                                          error:nil]];
 	
 
-	for(NSURL* URL in additionalPotentialDaemons)
-	{
-		if([URL.lastPathComponent hasSuffix:@"d"])
-		{
-			CHPDaemonInfo* info = [[CHPDaemonInfo alloc] init];
+	for (NSURL *URL in additionalPotentialDaemons) {
+		if ([URL.lastPathComponent hasSuffix:@"d"]) {
+			CHPDaemonInfo *info = [[CHPDaemonInfo alloc] init];
 			info.executablePath = [URL path];
 
-			if(![self daemonList:daemonListM containsExecutableName:info.executableName])
-			{
+			if (![self daemonList:daemonListM containsExecutableName:info.executableName]) {
 				[daemonListM addObject:info];
 			}
 		}
 	}
 
-	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo* a, CHPDaemonInfo* b)  //Sort alphabetically
-	{
+	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo *a, CHPDaemonInfo *b) { //Sort alphabetically
 		return [[a executableName] localizedCaseInsensitiveCompare:[b executableName]];
 	}];
 
 	HBLogDebugWeak(@"updateDaemonListIfNeeded loaded files");
 
-	CHPTweakList* tweakList = [CHPTweakList sharedInstance];
+	CHPTweakList *tweakList = [CHPTweakList sharedInstance];
 
-	for(CHPDaemonInfo* daemonInfo in [daemonListM reverseObjectEnumerator])
-	{
+	for (CHPDaemonInfo *daemonInfo in [daemonListM reverseObjectEnumerator]) {
 		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(daemonInfo.executablePath);
-		if(![tweakList oneOrMoreTweaksInjectIntoExecutableAtPath:daemonInfo.executablePath])
-		{
+		if (![tweakList oneOrMoreTweaksInjectIntoExecutableAtPath:daemonInfo.executablePath]) {
 			[daemonListM removeObject:daemonInfo];
 		}
 	}
@@ -258,39 +230,33 @@
 
 - (void)addObserver:(id<CHPDaemonListObserver>)observer
 {
-	if(![_observers containsObject:observer])
-	{
+	if (![_observers containsObject:observer]) {
 		[_observers addObject:observer];
 	}
 }
 
 - (void)removeObserver:(id<CHPDaemonListObserver>)observer
 {
-	if([_observers containsObject:observer])
-	{
+	if ([_observers containsObject:observer]) {
 		[_observers removeObject:observer];
 	}
 }
 
 - (void)sendReloadToObservers
 {
-	for(id<CHPDaemonListObserver> observer in _observers)
-	{
-		dispatch_async(dispatch_get_main_queue(), ^
-		{
+	for (id<CHPDaemonListObserver> observer in _observers){
+		dispatch_async(dispatch_get_main_queue(), ^ {
 			[observer daemonListDidUpdate:self];
 		});
 	}
 }
 
-- (NSString*)executablePathForDaemonName:(NSString*)daemonName
+- (NSString *)executablePathForDaemonName:(NSString *)daemonName
 {
-	__block NSString* executablePath = nil;
+	__block NSString *executablePath = nil;
 
-	[self.daemonList enumerateObjectsUsingBlock:^(CHPDaemonInfo* daemonInfo, NSUInteger idx, BOOL* stop)
-	{
-		if([daemonInfo.executablePath.lastPathComponent isEqualToString:daemonName])
-		{
+	[self.daemonList enumerateObjectsUsingBlock:^(CHPDaemonInfo *daemonInfo, NSUInteger idx, BOOL *stop) {
+		if ([daemonInfo.executablePath.lastPathComponent isEqualToString:daemonName]) {
 			executablePath = daemonInfo.executablePath;
 			*stop = YES;
 		}

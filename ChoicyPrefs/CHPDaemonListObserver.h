@@ -22,5 +22,5 @@
 
 @protocol CHPDaemonListObserver
 @required
-- (void)daemonListDidUpdate:(CHPDaemonList*)list;
+- (void)daemonListDidUpdate:(CHPDaemonList *)list;
 @end

@@ -25,10 +25,10 @@
     NSString *_searchKey;
     UISearchController *_searchController;
 }
-+ (void)sendPostNotificationForSpecifier:(PSSpecifier*)specifier;
++ (void)sendPostNotificationForSpecifier:(PSSpecifier *)specifier;
 + (void)sendChoicyPrefsPostNotification;
 - (void)applySearchControllerHideWhileScrolling:(BOOL)hideWhileScrolling;
-- (NSString*)topTitle;
-- (NSString*)plistName;
-- (void)parseLocalizationsForSpecifiers:(NSArray*)specifiers;
+- (NSString *)topTitle;
+- (NSString *)plistName;
+- (void)parseLocalizationsForSpecifiers:(NSArray *)specifiers;
 @end

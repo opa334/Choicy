@@ -21,5 +21,5 @@
 #import "CHPListController.h"
 
 @interface CHPRootListController : CHPListController
-- (void)openTwitterWithUsername:(NSString*)username;
+- (void)openTwitterWithUsername:(NSString *)username;
 @end

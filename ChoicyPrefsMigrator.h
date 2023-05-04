@@ -23,8 +23,8 @@
 
 @interface ChoicyPrefsMigrator : NSObject
 
-+ (BOOL)preferencesNeedMigration:(NSDictionary*)preferences;
-+ (void)migratePreferences:(NSMutableDictionary*)preferences;
-+ (void)updatePreferenceVersion:(NSMutableDictionary*)preferences;
++ (BOOL)preferencesNeedMigration:(NSDictionary *)preferences;
++ (void)migratePreferences:(NSMutableDictionary *)preferences;
++ (void)updatePreferenceVersion:(NSMutableDictionary *)preferences;
 
 @end

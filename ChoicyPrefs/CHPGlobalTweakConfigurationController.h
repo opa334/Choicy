@@ -20,9 +20,8 @@
 
 #import "CHPListController.h"
 
-@interface CHPGlobalTweakConfigurationController : CHPListController
-{
-	NSMutableArray* _globalDeniedTweaks;
+@interface CHPGlobalTweakConfigurationController : CHPListController {
+	NSMutableArray *_globalDeniedTweaks;
 }
 
 - (void)loadGlobalTweakBlacklist;

@@ -21,20 +21,19 @@
 #import "CHPListController.h"
 @class PSSpecifier, LSPlugInKitProxy, LSBundleProxy;
 
-@interface CHPProcessConfigurationListController : CHPListController
-{
-	LSBundleProxy* _bundleProxy;
+@interface CHPProcessConfigurationListController : CHPListController {
+	LSBundleProxy *_bundleProxy;
 	BOOL _isSpringboard;
-	NSMutableArray* _customConfigurationSpecifiers;
-	PSSpecifier* _segmentSpecifier;
-	NSMutableArray* _allowedTweaks;
-	NSMutableArray* _deniedTweaks;
+	NSMutableArray *_customConfigurationSpecifiers;
+	PSSpecifier *_segmentSpecifier;
+	NSMutableArray *_allowedTweaks;
+	NSMutableArray *_deniedTweaks;
 	NSInteger _customTweakConfigurationSection;
 }
-@property (nonatomic) NSMutableDictionary* processPreferences;
-+ (NSString*)executablePathForBundleProxy:(LSBundleProxy*)bundleProxy;
+@property (nonatomic) NSMutableDictionary *processPreferences;
++ (NSString *)executablePathForBundleProxy:(LSBundleProxy *)bundleProxy;
 - (void)readAppDaemonSettingsFromMainPropertyList;
 - (void)writeAppDaemonSettingsToMainPropertyList;
 - (void)updateSwitchesAvailability;
-- (NSString*)dictionaryName;
+- (NSString *)dictionaryName;
 @end

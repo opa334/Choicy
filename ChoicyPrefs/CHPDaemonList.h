@@ -21,18 +21,17 @@
 #import "CHPDaemonListObserver.h"
 #import <Foundation/Foundation.h>
 
-@interface CHPDaemonList : NSObject
-{
-	NSHashTable* _observers;
+@interface CHPDaemonList : NSObject {
+	NSHashTable *_observers;
 }
 @property(nonatomic,readonly) BOOL loaded;
 @property(nonatomic,readonly) BOOL loading;
-@property(nonatomic,readonly) NSArray* daemonList;
+@property(nonatomic,readonly) NSArray *daemonList;
 + (instancetype)sharedInstance;
-- (BOOL)daemonList:(NSArray*)daemonList containsExecutableName:(NSString*)executableName;
+- (BOOL)daemonList:(NSArray *)daemonList containsExecutableName:(NSString *)executableName;
 - (void)updateDaemonListIfNeeded;
 - (void)addObserver:(id<CHPDaemonListObserver>)observer;
 - (void)removeObserver:(id<CHPDaemonListObserver>)observer;
 - (void)sendReloadToObservers;
-- (NSString*)executablePathForDaemonName:(NSString*)daemonName;
+- (NSString *)executablePathForDaemonName:(NSString *)daemonName;
 @end

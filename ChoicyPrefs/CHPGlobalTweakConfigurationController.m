@@ -29,12 +29,12 @@
 
 @implementation CHPGlobalTweakConfigurationController
 
-- (NSString*)topTitle
+- (NSString *)topTitle
 {
 	return localize(@"GLOBAL_TWEAK_CONFIGURATION");
 }
 
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return @"GlobalTweakConfiguration";
 }
@@ -45,37 +45,33 @@
 	[super viewDidLoad];
 }
 
-- (NSMutableArray*)specifiers
+- (NSMutableArray *)specifiers
 {
-	if(!_specifiers)
-	{
+	if (!_specifiers) {
 		_specifiers = [super specifiers];
 
 		[self loadGlobalTweakBlacklist];
 
-		PSSpecifier* groupSpecifier = [PSSpecifier emptyGroupSpecifier];
+		PSSpecifier *groupSpecifier = [PSSpecifier emptyGroupSpecifier];
 		groupSpecifier.name = localize(@"TWEAKS");
 		[groupSpecifier setProperty:localize(@"GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE") forKey:@"footerText"];
 
 		[_specifiers addObject:groupSpecifier];
 
-		CHPTweakList* sharedTweakList = [CHPTweakList sharedInstance];
+		CHPTweakList *sharedTweakList = [CHPTweakList sharedInstance];
 
 		__block BOOL atLeastOneTweakDisabled = NO;
 
-		[sharedTweakList.tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo* tweakInfo, NSUInteger idx, BOOL* stop)
-		{
-			if([sharedTweakList isTweakHiddenForAnyProcess:tweakInfo]) return;
+		[sharedTweakList.tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo *tweakInfo, NSUInteger idx, BOOL *stop) {
+			if ([sharedTweakList isTweakHiddenForAnyProcess:tweakInfo]) return;
 
-			if(_searchKey && ![_searchKey isEqualToString:@""])
-			{
-				if(![tweakInfo.dylibName localizedStandardContainsString:_searchKey])
-				{
+			if (_searchKey && ![_searchKey isEqualToString:@""]) {
+				if (![tweakInfo.dylibName localizedStandardContainsString:_searchKey]) {
 					return;
 				}
 			}
 
-			PSSpecifier* tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName
+			PSSpecifier *tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName
 						  target:self
 						  set:@selector(setPreferenceValue:forTweakWithSpecifier:)
 						  get:@selector(readValueForTweakWithSpecifier:)
@@ -84,8 +80,7 @@
 						  edit:nil];
 
 			BOOL enabled = ![dylibsBeforeChoicy containsObject:tweakInfo.dylibName];
-			if(!enabled)
-			{
+			if (!enabled) {
 				atLeastOneTweakDisabled = YES;
 			}
 			
@@ -94,18 +89,16 @@
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@YES forKey:@"default"];
 
-			CHPPackageInfo* packageInfo = [CHPPackageInfo fetchPackageInfoForDylibName:tweakInfo.dylibName];
-			if(packageInfo)
-			{
+			CHPPackageInfo *packageInfo = [CHPPackageInfo fetchPackageInfoForDylibName:tweakInfo.dylibName];
+			if (packageInfo) {
 				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), packageInfo.name] forKey:@"subtitle"];
 			}
 
 			[_specifiers addObject:tweakSpecifier];
 		}];
 
-		if(atLeastOneTweakDisabled)
-		{
-			PSSpecifier* greyedOutInfoSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"GREYED_OUT_ENTRIES")
+		if (atLeastOneTweakDisabled) {
+			PSSpecifier *greyedOutInfoSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"GREYED_OUT_ENTRIES")
 						  target:self
 						  set:nil
 						  get:nil
@@ -127,37 +120,32 @@
 	presentNotLoadingFirstWarning(self, NO);
 }
 
-- (void)setPreferenceValue:(id)value forTweakWithSpecifier:(PSSpecifier*)specifier
+- (void)setPreferenceValue:(id)value forTweakWithSpecifier:(PSSpecifier *)specifier
 {
-	NSNumber* numberValue = value;
+	NSNumber *numberValue = value;
 
-	if(numberValue.boolValue)
-	{
+	if (numberValue.boolValue) {
 		[_globalDeniedTweaks removeObject:[specifier propertyForKey:@"key"]];
 	}
-	else
-	{
+	else {
 		[_globalDeniedTweaks addObject:[specifier propertyForKey:@"key"]];
 	}
 
 	[self saveGlobalTweakBlacklist];
 }
 
-- (id)readValueForTweakWithSpecifier:(PSSpecifier*)specifier
+- (id)readValueForTweakWithSpecifier:(PSSpecifier *)specifier
 {
-	NSString* key = [specifier propertyForKey:@"key"];
+	NSString *key = [specifier propertyForKey:@"key"];
 
-	if([dylibsBeforeChoicy containsObject:key])
-	{
+	if ([dylibsBeforeChoicy containsObject:key]) {
 		return @1;
 	}
 
-	if([_globalDeniedTweaks containsObject:key])
-	{
+	if ([_globalDeniedTweaks containsObject:key]) {
 		return @0;
 	}
-	else
-	{
+	else {
 		return @1;
 	}
 }
@@ -169,7 +157,7 @@
 
 - (void)saveGlobalTweakBlacklist
 {
-	NSMutableDictionary* mutablePrefs = preferencesForWriting();
+	NSMutableDictionary *mutablePrefs = preferencesForWriting();
 	mutablePrefs[kChoicyPrefsKeyGlobalDeniedTweaks] = [_globalDeniedTweaks copy];
 	writePreferences(mutablePrefs);
 }

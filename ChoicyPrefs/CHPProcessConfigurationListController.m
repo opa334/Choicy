@@ -36,40 +36,33 @@
 #import "../ChoicyPrefsMigrator.h"
 
 @interface PSSpecifier ()
-@property (nonatomic,retain) NSArray* values;
+@property (nonatomic,retain) NSArray *values;
 @end
 
 @implementation CHPProcessConfigurationListController
 
-+ (NSString*)executablePathForBundleProxy:(LSBundleProxy*)bundleProxy
++ (NSString *)executablePathForBundleProxy:(LSBundleProxy *)bundleProxy
 {
-	NSString* bundleExecutablePath = nil;
-	if([bundleProxy respondsToSelector:@selector(canonicalExecutablePath)])
-	{
+	NSString *bundleExecutablePath = nil;
+	if ([bundleProxy respondsToSelector:@selector(canonicalExecutablePath)]) {
 		bundleExecutablePath = bundleProxy.canonicalExecutablePath;
 	}
 
-	if(!bundleExecutablePath)
-	{
-		NSString* bundleExecutable = bundleProxy.bundleExecutable;
-		if(bundleExecutable)
-		{
+	if (!bundleExecutablePath) {
+		NSString *bundleExecutable = bundleProxy.bundleExecutable;
+		if (bundleExecutable) {
 			bundleExecutablePath = [bundleProxy.bundleURL URLByAppendingPathComponent:bundleExecutable].path;
 		}
 	}
 
-	if(!bundleExecutablePath && [bundleProxy isKindOfClass:[LSPlugInKitProxy class]])
-	{
-		if(NSClassFromString(@"LSApplicationExtensionRecord"))
-		{
-			LSApplicationExtensionRecord* appexRecord = [bundleProxy valueForKey:@"_appexRecord"];
+	if (!bundleExecutablePath && [bundleProxy isKindOfClass:[LSPlugInKitProxy class]]) {
+		if (NSClassFromString(@"LSApplicationExtensionRecord")) {
+			LSApplicationExtensionRecord *appexRecord = [bundleProxy valueForKey:@"_appexRecord"];
 			bundleExecutablePath = appexRecord.executableURL.path;
 		}
-		else
-		{
-			NSString* bundleExecutable = ((LSPlugInKitProxy*)bundleProxy).infoPlist[@"CFBundleExecutable"];
-			if(bundleExecutable)
-			{
+		else {
+			NSString *bundleExecutable = ((LSPlugInKitProxy *)bundleProxy).infoPlist[@"CFBundleExecutable"];
+			if (bundleExecutable) {
 				bundleExecutablePath = [bundleProxy.bundleURL URLByAppendingPathComponent:bundleExecutable].path;
 			}
 		}
@@ -78,28 +71,27 @@
 	return bundleExecutablePath;
 }
 
-- (NSString*)applicationIdentifier
+- (NSString *)applicationIdentifier
 {
 	return [[self specifier] propertyForKey:@"applicationIdentifier"];
 }
 
-- (NSString*)plugInIdentifier
+- (NSString *)plugInIdentifier
 {
 	return [[self specifier] propertyForKey:@"plugInIdentifier"];
 }
 
-- (NSString*)executableName
+- (NSString *)executableName
 {
 	return [self executablePath].lastPathComponent;
 }
 
-- (NSString*)executablePath
+- (NSString *)executablePath
 {
-	NSString* executablePath = [[self specifier] propertyForKey:@"executablePath"];
-	if(executablePath) return executablePath;
+	NSString *executablePath = [[self specifier] propertyForKey:@"executablePath"];
+	if (executablePath) return executablePath;
 
-	if(_bundleProxy)
-	{
+	if (_bundleProxy) {
 		return [[self class] executablePathForBundleProxy:_bundleProxy];
 	}
 
@@ -111,13 +103,13 @@
 	return YES;
 }
 
-- (NSString*)keyForPreferences
+- (NSString *)keyForPreferences
 {
-	NSString* applicationID = [self applicationIdentifier];
-	if(applicationID) return applicationID;
+	NSString *applicationID = [self applicationIdentifier];
+	if (applicationID) return applicationID;
 
-	NSString* plugInID = [self plugInIdentifier];
-	if(plugInID) return plugInID;
+	NSString *plugInID = [self plugInIdentifier];
+	if (plugInID) return plugInID;
 
 	return [self executableName];
 }
@@ -127,10 +119,9 @@
 	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicy/respring"), NULL, NULL, YES);
 }
 
-- (void)viewDidLoad;
+- (void)viewDidLoad
 {
-	if([[self applicationIdentifier] isEqualToString:kSpringboardBundleID])
-	{
+	if ([[self applicationIdentifier] isEqualToString:kSpringboardBundleID]) {
 		self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:localize(@"RESPRING") style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 	}
 
@@ -142,49 +133,43 @@
 - (void)viewWillDisappear:(BOOL)animated
 {
 	// reload preview string in previous page
-	PSListController* topVC = (PSListController*)self.navigationController.topViewController;
-	if([topVC respondsToSelector:@selector(reloadSpecifier:)])
-	{
+	PSListController *topVC = (PSListController *)self.navigationController.topViewController;
+	if ([topVC respondsToSelector:@selector(reloadSpecifier:)]) {
 		[topVC reloadSpecifier:[self specifier]];
 	}
 }
 
-- (NSString*)topTitle
+- (NSString *)topTitle
 {
 	return [self specifier].name;
 }
 
-- (NSString*)dictionaryName
+- (NSString *)dictionaryName
 {
-	if([self applicationIdentifier] || [self plugInIdentifier])
-	{
+	if ([self applicationIdentifier] || [self plugInIdentifier]) {
 		return kChoicyPrefsKeyAppSettings;
 	}
-	else
-	{
+	else {
 		return kChoicyPrefsKeyDaemonSettings;
 	}
 }
 
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return @"ApplicationDaemon";
 }
 
-- (BOOL)shouldShowTweak:(CHPTweakInfo*)tweakInfo
+- (BOOL)shouldShowTweak:(CHPTweakInfo *)tweakInfo
 {
-	NSString* applicationID = [self applicationIdentifier];
-	CHPTweakList* sharedTweakList = [CHPTweakList sharedInstance];
+	NSString *applicationID = [self applicationIdentifier];
+	CHPTweakList *sharedTweakList = [CHPTweakList sharedInstance];
 
-	if([kAlwaysInjectGlobal containsObject:tweakInfo.dylibName])
-	{
+	if ([kAlwaysInjectGlobal containsObject:tweakInfo.dylibName]) {
 		return NO;
 	}
 
-	if(applicationID)
-	{
-		if([sharedTweakList isTweak:tweakInfo hiddenForApplicationWithIdentifier:applicationID])
-		{
+	if (applicationID) {
+		if ([sharedTweakList isTweak:tweakInfo hiddenForApplicationWithIdentifier:applicationID]) {
 			return NO;
 		}
 	}
@@ -194,13 +179,12 @@
 
 - (void)loadCustomConfigurationSpecifiersIfNeeded
 {
-	if(!_customConfigurationSpecifiers)
-	{
-		CHPTweakList* sharedTweakList = [CHPTweakList sharedInstance];
-		NSArray* tweakList;
+	if (!_customConfigurationSpecifiers) {
+		CHPTweakList *sharedTweakList = [CHPTweakList sharedInstance];
+		NSArray *tweakList;
 
 		// Load tweak list
-		NSString* executablePath = [self executablePath];
+		NSString *executablePath = [self executablePath];
 		tweakList = [sharedTweakList tweakListForExecutableAtPath:executablePath];
 
 		_customConfigurationSpecifiers = [NSMutableArray new];
@@ -221,7 +205,7 @@
 
 		[_customConfigurationSpecifiers addObject:_segmentSpecifier];
 
-		PSSpecifier* groupSpecifier = [PSSpecifier preferenceSpecifierNamed:nil
+		PSSpecifier *groupSpecifier = [PSSpecifier preferenceSpecifierNamed:nil
 						  target:self
 						  set:nil
 						  get:nil
@@ -235,18 +219,16 @@
 
 		__block BOOL atLeastOneTweakDisabled = NO;
 
-		[tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo* tweakInfo, NSUInteger idx, BOOL* stop)
-		{
+		[tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo *tweakInfo, NSUInteger idx, BOOL *stop) {
 			BOOL show = [self shouldShowTweak:tweakInfo];
-			if(!show) return;
+			if (!show) return;
 
 			BOOL enabled = ![dylibsBeforeChoicy containsObject:tweakInfo.dylibName];
-			if(!enabled)
-			{
+			if (!enabled) {
 				atLeastOneTweakDisabled = YES;
 			}
 
-			PSSpecifier* tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName
+			PSSpecifier *tweakSpecifier = [PSSpecifier preferenceSpecifierNamed:tweakInfo.dylibName
 						  target:self
 						  set:@selector(setPreferenceValue:forTweakWithSpecifier:)
 						  get:@selector(readValueForTweakWithSpecifier:)
@@ -259,18 +241,16 @@
 			[tweakSpecifier setProperty:tweakInfo.dylibName forKey:@"key"];
 			[tweakSpecifier setProperty:@NO forKey:@"default"];
 
-			CHPPackageInfo* packageInfo = [CHPPackageInfo fetchPackageInfoForDylibName:tweakInfo.dylibName];
-			if(packageInfo)
-			{
+			CHPPackageInfo *packageInfo = [CHPPackageInfo fetchPackageInfoForDylibName:tweakInfo.dylibName];
+			if (packageInfo) {
 				[tweakSpecifier setProperty:[NSString stringWithFormat:@"%@: %@", localize(@"PACKAGE"), packageInfo.name] forKey:@"subtitle"];
 			}
 
 			[_customConfigurationSpecifiers addObject:tweakSpecifier];
 		}];
 
-		if(atLeastOneTweakDisabled)
-		{
-			PSSpecifier* greyedOutInfoSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"GREYED_OUT_ENTRIES")
+		if (atLeastOneTweakDisabled) {
+			PSSpecifier *greyedOutInfoSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"GREYED_OUT_ENTRIES")
 						  target:self
 						  set:nil
 						  get:nil
@@ -290,54 +270,47 @@
 	presentNotLoadingFirstWarning(self, NO);
 }
 
-- (NSMutableArray*)specifiers
+- (NSMutableArray *)specifiers
 {
-	if(!_specifiers)
-	{
+	if (!_specifiers) {
 		[self readPreferences];
 
 		_allowedTweaks = [[_processPreferences objectForKey:kChoicyProcessPrefsKeyAllowedTweaks] mutableCopy] ?: [NSMutableArray new];
 		_deniedTweaks = [[_processPreferences objectForKey:kChoicyProcessPrefsKeyDeniedTweaks] mutableCopy] ?: [NSMutableArray new];		
 
-		NSString* applicationID = [self applicationIdentifier];
-		NSString* plugInID = [self plugInIdentifier];
-		if(applicationID)
-		{
-			_bundleProxy = (LSBundleProxy*)[LSApplicationProxy applicationProxyForIdentifier:applicationID]; 
+		NSString *applicationID = [self applicationIdentifier];
+		NSString *plugInID = [self plugInIdentifier];
+		if (applicationID) {
+			_bundleProxy = (LSBundleProxy *)[LSApplicationProxy applicationProxyForIdentifier:applicationID]; 
 		}
-		else if(plugInID)
-		{
-			_bundleProxy = (LSBundleProxy*)[LSPlugInKitProxy pluginKitProxyForIdentifier:plugInID];
+		else if (plugInID) {
+			_bundleProxy = (LSBundleProxy *)[LSPlugInKitProxy pluginKitProxyForIdentifier:plugInID];
 		}
 
 		_specifiers = [super specifiers];
 
-		NSArray* globalDeniedTweaks = preferences[kChoicyPrefsKeyGlobalDeniedTweaks];
-		if(!globalDeniedTweaks.count)
-		{
+		NSArray *globalDeniedTweaks = preferences[kChoicyPrefsKeyGlobalDeniedTweaks];
+		if (!globalDeniedTweaks.count) {
 			[_specifiers removeObjectAtIndex:0];
 			[_specifiers removeObjectAtIndex:0];
 		}
 
-		PSSpecifier* customTweakConfigurationSpecifier = [self specifierForID:@"CUSTOM_TWEAK_CONFIGURATION"];
+		PSSpecifier *customTweakConfigurationSpecifier = [self specifierForID:@"CUSTOM_TWEAK_CONFIGURATION"];
 		[self getGroup:&_customTweakConfigurationSection row:nil ofSpecifier:customTweakConfigurationSpecifier];
 
-		if(((NSNumber*)[self readPreferenceValue:customTweakConfigurationSpecifier]).boolValue)
-		{
+		if (((NSNumber *)[self readPreferenceValue:customTweakConfigurationSpecifier]).boolValue) {
 			[self loadCustomConfigurationSpecifiersIfNeeded];
 			[_specifiers addObjectsFromArray:_customConfigurationSpecifiers];
 		}
 
-		if(applicationID && [self shouldShowAppPlugIns])
-		{
-			LSApplicationProxy* appProxy = (LSApplicationProxy*)_bundleProxy;
+		if (applicationID && [self shouldShowAppPlugIns]) {
+			LSApplicationProxy *appProxy = (LSApplicationProxy *)_bundleProxy;
 
-			if(appProxy.VPNPlugins.count > 0 || appProxy.plugInKitPlugins.count > 0)
-			{
-				PSSpecifier* plugInsGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
+			if (appProxy.VPNPlugins.count > 0 || appProxy.plugInKitPlugins.count > 0) {
+				PSSpecifier *plugInsGroupSpecifier = [PSSpecifier emptyGroupSpecifier];
 				[_specifiers addObject:plugInsGroupSpecifier];
 
-				PSSpecifier* plugInsSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"APP_PLUGINS")
+				PSSpecifier *plugInsSpecifier = [PSSpecifier preferenceSpecifierNamed:localize(@"APP_PLUGINS")
 								target:self
 								set:nil
 								get:@selector(previewStringForSpecifier:)
@@ -363,29 +336,25 @@
 
 - (void)updateSwitchesAvailability
 {
-	PSSpecifier* disableTweakInjectionSpecifier = [self specifierForID:@"DISABLE_TWEAK_INJECTION"];
-	PSSpecifier* customTweakConfigurationSpecifier = [self specifierForID:@"CUSTOM_TWEAK_CONFIGURATION"];
+	PSSpecifier *disableTweakInjectionSpecifier = [self specifierForID:@"DISABLE_TWEAK_INJECTION"];
+	PSSpecifier *customTweakConfigurationSpecifier = [self specifierForID:@"CUSTOM_TWEAK_CONFIGURATION"];
 
-	NSNumber* disableTweakInjectionNum = [self readPreferenceValue:disableTweakInjectionSpecifier];
-	NSNumber* customTweakConfigurationNum = [self readPreferenceValue:customTweakConfigurationSpecifier];
+	NSNumber *disableTweakInjectionNum = [self readPreferenceValue:disableTweakInjectionSpecifier];
+	NSNumber *customTweakConfigurationNum = [self readPreferenceValue:customTweakConfigurationSpecifier];
 
 	//handle the edge case where a user managed to enable both at the same time
-	if([disableTweakInjectionNum boolValue] && [customTweakConfigurationNum boolValue])
-	{
+	if ([disableTweakInjectionNum boolValue] && [customTweakConfigurationNum boolValue]) {
 		[disableTweakInjectionSpecifier setProperty:@(YES) forKey:@"enabled"];
 		[customTweakConfigurationSpecifier setProperty:@(YES) forKey:@"enabled"];
 	}
-	else
-	{
+	else {
 		[disableTweakInjectionSpecifier setProperty:@(!customTweakConfigurationNum.boolValue) forKey:@"enabled"];
 		[customTweakConfigurationSpecifier setProperty:@(!disableTweakInjectionNum.boolValue) forKey:@"enabled"];
 	}
 
-	NSString* applicationID = [[self specifier] propertyForKey:@"applicationIdentifier"];
-	if([applicationID isEqualToString:kPreferencesBundleID])
-	{
-		if(![disableTweakInjectionNum boolValue])
-		{
+	NSString *applicationID = [[self specifier] propertyForKey:@"applicationIdentifier"];
+	if ([applicationID isEqualToString:kPreferencesBundleID]) {
+		if (![disableTweakInjectionNum boolValue]) {
 			[disableTweakInjectionSpecifier setProperty:@(NO) forKey:@"enabled"];
 		}
 	}
@@ -394,32 +363,26 @@
 	[self reloadSpecifier:customTweakConfigurationSpecifier];
 }
 
-- (void)setPreferenceValue:(id)value forTweakWithSpecifier:(PSSpecifier*)specifier
+- (void)setPreferenceValue:(id)value forTweakWithSpecifier:(PSSpecifier *)specifier
 {
-	BOOL bValue = ((NSNumber*)value).boolValue;
-	NSString* key = [specifier propertyForKey:@"key"];
+	BOOL bValue = ((NSNumber *)value).boolValue;
+	NSString *key = [specifier propertyForKey:@"key"];
 
-	if(((NSNumber*)[self readPreferenceValue:_segmentSpecifier]).intValue == 1)
-	{
-		if(bValue)
-		{
+	if (((NSNumber *)[self readPreferenceValue:_segmentSpecifier]).intValue == 1) {
+		if (bValue) {
 			[_allowedTweaks addObject:key];
 		}
-		else
-		{
+		else {
 			[_allowedTweaks removeObject:key];
 		}
 
 		[self writePreferenceValue:[_allowedTweaks copy] key:kChoicyProcessPrefsKeyAllowedTweaks];
 	}
-	else
-	{
-		if(bValue)
-		{
+	else {
+		if (bValue) {
 			[_deniedTweaks addObject:key];
 		}
-		else
-		{
+		else {
 			[_deniedTweaks removeObject:key];
 		}
 
@@ -427,62 +390,51 @@
 	}
 }
 
-- (id)readValueForTweakWithSpecifier:(PSSpecifier*)specifier
+- (id)readValueForTweakWithSpecifier:(PSSpecifier *)specifier
 {
 	BOOL tweakEnabled;
-	NSString* key = [specifier propertyForKey:@"key"];
-	NSInteger segmentValue = ((NSNumber*)[self readPreferenceValue:_segmentSpecifier]).intValue;
+	NSString *key = [specifier propertyForKey:@"key"];
+	NSInteger segmentValue = ((NSNumber *)[self readPreferenceValue:_segmentSpecifier]).intValue;
 
-	if([dylibsBeforeChoicy containsObject:key])
-	{
-		if(segmentValue == 1)
-		{
+	if ([dylibsBeforeChoicy containsObject:key]) {
+		if (segmentValue == 1) {
 			return @1;
 		}
-		else
-		{
+		else {
 			return @0;
 		}
 	}
 
-	if(segmentValue == 1)
-	{
+	if (segmentValue == 1) {
 		tweakEnabled = [_allowedTweaks containsObject:key];
 	}
-	else
-	{
+	else {
 		tweakEnabled = [_deniedTweaks containsObject:key];
 	}
 
 	return [NSNumber numberWithBool:tweakEnabled];
 }
 
-- (void)performUpdatesIfNeccessaryForChangedValue:(id)value key:(NSString*)key
+- (void)performUpdatesIfNeccessaryForChangedValue:(id)value key:(NSString *)key
 {
-	if([key isEqualToString:kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled])
-	{
-		NSNumber* num = value;
+	if ([key isEqualToString:kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled]) {
+		NSNumber *num = value;
 
-		if(num.boolValue)
-		{
+		if (num.boolValue) {
 			[self loadCustomConfigurationSpecifiersIfNeeded];
 			[self insertContiguousSpecifiers:_customConfigurationSpecifiers atEndOfGroup:_customTweakConfigurationSection animated:YES];
 		}
-		else
-		{
+		else {
 			[self removeContiguousSpecifiers:_customConfigurationSpecifiers animated:YES];
 		}
 	}
 
-	if([key isEqualToString:kChoicyProcessPrefsKeyTweakInjectionDisabled] || [key isEqualToString:kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled])
-	{
+	if ([key isEqualToString:kChoicyProcessPrefsKeyTweakInjectionDisabled] || [key isEqualToString:kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled]) {
 		[self updateSwitchesAvailability];
 	}
 
-	if([key isEqualToString:kChoicyProcessPrefsKeyAllowDenyMode])
-	{
-		for(PSSpecifier* specifier in _customConfigurationSpecifiers)
-		{
+	if ([key isEqualToString:kChoicyProcessPrefsKeyAllowDenyMode]) {
+		for (PSSpecifier *specifier in _customConfigurationSpecifiers) {
 			[self reloadSpecifier:specifier];
 		}
 	}
@@ -498,24 +450,23 @@
 	[self writeAppDaemonSettingsToMainPropertyList];
 }
 
-- (void)writePreferenceValue:(id)value key:(NSString*)key
+- (void)writePreferenceValue:(id)value key:(NSString *)key
 {
 	_processPreferences[key] = value;
 	[self writePreferences];
 }
 
-- (void)setPreferenceValue:(id)value specifier:(PSSpecifier*)specifier
+- (void)setPreferenceValue:(id)value specifier:(PSSpecifier *)specifier
 {
-	NSString* key = [specifier propertyForKey:@"key"];
+	NSString *key = [specifier propertyForKey:@"key"];
 	[self writePreferenceValue:value key:key];
 	[self performUpdatesIfNeccessaryForChangedValue:value key:key];
 }
 
-- (id)readPreferenceValue:(PSSpecifier*)specifier
+- (id)readPreferenceValue:(PSSpecifier *)specifier
 {
 	id obj = [_processPreferences objectForKey:[[specifier properties] objectForKey:@"key"]];
-	if(!obj)
-	{
+	if (!obj) {
 		obj = [specifier propertyForKey:@"default"];
 	}
 	return obj;
@@ -523,19 +474,18 @@
 
 - (void)readAppDaemonSettingsFromMainPropertyList
 {
-	NSDictionary* appDaemonSettingsDict = [preferences objectForKey:[self dictionaryName]];
+	NSDictionary *appDaemonSettingsDict = [preferences objectForKey:[self dictionaryName]];
 
 	_processPreferences = [[appDaemonSettingsDict objectForKey:[self keyForPreferences]] mutableCopy];
-	if(!_processPreferences)
-	{
+	if (!_processPreferences) {
 		_processPreferences = [NSMutableDictionary new];
 	}
 }
 
 - (void)writeAppDaemonSettingsToMainPropertyList
 {
-	NSMutableDictionary* mutablePrefs = preferencesForWriting();
-	NSMutableDictionary* appDaemonSettingsDict = [[mutablePrefs objectForKey:[self dictionaryName]] mutableCopy] ?: [NSMutableDictionary new];
+	NSMutableDictionary *mutablePrefs = preferencesForWriting();
+	NSMutableDictionary *appDaemonSettingsDict = [[mutablePrefs objectForKey:[self dictionaryName]] mutableCopy] ?: [NSMutableDictionary new];
 	appDaemonSettingsDict[[self keyForPreferences]] = [_processPreferences copy];
 	mutablePrefs[[self dictionaryName]] = [appDaemonSettingsDict copy];
 	writePreferences(mutablePrefs);

@@ -28,10 +28,10 @@
 #define ROOT_PATH_NS_NOXINA(x) ROOT_PATH_NS(x)
 #endif
 
-extern NSBundle* CHBundle;
-extern NSString* localize(NSString* key);
-extern NSDictionary* processPreferencesForApplication(NSDictionary* preferences, NSString* applicationID);
-extern NSDictionary* processPreferencesForDaemon(NSDictionary* preferences, NSString* daemonDisplayName);
+extern NSBundle *CHBundle;
+extern NSString *localize(NSString *key);
+extern NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID);
+extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName);
 
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);

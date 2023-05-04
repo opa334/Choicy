@@ -23,24 +23,22 @@
 
 @implementation CHPCreditsListController
 
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return @"Credits";
 }
 
-- (NSString*)topTitle
+- (NSString *)topTitle
 {
 	return localize(@"CREDITS");
 }
 
 - (void)openURL:(NSURL *)URL
 {
-	if(@available(iOS 10, *))
-	{
+	if (@available(iOS 10, *)) {
 		[[UIApplication sharedApplication] openURL:URL options:@{} completionHandler:nil];
 	}
-	else
-	{
+	else {
 		[[UIApplication sharedApplication] openURL:URL];
 	}
 }
@@ -52,7 +50,6 @@
 
 - (void)openTweakConfigurator
 {
-
 	[self openURL:[NSURL URLWithString:@"https://github.com/pixelomer/TweakConfigurator"]];
 }
 

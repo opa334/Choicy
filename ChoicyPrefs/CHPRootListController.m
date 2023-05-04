@@ -27,67 +27,58 @@
 #import "../ChoicyPrefsMigrator.h"
 #import <rootless.h>
 
-NSArray* dylibsBeforeChoicy;
+NSArray *dylibsBeforeChoicy;
 
 #import <dirent.h>
 
-NSDictionary* preferences;
+NSDictionary *preferences;
 
 void reloadPreferences()
 {
 	preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 }
 
-NSMutableDictionary* preferencesForWriting()
+NSMutableDictionary *preferencesForWriting()
 {
-	if(preferences)
-	{
+	if (preferences) {
 		return preferences.mutableCopy;
 	}
-	else
-	{
-		NSMutableDictionary* mutablePrefs = [NSMutableDictionary new];
+	else {
+		NSMutableDictionary *mutablePrefs = [NSMutableDictionary new];
 		[ChoicyPrefsMigrator updatePreferenceVersion:mutablePrefs];
 		return mutablePrefs;
 	}
 }
 
-void writePreferences(NSMutableDictionary* mutablePrefs)
+void writePreferences(NSMutableDictionary *mutablePrefs)
 {
 	[mutablePrefs writeToFile:kChoicyPrefsPlistPath atomically:YES];
 	[CHPListController sendChoicyPrefsPostNotification];
 }
 
-NSArray* getInjectionLibraries()
+NSArray *getInjectionLibraries()
 {
-	static NSArray* injectionLibraries = nil;
+	static NSArray *injectionLibraries = nil;
 
-	if(!injectionLibraries)
-	{
-		NSMutableArray* injectionLibrariesM = [NSMutableArray new];
+	if (!injectionLibraries) {
+		NSMutableArray *injectionLibrariesM = [NSMutableArray new];
 
-		for (uint32_t i = 0; i < _dyld_image_count(); i++)
-		{
+		for (uint32_t i = 0; i < _dyld_image_count(); i++) {
 			const char *pathC = _dyld_get_image_name(i);
-			NSString* path = [NSString stringWithUTF8String:pathC];
+			NSString *path = [NSString stringWithUTF8String:pathC];
 
-			if([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"])
-			{
+			if ([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"]) {
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path hasSuffix:@"/usr/lib/substitute-loader.dylib"])
-			{
+			else if ([path hasSuffix:@"/usr/lib/substitute-loader.dylib"]) {
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path hasSuffix:@"/usr/lib/TweakInject.dylib"])
-			{
+			else if ([path hasSuffix:@"/usr/lib/TweakInject.dylib"]) {
 				[injectionLibrariesM addObject:path];
 			}
-			else if([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"])
-			{
+			else if ([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"]) {
 				[injectionLibrariesM addObject:path];
-			} else if([path hasSuffix:@"/usr/lib/substrate/SubstrateLoader.dylib"])
-			{
+			} else if ([path hasSuffix:@"/usr/lib/substrate/SubstrateLoader.dylib"]) {
 				[injectionLibrariesM addObject:path];
 			}
 		}
@@ -98,33 +89,27 @@ NSArray* getInjectionLibraries()
 	return injectionLibraries;
 }
 
-NSString* getInjectionPlatform()
+NSString *getInjectionPlatform()
 {
-	static NSString* injectionPlatform = nil;
+	static NSString *injectionPlatform = nil;
 
-	if(!injectionPlatform)
-	{
-		for (uint32_t i = 0; i < _dyld_image_count(); i++)
-		{
+	if (!injectionPlatform) {
+		for (uint32_t i = 0; i < _dyld_image_count(); i++) {
 			const char *pathC = _dyld_get_image_name(i);
-			NSString* path = [NSString stringWithUTF8String:pathC];
+			NSString *path = [NSString stringWithUTF8String:pathC];
 
-			if([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"])
-			{
+			if ([path hasSuffix:@"/usr/lib/substitute-inserter.dylib"]) {
 				injectionPlatform = @"Substitute";
 			}
-			else if([path hasSuffix:@"/usr/lib/TweakInject.dylib"])
-			{
+			else if ([path hasSuffix:@"/usr/lib/TweakInject.dylib"]) {
 				injectionPlatform = @"libhooker";
 			}
-			else if([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"])
-			{
+			else if ([path hasSuffix:@"/usr/lib/substrate/SubstrateInserter.dylib"]) {
 				injectionPlatform = @"Substrate";
 			}
 		}
 
-		if(!injectionPlatform)
-		{
+		if (!injectionPlatform) {
 			injectionPlatform = localize(@"THE_INJECTION_PLATFORM");
 		}
 	}
@@ -134,24 +119,22 @@ NSString* getInjectionPlatform()
 
 @implementation CHPRootListController
 
-- (NSString*)title
+- (NSString *)title
 {
 	return @"Choicy";
 }
 
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return @"Root";
 }
 
-- (void)openTwitterWithUsername:(NSString*)username
+- (void)openTwitterWithUsername:(NSString *)username
 {
-	if([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitter://"]])
-	{
+	if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitter://"]]) {
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"twitter://user?screen_name=%@", username]]];
 	}
-	else
-	{
+	else {
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://twitter.com/%@", username]]];
 	}
 }
@@ -173,15 +156,14 @@ NSString* getInjectionPlatform()
 
 - (void)resetPreferences
 {
-	UIAlertController* resetPreferencesAlert = [UIAlertController alertControllerWithTitle:localize(@"RESET_PREFERENCES") message:localize(@"RESET_PREFERENCES_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
+	UIAlertController *resetPreferencesAlert = [UIAlertController alertControllerWithTitle:localize(@"RESET_PREFERENCES") message:localize(@"RESET_PREFERENCES_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
 
-	UIAlertAction* continueAction = [UIAlertAction actionWithTitle:localize(@"CONTINUE") style:UIAlertActionStyleDestructive handler:^(UIAlertAction* action)
-	{
+	UIAlertAction *continueAction = [UIAlertAction actionWithTitle:localize(@"CONTINUE") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
 		[[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:nil];
 		[[self class] sendChoicyPrefsPostNotification];
 	}];
 
-	UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:localize(@"CANCEL") style:UIAlertActionStyleDefault handler:nil];
+	UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:localize(@"CANCEL") style:UIAlertActionStyleDefault handler:nil];
 	
 	[resetPreferencesAlert addAction:continueAction];
 	[resetPreferencesAlert addAction:cancelAction];
@@ -189,9 +171,9 @@ NSString* getInjectionPlatform()
 	[self presentViewController:resetPreferencesAlert animated:YES completion:nil];
 }
 
-void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgainOption)
+void presentNotLoadingFirstWarning(PSListController *plc, BOOL showDontShowAgainOption)
 {
-	PSSpecifier* dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
+	PSSpecifier *dontShowAgainSpecifier = [PSSpecifier preferenceSpecifierNamed:@"dontShowWarningAgain"
 					target:plc
 					set:nil
 					get:nil
@@ -203,51 +185,43 @@ void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgain
 	[dontShowAgainSpecifier setProperty:@"dontShowWarningAgain" forKey:@"key"];
 	[dontShowAgainSpecifier setProperty:@"com.opa334.choicyprefs/ReloadPrefs" forKey:@"PostNotification"];
 
-	NSNumber* dontShowAgainNum = nil;
-	if(showDontShowAgainOption)
-	{
+	NSNumber *dontShowAgainNum = nil;
+	if (showDontShowAgainOption) {
 		dontShowAgainNum = [plc readPreferenceValue:dontShowAgainSpecifier];
 	}
 
-	if(![dontShowAgainNum boolValue])
-	{
-		NSString* injectionPlatform = getInjectionPlatform();
+	if (![dontShowAgainNum boolValue]) {
+		NSString *injectionPlatform = getInjectionPlatform();
 
-		NSString* message = [NSString stringWithFormat:localize(@"TWEAKS_LOADING_BEFORE_CHOICY_ALERT_MESSAGE"), injectionPlatform];
+		NSString *message = [NSString stringWithFormat:localize(@"TWEAKS_LOADING_BEFORE_CHOICY_ALERT_MESSAGE"), injectionPlatform];
 
-		if([injectionPlatform isEqualToString:@"Substrate"])
-		{
+		if ([injectionPlatform isEqualToString:@"Substrate"]) {
 			message = [message stringByAppendingString:[@" " stringByAppendingString:localize(@"CHOICYLOADER_ADVICE")]];
 		}
 
-		UIAlertController* warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController *warningAlert = [UIAlertController alertControllerWithTitle:localize(@"WARNING_ALERT_TITLE") message:message preferredStyle:UIAlertControllerStyleAlert];
 	
-		if([injectionPlatform isEqualToString:@"Substrate"])
-		{
-			UIAlertAction* openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-			{
+		if ([injectionPlatform isEqualToString:@"Substrate"]) {
+			UIAlertAction *openRepoAction = [UIAlertAction actionWithTitle:localize(@"OPEN_REPO") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 				[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://opa334.github.io"]];
 			}];
 
 			[warningAlert addAction:openRepoAction];
 		}
 
-		if(showDontShowAgainOption)
-		{
-			UIAlertAction* dontShowAgainAction = [UIAlertAction actionWithTitle:localize(@"DONT_SHOW_AGAIN") style:UIAlertActionStyleDefault handler:^(UIAlertAction* action)
-			{
+		if (showDontShowAgainOption) {
+			UIAlertAction *dontShowAgainAction = [UIAlertAction actionWithTitle:localize(@"DONT_SHOW_AGAIN") style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 				[plc setPreferenceValue:@1 specifier:dontShowAgainSpecifier];
 			}];
 
 			[warningAlert addAction:dontShowAgainAction];
 		}
 
-		UIAlertAction* closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
+		UIAlertAction *closeAction = [UIAlertAction actionWithTitle:localize(@"CLOSE") style:UIAlertActionStyleDefault handler:nil];
 
 		[warningAlert addAction:closeAction];
 
-		if([warningAlert respondsToSelector:@selector(setPreferredAction:)])
-		{
+		if ([warningAlert respondsToSelector:@selector(setPreferredAction:)]) {
 			warningAlert.preferredAction = closeAction;
 		}
 
@@ -259,8 +233,7 @@ void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgain
 {
 	[super viewDidLoad];
 
-	if(dylibsBeforeChoicy)
-	{
+	if (dylibsBeforeChoicy) {
 		presentNotLoadingFirstWarning(self, YES);
 	}
 }
@@ -269,36 +242,31 @@ void presentNotLoadingFirstWarning(PSListController* plc, BOOL showDontShowAgain
 
 void determineLoadingOrder()
 {
-	NSMutableArray* dylibsInOrder = [NSMutableArray new];
-	NSString* injectionLibrariesPath = [CHPTweakList injectionLibrariesPath];
+	NSMutableArray *dylibsInOrder = [NSMutableArray new];
+	NSString *injectionLibrariesPath = [CHPTweakList injectionLibrariesPath];
 
 	BOOL isSubstrate = [getInjectionPlatform() isEqualToString:@"Substrate"];
-	if(isSubstrate)
-	{
+	if (isSubstrate) {
 		//SubstrateLoader doesn't sort anything and instead process the raw output of readdir
 		DIR *dir;
-		struct dirent* dp;
+		struct dirent *dp;
 		dir = opendir(injectionLibrariesPath.UTF8String);
 		dp=readdir(dir); //.
 		dp=readdir(dir); //..
-		while((dp = readdir(dir)) != NULL)
-		{
-			NSString* filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
+		while ((dp = readdir(dir)) != NULL) {
+			NSString *filename = [NSString stringWithCString:dp->d_name encoding:NSUTF8StringEncoding];
 
-			if([filename.pathExtension isEqualToString:@"dylib"])
-			{
+			if ([filename.pathExtension isEqualToString:@"dylib"]) {
 				[dylibsInOrder addObject:[filename stringByDeletingPathExtension]];
 			}
 		}
 	}
-	else
-	{
+	else {
 		//Anything but substrate sorts the dylibs alphabetically
-		NSMutableArray* contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:injectionLibrariesPath error:nil] mutableCopy];
-		NSArray* plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
-		for(NSString* plist in plists)
-		{
-			NSString* dylibName = [plist stringByDeletingPathExtension];
+		NSMutableArray *contents = [[[NSFileManager defaultManager] contentsOfDirectoryAtPath:injectionLibrariesPath error:nil] mutableCopy];
+		NSArray *plists = [contents filteredArrayUsingPredicate:[NSPredicate predicateWithFormat:@"SELF ENDSWITH %@", @"plist"]];
+		for (NSString *plist in plists) {
+			NSString *dylibName = [plist stringByDeletingPathExtension];
 			[dylibsInOrder addObject:dylibName];
 		}
 		[dylibsInOrder sortUsingSelector:@selector(caseInsensitiveCompare:)];
@@ -306,22 +274,18 @@ void determineLoadingOrder()
 
 	NSUInteger choicyIndex = [dylibsInOrder indexOfObject:kChoicyDylibName];
 
-	if(choicyIndex == NSNotFound) return;
+	if (choicyIndex == NSNotFound) return;
 
-	if(choicyIndex != 0)
-	{
+	if (choicyIndex != 0) {
 		dylibsBeforeChoicy = [dylibsInOrder subarrayWithRange:NSMakeRange(0,choicyIndex)];
 	}
 
-	if(dylibsBeforeChoicy && isSubstrate)
-	{
-		NSDictionary* targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
+	if (dylibsBeforeChoicy && isSubstrate) {
+		NSDictionary *targetLoaderAttributes = [[NSFileManager defaultManager] attributesOfItemAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
 
-		if([[targetLoaderAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeSymbolicLink])
-		{
-			NSString* destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
-			if([destination hasPrefix:@"/usr/lib/ChoicyLoader.dylib"])
-			{
+		if ([[targetLoaderAttributes objectForKey:NSFileType] isEqualToString:NSFileTypeSymbolicLink]) {
+			NSString *destination = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:ROOT_PATH_NS(@"/usr/lib/substrate/SubstrateLoader.dylib") error:nil];
+			if ([destination hasPrefix:@"/usr/lib/ChoicyLoader.dylib"]) {
 				// If ChoicyLoader is installed on Substrate, Choicy always loads first
 				dylibsBeforeChoicy = nil;
 			}

@@ -22,31 +22,27 @@
 
 @implementation CHPTweakInfo
 
-- (instancetype)initWithDylibPath:(NSString*)dylibPath plistPath:(NSString*)plistPath
+- (instancetype)initWithDylibPath:(NSString *)dylibPath plistPath:(NSString *)plistPath
 {
 	self = [super init];
 
 	self.dylibName = [[dylibPath lastPathComponent] stringByDeletingPathExtension];
 
-	NSDictionary* plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
+	NSDictionary *plist = [NSDictionary dictionaryWithContentsOfFile:plistPath];
 
-	NSDictionary* filter = [plist objectForKey:@"Filter"];
+	NSDictionary *filter = [plist objectForKey:@"Filter"];
 
-	if(filter)
-	{
+	if (filter) {
 		self.filterBundles = [filter objectForKey:@"Bundles"];
 		self.filterExecutables = [filter objectForKey:@"Executables"];
 
 		//If a plist filters classes, treat it as Security (not very accurate, but better safe than sorry)
-		NSArray* classes = [filter objectForKey:@"Classes"];
-		if(classes && classes.count > 0 && ![self.filterBundles containsObject:@"com.apple.Security"])
-		{
-			if(!self.filterBundles)
-			{
+		NSArray *classes = [filter objectForKey:@"Classes"];
+		if (classes && classes.count > 0 && ![self.filterBundles containsObject:@"com.apple.Security"]) {
+			if (!self.filterBundles) {
 				self.filterBundles = @[@"com.apple.Security"];
 			}
-			else
-			{
+			else {
 				self.filterBundles = [self.filterBundles arrayByAddingObject:@"com.apple.Security"];
 			}
 		}
@@ -55,12 +51,12 @@
 	return self;
 }
 
-- (NSComparisonResult)caseInsensitiveCompare:(CHPTweakInfo*)info
+- (NSComparisonResult)caseInsensitiveCompare:(CHPTweakInfo *)info
 {
 	return [self.dylibName caseInsensitiveCompare:info.dylibName];
 }
 
-- (NSString*)description
+- (NSString *)description
 {
 	return [NSString stringWithFormat:@"<CHPTweakInfo: dylibName = %@, filterBundles = %@, filterExecutables = %@>", self.dylibName, self.filterBundles, self.filterExecutables];
 }

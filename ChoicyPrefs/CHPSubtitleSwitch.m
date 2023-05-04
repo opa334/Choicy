@@ -4,11 +4,10 @@
 
 @implementation CHPSubtitleSwitch
 
-- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString*)reuseIdentifier specifier:(PSSpecifier*)specifier
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier specifier:(PSSpecifier *)specifier
 {
 	self = [super initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:reuseIdentifier specifier:specifier];
-	if(self)
-	{
+	if (self) {
 		self.detailTextLabel.text = [specifier propertyForKey:@"subtitle"];
 	}
 	return self;

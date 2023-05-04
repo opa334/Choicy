@@ -21,9 +21,8 @@
 #import "CHPListController.h"
 @class PSSpecifier, LSPlugInKitProxy;
 
-@interface CHPApplicationPlugInsListController : PSListController
-{
-	NSArray<LSPlugInKitProxy*>* _appPlugIns;
+@interface CHPApplicationPlugInsListController : PSListController {
+	NSArray<LSPlugInKitProxy*> *_appPlugIns;
 }
 
 @end

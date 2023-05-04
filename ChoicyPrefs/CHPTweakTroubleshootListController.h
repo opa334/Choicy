@@ -23,13 +23,12 @@
 
 @class CHPTweakInfo, CHPPackageInfo;
 
-@interface CHPTweakTroubleshootListController : CHPListController <CHPDaemonListObserver>
-{
-	NSArray* _packageList;
-	CHPPackageInfo* _selectedPackageWhileWaitingOnLoad;
-	UIAlertController* _loadingAlertController;
+@interface CHPTweakTroubleshootListController : CHPListController <CHPDaemonListObserver> {
+	NSArray *_packageList;
+	CHPPackageInfo *_selectedPackageWhileWaitingOnLoad;
+	UIAlertController *_loadingAlertController;
 }
 
-- (PSSpecifier*)newSpecifierForPackage:(CHPPackageInfo*)packageInfo;
+- (PSSpecifier *)newSpecifierForPackage:(CHPPackageInfo *)packageInfo;
 
 @end

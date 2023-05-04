@@ -21,57 +21,48 @@
 #import "Shared.h"
 #import "rootless.h"
 
-BOOL parseNumberBool(id number, BOOL default_)
-{
-	if(!number) return default_;
-	if(![number isKindOfClass:[NSNumber class]]) return default_;
+BOOL parseNumberBool(id number, BOOL default_) {
+	if (!number) return default_;
+	if (![number isKindOfClass:[NSNumber class]]) return default_;
 
-	NSNumber* numberNum = number;
+	NSNumber *numberNum = number;
 	return numberNum.boolValue;
 }
 
-NSInteger parseNumberInteger(id number, NSInteger default_)
-{
-	if(!number) return default_;
-	if(![number isKindOfClass:[NSNumber class]]) return default_;
+NSInteger parseNumberInteger(id number, NSInteger default_) {
+	if (!number) return default_;
+	if (![number isKindOfClass:[NSNumber class]]) return default_;
 
-	NSNumber* numberNum = number;
+	NSNumber *numberNum = number;
 	return numberNum.integerValue;
 }
 
-NSString* localize(NSString* key)
-{	
-	static NSBundle* CHBundle;
-	static NSDictionary* englishLocalizations;
+NSString *localize(NSString *key) {	
+	static NSBundle *CHBundle;
+	static NSDictionary *englishLocalizations;
 
-	if(key == nil)
-	{
+	if (key == nil) {
 		return nil;
 	}
 
-	if(!CHBundle)
-	{
+	if (!CHBundle) {
 		CHBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
 	}
 
-	NSString* localizedString = [CHBundle localizedStringForKey:key value:key table:nil];
+	NSString *localizedString = [CHBundle localizedStringForKey:key value:key table:nil];
 
-	if([localizedString isEqualToString:key])
-	{
-		if(!englishLocalizations)
-		{
+	if ([localizedString isEqualToString:key]) {
+		if (!englishLocalizations) {
 			englishLocalizations = [NSDictionary dictionaryWithContentsOfFile:[CHBundle pathForResource:@"Localizable" ofType:@"strings" inDirectory:@"en.lproj"]];
 		}
 
 		//If no localization was found, fallback to english
-		NSString* engString = [englishLocalizations objectForKey:key];
+		NSString *engString = [englishLocalizations objectForKey:key];
 
-		if(engString)
-		{
+		if (engString) {
 			return engString;
 		}
-		else
-		{
+		else {
 			//If an english localization was not found, just return the key itself
 			return key;
 		}
@@ -80,14 +71,12 @@ NSString* localize(NSString* key)
 	return localizedString;
 }
 
-NSDictionary* processPreferencesForApplication(NSDictionary* preferences, NSString* applicationID)
-{
-	NSDictionary* appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
+NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID) {
+	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	return [appSettings objectForKey:applicationID];
 }
 
-NSDictionary* processPreferencesForDaemon(NSDictionary* preferences, NSString* daemonDisplayName)
-{
-	NSDictionary* daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
+NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName) {
+	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
 	return [daemonSettings objectForKey:daemonDisplayName];
 }

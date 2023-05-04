@@ -22,10 +22,10 @@
 
 @interface CHPDaemonInfo : NSObject
 
-@property(nonatomic) NSString* executablePath;
-@property(nonatomic) NSString* plistIdentifier;
-@property(nonatomic) NSSet* linkedFrameworkIdentifiers;
+@property(nonatomic) NSString *executablePath;
+@property(nonatomic) NSString *plistIdentifier;
+@property(nonatomic) NSSet *linkedFrameworkIdentifiers;
 
-- (NSString*)executableName;
+- (NSString *)executableName;
 
 @end

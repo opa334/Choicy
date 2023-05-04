@@ -21,67 +21,56 @@
 #import "ChoicyPrefsMigrator.h"
 #import "Shared.h"
 
-void renameKey(NSMutableDictionary* dict, NSString* key, NSString* newKey)
-{
-	if(!dict || !key || !newKey) return;
-	NSObject* value = dict[key];
-	if(!value) return;
+void renameKey(NSMutableDictionary *dict, NSString *key, NSString *newKey) {
+	if (!dict || !key || !newKey) return;
+	NSObject *value = dict[key];
+	if (!value) return;
 	[dict removeObjectForKey:key];
 	dict[newKey] = value;
 }
 
-void renameKeys(NSMutableDictionary* dict, NSDictionary* keyChanges)
-{
-	if(!dict || !keyChanges) return;
+void renameKeys(NSMutableDictionary *dict, NSDictionary *keyChanges) {
+	if (!dict || !keyChanges) return;
 
-	[keyChanges enumerateKeysAndObjectsUsingBlock:^(NSString* key, NSString* newKey, BOOL *stop)
-	{
+	[keyChanges enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *newKey, BOOL *stop) {
 		renameKey(dict, key, newKey);
 	}];
 }
 
-void removeKeys(NSMutableDictionary* dict, NSArray* keys)
-{
-	if(!dict || !keys) return;
+void removeKeys(NSMutableDictionary *dict, NSArray *keys) {
+	if (!dict || !keys) return;
 
-	[keys enumerateObjectsUsingBlock:^(NSString* key, NSUInteger idx, BOOL* stop)
-	{
+	[keys enumerateObjectsUsingBlock:^(NSString *key, NSUInteger idx, BOOL *stop) {
 		[dict removeObjectForKey:key];
 	}];
 }
 
 @implementation ChoicyPrefsMigrator
 
-+ (BOOL)preferencesNeedMigration:(NSDictionary*)prefs
-{
++ (BOOL)preferencesNeedMigration:(NSDictionary *)prefs {
 	NSInteger preferenceVersion = parseNumberInteger(prefs[kChoicyPrefsVersionKey], 0);
 	return preferenceVersion < kChoicyPrefsCurrentVersion;
 }
 
-+ (void)migratePreferences:(NSMutableDictionary*)prefs
-{
++ (void)migratePreferences:(NSMutableDictionary *)prefs {
 	NSInteger preferenceVersion = parseNumberInteger(prefs[kChoicyPrefsVersionKey], 0);
 
 	// pre 1.4 -> 1.4
-	if(preferenceVersion == 0)
-	{
+	if (preferenceVersion == 0) {
 		BOOL prev_allowBlacklistOverwrites = parseNumberBool(prefs[@"allowBlacklistOverwrites"], NO);
 		BOOL prev_allowWhitelistOverwrites = parseNumberBool(prefs[@"allowWhitelistOverwrites"], NO);
 
 		renameKeys(prefs, kChoicyPrefMigration1_4_ChangedKeys);
 		removeKeys(prefs, kChoicyPrefMigration1_4_RemovedKeys);
 
-		void (^processPrefsHandler)(NSMutableDictionary*, NSString*, NSDictionary*, BOOL*) = ^(NSMutableDictionary* sourceDict, NSString* key, NSDictionary* processPrefs, BOOL* stop)
-		{
-			NSMutableDictionary* processPrefsM = processPrefs.mutableCopy;
+		void (^processPrefsHandler)(NSMutableDictionary*, NSString*, NSDictionary*, BOOL *) = ^(NSMutableDictionary *sourceDict, NSString *key, NSDictionary *processPrefs, BOOL *stop) {
+			NSMutableDictionary *processPrefsM = processPrefs.mutableCopy;
 			renameKeys(processPrefsM, kChoicyProcessPrefMigration1_4_ChangedKeys);
 
 			BOOL customTweakConfigurationEnabled = parseNumberBool(processPrefsM[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled], NO);
-			if(customTweakConfigurationEnabled)
-			{
+			if (customTweakConfigurationEnabled) {
 				NSInteger allowDenyMode = parseNumberInteger(processPrefsM[kChoicyProcessPrefsKeyAllowDenyMode], 1);
-				if((allowDenyMode == 1 && prev_allowWhitelistOverwrites) || (allowDenyMode == 2 && prev_allowBlacklistOverwrites)) // ALLOW
-				{
+				if ((allowDenyMode == 1 && prev_allowWhitelistOverwrites) || (allowDenyMode == 2 && prev_allowBlacklistOverwrites)) { // ALLOW
 					processPrefsM[kChoicyProcessPrefsKeyOverwriteGlobalTweakConfiguration] = @YES;
 				}
 			}
@@ -89,22 +78,18 @@ void removeKeys(NSMutableDictionary* dict, NSArray* keys)
 			sourceDict[key] = processPrefsM.copy;
 		};
 
-		NSMutableDictionary* appSettings = [prefs[kChoicyPrefsKeyAppSettings] mutableCopy];
-		NSMutableDictionary* daemonSettings = [prefs[kChoicyPrefsKeyDaemonSettings] mutableCopy];
+		NSMutableDictionary *appSettings = [prefs[kChoicyPrefsKeyAppSettings] mutableCopy];
+		NSMutableDictionary *daemonSettings = [prefs[kChoicyPrefsKeyDaemonSettings] mutableCopy];
 
-		if(appSettings)
-		{
-			[appSettings enumerateKeysAndObjectsUsingBlock:^(NSString* key, NSDictionary* processPrefs, BOOL* stop)
-			{
+		if (appSettings) {
+			[appSettings enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *processPrefs, BOOL *stop) {
 				processPrefsHandler(appSettings, key, processPrefs, stop);
 			}];
 			prefs[kChoicyPrefsKeyAppSettings] = appSettings.copy;
 		}
 
-		if(daemonSettings)
-		{
-			[daemonSettings enumerateKeysAndObjectsUsingBlock:^(NSString* key, NSDictionary* processPrefs, BOOL* stop)
-			{
+		if (daemonSettings) {
+			[daemonSettings enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *processPrefs, BOOL *stop) {
 				processPrefsHandler(daemonSettings, key, processPrefs, stop);
 			}];
 			prefs[kChoicyPrefsKeyDaemonSettings] = daemonSettings.copy;
@@ -112,8 +97,7 @@ void removeKeys(NSMutableDictionary* dict, NSArray* keys)
 	}
 }
 
-+ (void)updatePreferenceVersion:(NSMutableDictionary*)prefs
-{
++ (void)updatePreferenceVersion:(NSMutableDictionary *)prefs {
 	prefs[kChoicyPrefsVersionKey] = @kChoicyPrefsCurrentVersion;
 }
 

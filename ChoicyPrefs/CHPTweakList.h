@@ -24,15 +24,15 @@
 @class CHPTweakInfo;
 
 @interface CHPTweakList : NSObject
-@property (nonatomic) NSArray* tweakList;
-+ (NSArray*)possibleInjectionLibrariesPaths;
-+ (NSString*)injectionLibrariesPath;
-+ (BOOL)isTweakLibraryPath:(NSString*)path;
-+ (NSURL*)injectionLibrariesURL;
+@property (nonatomic) NSArray *tweakList;
++ (NSArray *)possibleInjectionLibrariesPaths;
++ (NSString *)injectionLibrariesPath;
++ (BOOL)isTweakLibraryPath:(NSString *)path;
++ (NSURL *)injectionLibrariesURL;
 + (instancetype)sharedInstance;
 - (void)updateTweakList;
-- (NSArray*)tweakListForExecutableAtPath:(NSString*)executablePath;
-- (BOOL)oneOrMoreTweaksInjectIntoExecutableAtPath:(NSString*)executablePath;
-- (BOOL)isTweak:(CHPTweakInfo*)tweak hiddenForApplicationWithIdentifier:(NSString*)applicationID;
-- (BOOL)isTweakHiddenForAnyProcess:(CHPTweakInfo*)tweakName;
+- (NSArray *)tweakListForExecutableAtPath:(NSString *)executablePath;
+- (BOOL)oneOrMoreTweaksInjectIntoExecutableAtPath:(NSString *)executablePath;
+- (BOOL)isTweak:(CHPTweakInfo *)tweak hiddenForApplicationWithIdentifier:(NSString *)applicationID;
+- (BOOL)isTweakHiddenForAnyProcess:(CHPTweakInfo *)tweakName;
 @end

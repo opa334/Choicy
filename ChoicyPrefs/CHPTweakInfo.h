@@ -21,8 +21,8 @@
 #import <Foundation/Foundation.h>
 
 @interface CHPTweakInfo : NSObject
-@property (nonatomic) NSString* dylibName;
-@property (nonatomic) NSArray* filterBundles;
-@property (nonatomic) NSArray* filterExecutables;
-- (instancetype)initWithDylibPath:(NSString*)dylibPath plistPath:(NSString*)plistPath;
+@property (nonatomic) NSString *dylibName;
+@property (nonatomic) NSArray *filterBundles;
+@property (nonatomic) NSArray *filterExecutables;
+- (instancetype)initWithDylibPath:(NSString *)dylibPath plistPath:(NSString *)plistPath;
 @end

@@ -21,19 +21,18 @@
 #import "ChoicyOverrideProvider.h"
 #import <Foundation/Foundation.h>
 
-@interface ChoicyOverrideManager : NSObject
-{
-	NSMutableArray* _overrideProviders;
+@interface ChoicyOverrideManager : NSObject {
+	NSMutableArray *_overrideProviders;
 }
 
 + (instancetype)sharedManager;
 - (void)registerOverrideProvider:(id<ChoicyOverrideProvider>)provider;
 - (void)unregisterOverrideProvider:(id<ChoicyOverrideProvider>)provider;
 
-- (BOOL)disableTweakInjectionOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
-- (BOOL)customTweakConfigurationEnabledOverwriteForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
-- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists; // YES: Deny, NO: ALLOW
-- (NSArray*)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
-- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists;
+- (BOOL)disableTweakInjectionOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists;
+- (BOOL)customTweakConfigurationEnabledOverwriteForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists;
+- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists; // YES: Deny, NO: ALLOW
+- (NSArray *)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists;
+- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists;
 
 @end

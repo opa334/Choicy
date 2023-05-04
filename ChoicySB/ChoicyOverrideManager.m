@@ -26,8 +26,7 @@
 {
 	static ChoicyOverrideManager *sharedManager = nil;
 	static dispatch_once_t onceToken;
-	dispatch_once(&onceToken, ^
-	{
+	dispatch_once(&onceToken, ^ {
 		sharedManager = [[ChoicyOverrideManager alloc] init];
 	});
 	return sharedManager;
@@ -42,128 +41,113 @@
 	return self;
 }
 
-- (void)registerOverrideProvider:(NSObject<ChoicyOverrideProvider>*)provider
+- (void)registerOverrideProvider:(NSObject<ChoicyOverrideProvider> *)provider
 {
 	[_overrideProviders addObject:provider];
 }
 
-- (void)unregisterOverrideProvider:(NSObject<ChoicyOverrideProvider>*)provider
+- (void)unregisterOverrideProvider:(NSObject<ChoicyOverrideProvider> *)provider
 {
 	[_overrideProviders removeObject:provider];
 }
 
-- (BOOL)disableTweakInjectionOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists
+- (BOOL)disableTweakInjectionOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists
 {
 	__block BOOL overrideExists_ = NO;
 	__block BOOL overrideValue = NO;
 
-	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider>* overrideProvider, NSUInteger idx, BOOL *stop)
-	{
+	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider> *overrideProvider, NSUInteger idx, BOOL *stop) {
 		uint32_t providedOverrides = [overrideProvider providedOverridesForApplication:applicationID];
-		if((providedOverrides & Choicy_Override_DisableTweakInjection) == Choicy_Override_DisableTweakInjection)
-		{
+		if ((providedOverrides & Choicy_Override_DisableTweakInjection) == Choicy_Override_DisableTweakInjection) {
 			overrideExists_ = YES;
-			if([overrideProvider respondsToSelector:@selector(disableTweakInjectionOverrideForApplication:)])
-			{
+			if ([overrideProvider respondsToSelector:@selector(disableTweakInjectionOverrideForApplication:)]) {
 				overrideValue = [overrideProvider disableTweakInjectionOverrideForApplication:applicationID];
 				*stop = YES;
 			}
 		}
 	}];
 
-	if(overrideExists) *overrideExists = overrideExists_;
+	if (overrideExists) *overrideExists = overrideExists_;
 	return overrideValue;
 }
 
-- (BOOL)customTweakConfigurationEnabledOverwriteForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists
+- (BOOL)customTweakConfigurationEnabledOverwriteForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists
 {
 	__block BOOL overrideExists_ = NO;
 	__block BOOL overrideValue = NO;
 
-	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider>* overrideProvider, NSUInteger idx, BOOL *stop)
-	{
+	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider> *overrideProvider, NSUInteger idx, BOOL *stop) {
 		uint32_t providedOverrides = [overrideProvider providedOverridesForApplication:applicationID];
-		if((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration)
-		{
+		if ((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration) {
 			overrideExists_ = YES;
-			if([overrideProvider respondsToSelector:@selector(customTweakConfigurationEnabledOverrideForApplication:)])
-			{
+			if ([overrideProvider respondsToSelector:@selector(customTweakConfigurationEnabledOverrideForApplication:)]) {
 				overrideValue = [overrideProvider customTweakConfigurationEnabledOverrideForApplication:applicationID];
 				*stop = YES;
 			}
 		}
 	}];
 
-	if(overrideExists) *overrideExists = overrideExists_;
+	if (overrideExists) *overrideExists = overrideExists_;
 	return overrideValue;
 }
 
-- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists
+- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists
 {
 	__block BOOL overrideExists_ = NO;
 	__block BOOL overrideValue = NO;
 
-	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider>* overrideProvider, NSUInteger idx, BOOL *stop)
-	{
+	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider> *overrideProvider, NSUInteger idx, BOOL *stop) {
 		uint32_t providedOverrides = [overrideProvider providedOverridesForApplication:applicationID];
-		if((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration)
-		{
+		if ((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration) {
 			overrideExists_ = YES;
-			if([overrideProvider respondsToSelector:@selector(customTweakConfigurationAllowDenyModeOverrideForApplication:)])
-			{
+			if ([overrideProvider respondsToSelector:@selector(customTweakConfigurationAllowDenyModeOverrideForApplication:)]) {
 				overrideValue = [overrideProvider customTweakConfigurationAllowDenyModeOverrideForApplication:applicationID];
 				*stop = YES;
 			}
 		}
 	}];
 
-	if(overrideExists) *overrideExists = overrideExists_;
+	if (overrideExists) *overrideExists = overrideExists_;
 	return overrideValue;
 }
 
-- (NSArray*)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists
+- (NSArray *)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists
 {
 	__block BOOL overrideExists_ = NO;
-	__block NSArray* overrideValue = nil;
+	__block NSArray *overrideValue = nil;
 
-	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider>* overrideProvider, NSUInteger idx, BOOL *stop)
-	{
+	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider> *overrideProvider, NSUInteger idx, BOOL *stop) {
 		uint32_t providedOverrides = [overrideProvider providedOverridesForApplication:applicationID];
-		if((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration)
-		{
+		if ((providedOverrides & Choicy_Override_CustomTweakConfiguration) == Choicy_Override_CustomTweakConfiguration) {
 			overrideExists_ = YES;
-			if([overrideProvider respondsToSelector:@selector(customTweakConfigurationAllowOrDenyListOverrideForApplication:)])
-			{
+			if ([overrideProvider respondsToSelector:@selector(customTweakConfigurationAllowOrDenyListOverrideForApplication:)]) {
 				overrideValue = [overrideProvider customTweakConfigurationAllowOrDenyListOverrideForApplication:applicationID];
 				*stop = YES;
 			}
 		}
 	}];
 
-	if(overrideExists) *overrideExists = overrideExists_;
+	if (overrideExists) *overrideExists = overrideExists_;
 	return overrideValue;
 }
 
-- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString*)applicationID overrideExists:(BOOL*)overrideExists
+- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString *)applicationID overrideExists:(BOOL *)overrideExists
 {
 	__block BOOL overrideExists_ = NO;
 	__block BOOL overrideValue = NO;
 
-	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider>* overrideProvider, NSUInteger idx, BOOL *stop)
-	{
+	[_overrideProviders enumerateObjectsUsingBlock:^(NSObject<ChoicyOverrideProvider> *overrideProvider, NSUInteger idx, BOOL *stop) {
 		uint32_t providedOverrides = [overrideProvider providedOverridesForApplication:applicationID];
-		if((providedOverrides & Choicy_Override_OverrideGlobalConfiguration) == Choicy_Override_OverrideGlobalConfiguration)
-		{
+		if ((providedOverrides & Choicy_Override_OverrideGlobalConfiguration) == Choicy_Override_OverrideGlobalConfiguration) {
 			overrideExists_ = YES;
-			if([overrideProvider respondsToSelector:@selector(overwriteGlobalConfigurationOverrideForApplication:)])
-			{
+			if ([overrideProvider respondsToSelector:@selector(overwriteGlobalConfigurationOverrideForApplication:)]) {
 				overrideValue = [overrideProvider overwriteGlobalConfigurationOverrideForApplication:applicationID];
 				*stop = YES;
 			}
 		}
 	}];
 
-	if(overrideExists) *overrideExists = overrideExists_;
+	if (overrideExists) *overrideExists = overrideExists_;
 	return overrideValue;
 }
 

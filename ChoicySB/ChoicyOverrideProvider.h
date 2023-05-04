@@ -20,8 +20,7 @@
 
 #import <Foundation/Foundation.h>
 
-enum
-{
+enum {
 	Choicy_Override_DisableTweakInjection = 1 << 0,
 	Choicy_Override_CustomTweakConfiguration = 1 << 1,
 	Choicy_Override_OverrideGlobalConfiguration = 1 << 2
@@ -30,13 +29,13 @@ enum
 @protocol ChoicyOverrideProvider
 
 @required
-- (uint32_t)providedOverridesForApplication:(NSString*)applicationID;
+- (uint32_t)providedOverridesForApplication:(NSString *)applicationID;
 
 @optional
-- (BOOL)disableTweakInjectionOverrideForApplication:(NSString*)applicationID;
-- (BOOL)customTweakConfigurationEnabledOverrideForApplication:(NSString*)applicationID;
-- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString*)applicationID;
-- (NSArray*)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString*)applicationID;
-- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString*)applicationID;
+- (BOOL)disableTweakInjectionOverrideForApplication:(NSString *)applicationID;
+- (BOOL)customTweakConfigurationEnabledOverrideForApplication:(NSString *)applicationID;
+- (BOOL)customTweakConfigurationAllowDenyModeOverrideForApplication:(NSString *)applicationID;
+- (NSArray *)customTweakConfigurationAllowOrDenyListOverrideForApplication:(NSString *)applicationID;
+- (BOOL)overwriteGlobalConfigurationOverrideForApplication:(NSString *)applicationID;
 
 @end

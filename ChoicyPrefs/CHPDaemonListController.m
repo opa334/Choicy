@@ -29,7 +29,7 @@
 #import "CHPApplicationListSubcontrollerController.h"
 
 @interface PSListController()
-- (id)controllerForSpecifier:(PSSpecifier*)specifier;
+- (id)controllerForSpecifier:(PSSpecifier *)specifier;
 @end
 
 @implementation CHPDaemonListController
@@ -39,46 +39,40 @@
 	[self applySearchControllerHideWhileScrolling:NO];
 	[[CHPDaemonList sharedInstance] addObserver:self];
 
-	if(![CHPDaemonList sharedInstance].loaded)
-	{
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^
-		{
+	if (![CHPDaemonList sharedInstance].loaded) {
+		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^ {
 			[[CHPDaemonList sharedInstance] updateDaemonListIfNeeded];
 		});
 	}
-	else
-	{
+	else {
 		[self updateSuggestedDaemons];
 	}
 
 	[super viewDidLoad];
 }
 
-- (NSString*)topTitle
+- (NSString *)topTitle
 {
 	return localize(@"DAEMONS");
 }
 
-- (NSString*)plistName
+- (NSString *)plistName
 {
 	return nil;
 }
 
-- (NSMutableArray*)specifiers
+- (NSMutableArray *)specifiers
 {
-	if(!_specifiers)
-	{
+	if (!_specifiers) {
 		_specifiers = [NSMutableArray new];
 
-		if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
-		{
+		if (kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0) {
 			[_specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
 			[_specifiers addObject:[PSSpecifier emptyGroupSpecifier]];
 		}
 
-		if(![CHPDaemonList sharedInstance].loaded)
-		{
-			PSSpecifier* loadingIndicator = [PSSpecifier preferenceSpecifierNamed:@""
+		if (![CHPDaemonList sharedInstance].loaded) {
+			PSSpecifier *loadingIndicator = [PSSpecifier preferenceSpecifierNamed:@""
 							target:self
 							set:nil
 							get:nil
@@ -88,20 +82,17 @@
 
 			[_specifiers addObject:loadingIndicator];
 		}
-		else
-		{
-			NSString* toggleName;
+		else {
+			NSString *toggleName;
 
-			if(_showsAllDaemons)
-			{
+			if (_showsAllDaemons) {
 				toggleName = localize(@"SHOW_RECOMMENDED_DAEMONS");
 			}
-			else
-			{
+			else {
 				toggleName = localize(@"SHOW_ALL_DAEMONS");
 			}
 
-			PSSpecifier* daemonToggleSpecifier = [PSSpecifier preferenceSpecifierNamed:toggleName
+			PSSpecifier *daemonToggleSpecifier = [PSSpecifier preferenceSpecifierNamed:toggleName
 							target:self
 							set:nil
 							get:nil
@@ -113,25 +104,21 @@
 			daemonToggleSpecifier.buttonAction = @selector(daemonTogglePressed:);
 			[_specifiers addObject:daemonToggleSpecifier];
 
-			PSSpecifier* daemonsGroup = [PSSpecifier emptyGroupSpecifier];
+			PSSpecifier *daemonsGroup = [PSSpecifier emptyGroupSpecifier];
 			[daemonsGroup setProperty:localize(@"DAEMON_LIST_BOTTOM_NOTICE") forKey:@"footerText"];
 			[_specifiers addObject:daemonsGroup];
 
-			NSArray<CHPDaemonInfo*>* daemonList = [CHPDaemonList sharedInstance].daemonList;
+			NSArray<CHPDaemonInfo*> *daemonList = [CHPDaemonList sharedInstance].daemonList;
 
-			for(CHPDaemonInfo* info in daemonList)
-			{
-				if(_showsAllDaemons || [_suggestedDaemons containsObject:[info executableName]])
-				{
-					if(_searchKey && ![_searchKey isEqualToString:@""])
-					{
-						if(![[info executableName] localizedStandardContainsString:_searchKey])
-						{
+			for (CHPDaemonInfo *info in daemonList) {
+				if (_showsAllDaemons || [_suggestedDaemons containsObject:[info executableName]]) {
+					if (_searchKey && ![_searchKey isEqualToString:@""]) {
+						if (![[info executableName] localizedStandardContainsString:_searchKey]) {
 							continue;
 						}
 					}
 					
-					PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:[info executableName]
+					PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:[info executableName]
 								target:self
 								set:nil
 								get:@selector(previewStringForSpecifier:)
@@ -151,16 +138,16 @@
 	return _specifiers;
 }
 
-- (id)previewStringForSpecifier:(PSSpecifier*)specifier
+- (id)previewStringForSpecifier:(PSSpecifier *)specifier
 {
-	NSString* executablePath = [specifier propertyForKey:@"executablePath"];
+	NSString *executablePath = [specifier propertyForKey:@"executablePath"];
 
-	NSDictionary* daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
-	NSDictionary* settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
+	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
+	NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
 	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
 }
 
-- (void)daemonTogglePressed:(PSSpecifier*)specifier
+- (void)daemonTogglePressed:(PSSpecifier *)specifier
 {
 	_showsAllDaemons = !_showsAllDaemons;
 
@@ -169,22 +156,19 @@
 
 - (void)reloadValueOfSelectedSpecifier
 {
-	UITableView* tableView = [self valueForKey:@"_table"];
-	for(NSIndexPath* selectedIndexPath in tableView.indexPathsForSelectedRows)
-	{
-		PSSpecifier* specifier = [self specifierAtIndex:[self indexForIndexPath:selectedIndexPath]];
+	UITableView *tableView = [self valueForKey:@"_table"];
+	for (NSIndexPath *selectedIndexPath in tableView.indexPathsForSelectedRows) {
+		PSSpecifier *specifier = [self specifierAtIndex:[self indexForIndexPath:selectedIndexPath]];
 		[self reloadSpecifier:specifier];
 	}
 }
 
 - (void)updateSuggestedDaemons
 {
-	NSMutableSet* suggestedDaemons = [NSMutableSet new];
+	NSMutableSet *suggestedDaemons = [NSMutableSet new];
 
-	for(CHPDaemonInfo* info in [CHPDaemonList sharedInstance].daemonList)
-	{
-		if([info.linkedFrameworkIdentifiers containsObject:@"com.apple.UIKit"])
-		{
+	for (CHPDaemonInfo *info in [CHPDaemonList sharedInstance].daemonList) {
+		if ([info.linkedFrameworkIdentifiers containsObject:@"com.apple.UIKit"]) {
 			[suggestedDaemons addObject:[info executableName]];
 		}
 	}
@@ -192,18 +176,16 @@
 	_suggestedDaemons = [suggestedDaemons copy];
 }
 
-- (void)daemonListDidUpdate:(CHPDaemonList*)list
+- (void)daemonListDidUpdate:(CHPDaemonList *)list
 {
 	[self updateSuggestedDaemons];
 	[self reloadSpecifiers];
 }
 
-- (id)controllerForSpecifier:(PSSpecifier*)specifier
+- (id)controllerForSpecifier:(PSSpecifier *)specifier
 {
-	if(kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0)
-	{
-		[UIView performWithoutAnimation:^
-		{
+	if (kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_11_0) {
+		[UIView performWithoutAnimation:^ {
 			_searchController.active = NO;
 		}];
 	}

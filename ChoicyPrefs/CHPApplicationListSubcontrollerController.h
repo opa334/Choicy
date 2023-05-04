@@ -21,5 +21,5 @@
 #import <AltList/ATLApplicationListSubcontrollerController.h>
 
 @interface CHPApplicationListSubcontrollerController : ATLApplicationListSubcontrollerController
-+ (NSString*)previewStringForProcessPreferences:(NSDictionary*)processPreferences;
++ (NSString *)previewStringForProcessPreferences:(NSDictionary *)processPreferences;
 @end

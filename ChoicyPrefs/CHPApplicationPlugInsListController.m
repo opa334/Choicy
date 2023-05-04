@@ -31,32 +31,30 @@
 
 - (void)loadPlugIns
 {
-	NSString* applicationID = [self applicationIdentifier];
-	LSApplicationProxy* appProxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
+	NSString *applicationID = [self applicationIdentifier];
+	LSApplicationProxy *appProxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
 	
-	NSMutableArray* appPlugIns = [NSMutableArray new];
+	NSMutableArray *appPlugIns = [NSMutableArray new];
 	[appPlugIns addObjectsFromArray:[appProxy plugInKitPlugins]];
 	[appPlugIns addObjectsFromArray:[appProxy VPNPlugins]];
 
-	_appPlugIns = [appPlugIns sortedArrayUsingComparator:^NSComparisonResult(LSPlugInKitProxy* p1, LSPlugInKitProxy* p2)
-	{
-		NSString* p1Name = p1.infoPlist[@"CFBundleExecutable"];
-		NSString* p2Name = p2.infoPlist[@"CFBundleExecutable"];
+	_appPlugIns = [appPlugIns sortedArrayUsingComparator:^NSComparisonResult(LSPlugInKitProxy *p1, LSPlugInKitProxy *p2) {
+		NSString *p1Name = p1.infoPlist[@"CFBundleExecutable"];
+		NSString *p2Name = p2.infoPlist[@"CFBundleExecutable"];
 		return [p1Name caseInsensitiveCompare:p2Name];
 	}];
 }
 
-- (PSSpecifier*)newSpecifierForPlugIn:(LSPlugInKitProxy*)plugInProxy
+- (PSSpecifier *)newSpecifierForPlugIn:(LSPlugInKitProxy *)plugInProxy
 {
-	NSString* plugInName = plugInProxy.infoPlist[@"CFBundleExecutable"];
+	NSString *plugInName = plugInProxy.infoPlist[@"CFBundleExecutable"];
 	// alternative on iOS 14+
-	/*else if(NSClassFromString(@"LSApplicationExtensionRecord"))
-	{
-		LSApplicationExtensionRecord* appexRecord = [plugInProxy valueForKey:@"_appexRecord"];
+	/*else if (NSClassFromString(@"LSApplicationExtensionRecord")) {
+		LSApplicationExtensionRecord *appexRecord = [plugInProxy valueForKey:@"_appexRecord"];
 		plugInName = appexRecord.executableURL.lastPathComponent;
 	}*/
 
-	PSSpecifier* specifier = [PSSpecifier preferenceSpecifierNamed:plugInName
+	PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:plugInName
 						  target:self
 						  set:nil
 						  get:@selector(previewStringForSpecifier:)
@@ -70,22 +68,20 @@
 	return specifier;
 }
 
-- (NSString*)applicationIdentifier
+- (NSString *)applicationIdentifier
 {
 	return [[self specifier] propertyForKey:@"applicationIdentifier"];
 }
 
-- (NSMutableArray*)specifiers
+- (NSMutableArray *)specifiers
 {
-	if(!_specifiers)
-	{
+	if (!_specifiers) {
 		_specifiers = [NSMutableArray new];
 
 		[self loadPlugIns];
 
-		[_appPlugIns enumerateObjectsUsingBlock:^(LSPlugInKitProxy* plugInProxy, NSUInteger idx, BOOL *stop)
-		{
-			PSSpecifier* plugInSpecifier = [self newSpecifierForPlugIn:plugInProxy];
+		[_appPlugIns enumerateObjectsUsingBlock:^(LSPlugInKitProxy *plugInProxy, NSUInteger idx, BOOL *stop) {
+			PSSpecifier *plugInSpecifier = [self newSpecifierForPlugIn:plugInProxy];
 			[_specifiers addObject:plugInSpecifier];
 		}];
 	}
@@ -93,11 +89,11 @@
 	return _specifiers;
 }
 
-- (NSString*)previewStringForSpecifier:(PSSpecifier*)specifier
+- (NSString *)previewStringForSpecifier:(PSSpecifier *)specifier
 {
-	NSString* plugInID = [specifier propertyForKey:@"plugInIdentifier"];
-	NSDictionary* appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
-	NSDictionary* settingsForApplication = [appSettings objectForKey:plugInID];
+	NSString *plugInID = [specifier propertyForKey:@"plugInIdentifier"];
+	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
+	NSDictionary *settingsForApplication = [appSettings objectForKey:plugInID];
 	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForApplication];
 }
 

@@ -24,9 +24,8 @@
 - (BOOL)performDeletionActionForSpecifier:(id)arg1;
 @end
 
-@interface CHPAdditionalExecutablesListController : PSEditableListController
-{
-	NSMutableArray* _additionalExecutables;
+@interface CHPAdditionalExecutablesListController : PSEditableListController {
+	NSMutableArray *_additionalExecutables;
 }
 
 @end

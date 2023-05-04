@@ -21,10 +21,10 @@
 #import <Foundation/Foundation.h>
 
 @interface CHPPackageInfo : NSObject
-@property (nonatomic, readonly) NSString* identifier;
-@property (nonatomic, readonly) NSString* name;
-@property (nonatomic, readonly) NSArray* tweakDylibs;
-+ (NSArray*)allInstalledPackages;
-- (instancetype)initWithPackageIdentifier:(NSString*)packageID;
-+ (instancetype)fetchPackageInfoForDylibName:(NSString*)dylibName;
+@property (nonatomic, readonly) NSString *identifier;
+@property (nonatomic, readonly) NSString *name;
+@property (nonatomic, readonly) NSArray *tweakDylibs;
++ (NSArray *)allInstalledPackages;
+- (instancetype)initWithPackageIdentifier:(NSString *)packageID;
++ (instancetype)fetchPackageInfoForDylibName:(NSString *)dylibName;
 @end

@@ -20,6 +20,6 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSSet* frameworkBundleIDsForMachoAtPath(NSString* path);
-extern NSArray* dependenciesForMachoAtPath(NSString* path, NSArray** rpaths);
-extern BOOL isFileAtPathMacho(NSString* path);
+extern NSSet *frameworkBundleIDsForMachoAtPath(NSString *path);
+extern NSArray *dependenciesForMachoAtPath(NSString *path, NSArray* *rpaths);
+extern BOOL isFileAtPathMacho(NSString *path);
