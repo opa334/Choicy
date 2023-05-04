@@ -200,7 +200,7 @@ BOOL shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjec
 }
 
 // iOS >= 15
-- (id)_createProcessWithExecutionContext:(FBProcessExecutionContext*)executionContext error:(id*)arg2
+- (id)_bootstrapProcessWithExecutionContext:(FBProcessExecutionContext *)executionContext synchronously:(BOOL)synchronously error:(id*)error
 {
 	[self choicy_handleEnvironmentChangesForExecutionContext:executionContext withApplicationID:executionContext.identity.embeddedApplicationIdentifier];
 
