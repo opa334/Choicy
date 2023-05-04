@@ -1,8 +1,7 @@
 ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
-export TARGET = iphone:clang:16.2:15.0
-export ARCHS = arm64 arm64e
+TARGET = iphone:clang:16.2:15.0
 else
-export TARGET = iphone:clang:13.7:8.0
+TARGET = iphone:clang:13.7:8.0
 endif
 
 include $(THEOS)/makefiles/common.mk
