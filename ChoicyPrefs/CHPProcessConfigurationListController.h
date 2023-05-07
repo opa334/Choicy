@@ -22,6 +22,10 @@
 @class PSSpecifier, LSPlugInKitProxy, LSBundleProxy;
 
 @interface CHPProcessConfigurationListController : CHPListController {
+	NSString *_appIdentifier;
+	NSString *_pluginIdentifier;
+	NSString *_executablePath;
+
 	LSBundleProxy *_bundleProxy;
 	BOOL _isSpringboard;
 	NSMutableArray *_customConfigurationSpecifiers;

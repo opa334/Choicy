@@ -31,7 +31,7 @@
 
 - (void)loadPlugIns
 {
-	NSString *applicationID = [self applicationIdentifier];
+	NSString *applicationID = [self appIdentifier];
 	LSApplicationProxy *appProxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
 	
 	NSMutableArray *appPlugIns = [NSMutableArray new];
@@ -63,12 +63,12 @@
 						  edit:nil];
 
 	[specifier setProperty:@YES forKey:@"enabled"];
-	[specifier setProperty:plugInProxy.bundleIdentifier forKey:@"plugInIdentifier"];
+	[specifier setProperty:plugInProxy.bundleIdentifier forKey:@"pluginIdentifier"];
 
 	return specifier;
 }
 
-- (NSString *)applicationIdentifier
+- (NSString *)appIdentifier
 {
 	return [[self specifier] propertyForKey:@"applicationIdentifier"];
 }
@@ -91,7 +91,7 @@
 
 - (NSString *)previewStringForSpecifier:(PSSpecifier *)specifier
 {
-	NSString *plugInID = [specifier propertyForKey:@"plugInIdentifier"];
+	NSString *plugInID = [specifier propertyForKey:@"pluginIdentifier"];
 	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	NSDictionary *settingsForApplication = [appSettings objectForKey:plugInID];
 	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForApplication];

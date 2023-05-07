@@ -71,16 +71,6 @@
 	return bundleExecutablePath;
 }
 
-- (NSString *)applicationIdentifier
-{
-	return [[self specifier] propertyForKey:@"applicationIdentifier"];
-}
-
-- (NSString *)plugInIdentifier
-{
-	return [[self specifier] propertyForKey:@"plugInIdentifier"];
-}
-
 - (NSString *)executableName
 {
 	return [self executablePath].lastPathComponent;
@@ -105,12 +95,8 @@
 
 - (NSString *)keyForPreferences
 {
-	NSString *applicationID = [self applicationIdentifier];
-	if (applicationID) return applicationID;
-
-	NSString *plugInID = [self plugInIdentifier];
-	if (plugInID) return plugInID;
-
+	if (_appIdentifier) return _appIdentifier;
+	if (_pluginIdentifier) return _pluginIdentifier;
 	return [self executableName];
 }
 
@@ -121,7 +107,7 @@
 
 - (void)viewDidLoad
 {
-	if ([[self applicationIdentifier] isEqualToString:kSpringboardBundleID]) {
+	if ([_appIdentifier isEqualToString:kSpringboardBundleID]) {
 		self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:localize(@"RESPRING") style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 	}
 
@@ -146,7 +132,7 @@
 
 - (NSString *)dictionaryName
 {
-	if ([self applicationIdentifier] || [self plugInIdentifier]) {
+	if (_appIdentifier || _pluginIdentifier) {
 		return kChoicyPrefsKeyAppSettings;
 	}
 	else {
@@ -161,15 +147,14 @@
 
 - (BOOL)shouldShowTweak:(CHPTweakInfo *)tweakInfo
 {
-	NSString *applicationID = [self applicationIdentifier];
 	CHPTweakList *sharedTweakList = [CHPTweakList sharedInstance];
 
 	if ([kAlwaysInjectGlobal containsObject:tweakInfo.dylibName]) {
 		return NO;
 	}
 
-	if (applicationID) {
-		if ([sharedTweakList isTweak:tweakInfo hiddenForApplicationWithIdentifier:applicationID]) {
+	if (_appIdentifier) {
+		if ([sharedTweakList isTweak:tweakInfo hiddenForApplicationWithIdentifier:_appIdentifier]) {
 			return NO;
 		}
 	}
@@ -273,19 +258,19 @@
 - (NSMutableArray *)specifiers
 {
 	if (!_specifiers) {
+		_appIdentifier = [[self specifier] propertyForKey:@"applicationIdentifier"];
+		_pluginIdentifier = [[self specifier] propertyForKey:@"pluginIdentifier"];
+		if (_appIdentifier) {
+			_bundleProxy = (LSBundleProxy *)[LSApplicationProxy applicationProxyForIdentifier:_appIdentifier]; 
+		}
+		else if (_pluginIdentifier) {
+			_bundleProxy = (LSBundleProxy *)[LSPlugInKitProxy pluginKitProxyForIdentifier:_pluginIdentifier];
+		}
+
 		[self readPreferences];
 
 		_allowedTweaks = [[_processPreferences objectForKey:kChoicyProcessPrefsKeyAllowedTweaks] mutableCopy] ?: [NSMutableArray new];
-		_deniedTweaks = [[_processPreferences objectForKey:kChoicyProcessPrefsKeyDeniedTweaks] mutableCopy] ?: [NSMutableArray new];		
-
-		NSString *applicationID = [self applicationIdentifier];
-		NSString *plugInID = [self plugInIdentifier];
-		if (applicationID) {
-			_bundleProxy = (LSBundleProxy *)[LSApplicationProxy applicationProxyForIdentifier:applicationID]; 
-		}
-		else if (plugInID) {
-			_bundleProxy = (LSBundleProxy *)[LSPlugInKitProxy pluginKitProxyForIdentifier:plugInID];
-		}
+		_deniedTweaks = [[_processPreferences objectForKey:kChoicyProcessPrefsKeyDeniedTweaks] mutableCopy] ?: [NSMutableArray new];
 
 		_specifiers = [super specifiers];
 
@@ -303,7 +288,7 @@
 			[_specifiers addObjectsFromArray:_customConfigurationSpecifiers];
 		}
 
-		if (applicationID && [self shouldShowAppPlugIns]) {
+		if (_appIdentifier && [self shouldShowAppPlugIns]) {
 			LSApplicationProxy *appProxy = (LSApplicationProxy *)_bundleProxy;
 
 			if (appProxy.VPNPlugins.count > 0 || appProxy.plugInKitPlugins.count > 0) {
@@ -319,7 +304,7 @@
 								edit:nil];
 
 				[plugInsSpecifier setProperty:@YES forKey:@"enabled"];
-				[plugInsSpecifier setProperty:applicationID forKey:@"applicationIdentifier"];
+				[plugInsSpecifier setProperty:_appIdentifier forKey:@"applicationIdentifier"];
 				[_specifiers addObject:plugInsSpecifier];
 			}
 		}
@@ -352,8 +337,7 @@
 		[customTweakConfigurationSpecifier setProperty:@(!disableTweakInjectionNum.boolValue) forKey:@"enabled"];
 	}
 
-	NSString *applicationID = [[self specifier] propertyForKey:@"applicationIdentifier"];
-	if ([applicationID isEqualToString:kPreferencesBundleID]) {
+	if ([_appIdentifier isEqualToString:kPreferencesBundleID]) {
 		if (![disableTweakInjectionNum boolValue]) {
 			[disableTweakInjectionSpecifier setProperty:@(NO) forKey:@"enabled"];
 		}

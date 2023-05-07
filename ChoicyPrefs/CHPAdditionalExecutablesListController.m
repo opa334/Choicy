@@ -45,19 +45,44 @@
 		cell:PSLinkListCell
 		edit:nil];
 
-	[specifier setProperty:@YES forKey:@"enabled"];
-	[specifier setProperty:executablePath forKey:@"executablePath"];
+	if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"app"]) {
+		NSString *appDirectory = executablePath.stringByDeletingLastPathComponent;
+		NSDictionary *appInfo = [NSDictionary dictionaryWithContentsOfFile:[appDirectory stringByAppendingPathComponent:@"Info.plist"]];
+		NSString *appIdentifier = appInfo[@"CFBundleIdentifier"];
+		[specifier setProperty:appIdentifier forKey:@"applicationIdentifier"];
+	}
+	else if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"appex"]) {
+		NSString *pluginDirectory = executablePath.stringByDeletingLastPathComponent;
+		NSDictionary *pluginInfo = [NSDictionary dictionaryWithContentsOfFile:[pluginDirectory stringByAppendingPathComponent:@"Info.plist"]];
+		NSString *pluginIdentifier = pluginInfo[@"CFBundleIdentifier"];
+		[specifier setProperty:pluginIdentifier forKey:@"pluginIdentifier"];
+	}
+	else {
+		[specifier setProperty:executablePath forKey:@"executablePath"];
+	}
 
+	[specifier setProperty:@YES forKey:@"enabled"];
 	return specifier;
 }
 
 - (id)previewStringForSpecifier:(PSSpecifier *)specifier
 {
+	NSString *appIdentifier = [specifier propertyForKey:@"applicationIdentifier"];
+	NSString *pluginIdentifier = [specifier propertyForKey:@"pluginIdentifier"];
 	NSString *executablePath = [specifier propertyForKey:@"executablePath"];
 
-	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
-	NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
-	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
+	NSString *identifierToUse = appIdentifier ? appIdentifier : pluginIdentifier;
+
+	if (identifierToUse) {
+		NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
+		NSDictionary *settingsForApplication = [appSettings objectForKey:identifierToUse];
+		return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForApplication];
+	}
+	else {
+		NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
+		NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
+		return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
+	}
 }
 
 - (void)loadAdditionalExecutables
