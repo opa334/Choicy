@@ -32,4 +32,10 @@
 	return [CHPListController previewStringForProcessPreferences:settingsForApplication];
 }
 
+// Older Crane versions depend on this
++ (NSString *)previewStringForProcessPreferences:(NSDictionary *)processPreferences
+{
+	return [CHPListController previewStringForProcessPreferences:processPreferences];
+}
+
 @end
