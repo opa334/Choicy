@@ -35,54 +35,9 @@
 	return addButton;
 }
 
-- (PSSpecifier *)newSpecifierForExecutable:(NSString *)executablePath
-{
-	PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:executablePath
-		target:self
-		set:nil
-		get:@selector(previewStringForSpecifier:)
-		detail:[CHPProcessConfigurationListController class]
-		cell:PSLinkListCell
-		edit:nil];
-
-	if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"app"]) {
-		NSString *appDirectory = executablePath.stringByDeletingLastPathComponent;
-		NSDictionary *appInfo = [NSDictionary dictionaryWithContentsOfFile:[appDirectory stringByAppendingPathComponent:@"Info.plist"]];
-		NSString *appIdentifier = appInfo[@"CFBundleIdentifier"];
-		[specifier setProperty:appIdentifier forKey:@"applicationIdentifier"];
-	}
-	else if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"appex"]) {
-		NSString *pluginDirectory = executablePath.stringByDeletingLastPathComponent;
-		NSDictionary *pluginInfo = [NSDictionary dictionaryWithContentsOfFile:[pluginDirectory stringByAppendingPathComponent:@"Info.plist"]];
-		NSString *pluginIdentifier = pluginInfo[@"CFBundleIdentifier"];
-		[specifier setProperty:pluginIdentifier forKey:@"pluginIdentifier"];
-	}
-	else {
-		[specifier setProperty:executablePath forKey:@"executablePath"];
-	}
-
-	[specifier setProperty:@YES forKey:@"enabled"];
-	return specifier;
-}
-
 - (id)previewStringForSpecifier:(PSSpecifier *)specifier
 {
-	NSString *appIdentifier = [specifier propertyForKey:@"applicationIdentifier"];
-	NSString *pluginIdentifier = [specifier propertyForKey:@"pluginIdentifier"];
-	NSString *executablePath = [specifier propertyForKey:@"executablePath"];
-
-	NSString *identifierToUse = appIdentifier ? appIdentifier : pluginIdentifier;
-
-	if (identifierToUse) {
-		NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
-		NSDictionary *settingsForApplication = [appSettings objectForKey:identifierToUse];
-		return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForApplication];
-	}
-	else {
-		NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
-		NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
-		return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
-	}
+	return [CHPListController previewStringForSpecifier:specifier];
 }
 
 - (void)loadAdditionalExecutables
@@ -163,8 +118,8 @@
 	[_additionalExecutables addObject:executablePath];
 	[self saveAdditionalExecutables];
 
-	PSSpecifier *newSpecifier = [self newSpecifierForExecutable:executablePath];
-	[self insertSpecifier:newSpecifier atEndOfGroup:0 animated:YES];
+	PSSpecifier *specifierToInsert = [CHPListController createSpecifierForExecutable:executablePath named:executablePath];
+	[self insertSpecifier:specifierToInsert atEndOfGroup:0 animated:YES];
 }
 
 - (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath
@@ -196,7 +151,7 @@
 		[_specifiers addObject:groupSpecifier];
 
 		[_additionalExecutables enumerateObjectsUsingBlock:^(NSString *executablePath, NSUInteger idx, BOOL *stop) {
-			[_specifiers addObject:[self newSpecifierForExecutable:executablePath]];
+			[_specifiers addObject:[CHPListController createSpecifierForExecutable:executablePath named:executablePath]];
 		}];
 	}
 

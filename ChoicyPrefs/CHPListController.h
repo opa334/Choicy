@@ -27,6 +27,9 @@
 }
 + (void)sendPostNotificationForSpecifier:(PSSpecifier *)specifier;
 + (void)sendChoicyPrefsPostNotification;
++ (NSString *)previewStringForProcessPreferences:(NSDictionary *)processPreferences;
++ (NSString *)previewStringForSpecifier:(PSSpecifier *)specifier;
++ (PSSpecifier *)createSpecifierForExecutable:(NSString *)executablePath named:(NSString *)name;
 - (void)applySearchControllerHideWhileScrolling:(BOOL)hideWhileScrolling;
 - (NSString *)topTitle;
 - (NSString *)plistName;

@@ -26,6 +26,7 @@
 #import "../Shared.h"
 #import "CHPPreferences.h"
 #import "CHPApplicationListSubcontrollerController.h"
+#import "CHPListController.h"
 
 @implementation CHPApplicationPlugInsListController
 
@@ -94,7 +95,7 @@
 	NSString *plugInID = [specifier propertyForKey:@"pluginIdentifier"];
 	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	NSDictionary *settingsForApplication = [appSettings objectForKey:plugInID];
-	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForApplication];
+	return [CHPListController previewStringForProcessPreferences:settingsForApplication];
 }
 
 @end

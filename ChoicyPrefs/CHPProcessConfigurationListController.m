@@ -93,6 +93,11 @@
 	return YES;
 }
 
+- (NSString *)applicationIdentifier
+{
+	return _appIdentifier;
+}
+
 - (NSString *)keyForPreferences
 {
 	if (_appIdentifier) return _appIdentifier;

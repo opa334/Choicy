@@ -21,35 +21,15 @@
 #import "CHPApplicationListSubcontrollerController.h"
 #import "../Shared.h"
 #import "CHPPreferences.h"
+#import "CHPListController.h"
 
 @implementation CHPApplicationListSubcontrollerController
-
-+ (NSString *)previewStringForProcessPreferences:(NSDictionary *)processPreferences
-{
-	NSNumber *tweakInjectionDisabledNum = processPreferences[kChoicyProcessPrefsKeyTweakInjectionDisabled];
-	NSNumber *customTweakConfigurationEnabledNum = processPreferences[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled];
-	NSNumber *overwriteGlobalTweakConfigurationNum = processPreferences[kChoicyProcessPrefsKeyOverwriteGlobalTweakConfiguration];
-
-	if (tweakInjectionDisabledNum.boolValue) {
-		return localize(@"TWEAKS_DISABLED");
-	}
-	else if (customTweakConfigurationEnabledNum.boolValue) {
-		return localize(@"CUSTOM");
-	}
-	else if (overwriteGlobalTweakConfigurationNum.boolValue) {
-		NSArray *globalDeniedTweaks = preferences[kChoicyPrefsKeyGlobalDeniedTweaks];
-		if (globalDeniedTweaks.count) {
-			return localize(@"GLOBAL_OVERWRITE");
-		}
-	}
-	return @"";
-}
 
 - (NSString *)previewStringForApplicationWithIdentifier:(NSString *)applicationID
 {
 	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	NSDictionary *settingsForApplication = [appSettings objectForKey:applicationID];
-	return [[self class] previewStringForProcessPreferences:settingsForApplication];
+	return [CHPListController previewStringForProcessPreferences:settingsForApplication];
 }
 
 @end

@@ -21,6 +21,8 @@
 #import "CHPListController.h"
 #import "../Shared.h"
 #import "../ChoicyPrefsMigrator.h"
+#import "CHPPreferences.h"
+#import "CHPProcessConfigurationListController.h"
 
 @implementation CHPListController
 
@@ -35,6 +37,77 @@
 + (void)sendChoicyPrefsPostNotification
 {
 	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, NULL, YES);
+}
+
++ (NSString *)previewStringForProcessPreferences:(NSDictionary *)processPreferences
+{
+	NSNumber *tweakInjectionDisabledNum = processPreferences[kChoicyProcessPrefsKeyTweakInjectionDisabled];
+	NSNumber *customTweakConfigurationEnabledNum = processPreferences[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled];
+	NSNumber *overwriteGlobalTweakConfigurationNum = processPreferences[kChoicyProcessPrefsKeyOverwriteGlobalTweakConfiguration];
+
+	if (tweakInjectionDisabledNum.boolValue) {
+		return localize(@"TWEAKS_DISABLED");
+	}
+	else if (customTweakConfigurationEnabledNum.boolValue) {
+		return localize(@"CUSTOM");
+	}
+	else if (overwriteGlobalTweakConfigurationNum.boolValue) {
+		NSArray *globalDeniedTweaks = preferences[kChoicyPrefsKeyGlobalDeniedTweaks];
+		if (globalDeniedTweaks.count) {
+			return localize(@"GLOBAL_OVERWRITE");
+		}
+	}
+	return @"";
+}
+
++ (NSString *)previewStringForSpecifier:(PSSpecifier *)specifier
+{
+	NSString *appIdentifier = [specifier propertyForKey:@"applicationIdentifier"];
+	NSString *pluginIdentifier = [specifier propertyForKey:@"pluginIdentifier"];
+	NSString *executablePath = [specifier propertyForKey:@"executablePath"];
+
+	NSString *identifierToUse = appIdentifier ? appIdentifier : pluginIdentifier;
+
+	if (identifierToUse) {
+		NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
+		NSDictionary *settingsForApplication = [appSettings objectForKey:identifierToUse];
+		return [self previewStringForProcessPreferences:settingsForApplication];
+	}
+	else {
+		NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
+		NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
+		return [self previewStringForProcessPreferences:settingsForDaemon];
+	}
+}
+
++ (PSSpecifier *)createSpecifierForExecutable:(NSString *)executablePath named:(NSString *)name
+{
+	PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:name
+		target:self
+		set:nil
+		get:@selector(previewStringForSpecifier:)
+		detail:[CHPProcessConfigurationListController class]
+		cell:PSLinkListCell
+		edit:nil];
+
+	if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"app"]) {
+		NSString *appDirectory = executablePath.stringByDeletingLastPathComponent;
+		NSDictionary *appInfo = [NSDictionary dictionaryWithContentsOfFile:[appDirectory stringByAppendingPathComponent:@"Info.plist"]];
+		NSString *appIdentifier = appInfo[@"CFBundleIdentifier"];
+		[specifier setProperty:appIdentifier forKey:@"applicationIdentifier"];
+	}
+	else if ([executablePath.stringByDeletingLastPathComponent.pathExtension isEqualToString:@"appex"]) {
+		NSString *pluginDirectory = executablePath.stringByDeletingLastPathComponent;
+		NSDictionary *pluginInfo = [NSDictionary dictionaryWithContentsOfFile:[pluginDirectory stringByAppendingPathComponent:@"Info.plist"]];
+		NSString *pluginIdentifier = pluginInfo[@"CFBundleIdentifier"];
+		[specifier setProperty:pluginIdentifier forKey:@"pluginIdentifier"];
+	}
+	else {
+		[specifier setProperty:executablePath forKey:@"executablePath"];
+	}
+
+	[specifier setProperty:@YES forKey:@"enabled"];
+	return specifier;
 }
 
 //Must be overwritten by subclass

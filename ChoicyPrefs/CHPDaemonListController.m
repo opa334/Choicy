@@ -118,17 +118,7 @@
 						}
 					}
 					
-					PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:[info executableName]
-								target:self
-								set:nil
-								get:@selector(previewStringForSpecifier:)
-								detail:[CHPProcessConfigurationListController class]
-								cell:PSLinkListCell
-								edit:nil];
-					
-					[specifier setProperty:@YES forKey:@"enabled"];
-					[specifier setProperty:info.executablePath forKey:@"executablePath"];
-
+					PSSpecifier *specifier = [CHPListController createSpecifierForExecutable:info.executablePath named:info.executableName];
 					[_specifiers addObject:specifier];
 				}
 			}
@@ -140,11 +130,7 @@
 
 - (id)previewStringForSpecifier:(PSSpecifier *)specifier
 {
-	NSString *executablePath = [specifier propertyForKey:@"executablePath"];
-
-	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
-	NSDictionary *settingsForDaemon = [daemonSettings objectForKey:executablePath.lastPathComponent];
-	return [CHPApplicationListSubcontrollerController previewStringForProcessPreferences:settingsForDaemon];
+	return [CHPListController previewStringForSpecifier:specifier];
 }
 
 - (void)daemonTogglePressed:(PSSpecifier *)specifier
