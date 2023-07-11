@@ -33,7 +33,7 @@ NSArray *dylibsBeforeChoicy;
 
 NSDictionary *preferences;
 
-void reloadPreferences()
+void choicy_reloadPreferences()
 {
 	preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 }
@@ -296,7 +296,7 @@ void determineLoadingOrder()
 __attribute__((constructor))
 static void init(void)
 {
-	reloadPreferences();
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	choicy_reloadPreferences();
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)choicy_reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	determineLoadingOrder();
 }

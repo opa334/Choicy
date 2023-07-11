@@ -19,10 +19,11 @@
 // SOFTWARE.
 
 #import <Foundation/Foundation.h>
+#import "RunningBoard.h"
 
-@interface RBSProcessIdentity : NSObject
-@property(readonly, copy, nonatomic) NSString *executablePath;
-@property(readonly, copy, nonatomic) NSString *embeddedApplicationIdentifier;
+@interface FBSystemService : NSObject
++ (id)sharedInstance;
+- (void)exitAndRelaunch:(BOOL)arg1;
 @end
 
 @interface FBProcessExecutionContext : NSObject
@@ -31,10 +32,8 @@
 @end
 
 @interface FBProcessManager : NSObject
-- (void)choicy_handleEnvironmentChangesForExecutionContext:(FBProcessExecutionContext *)executionContext withApplicationID:(NSString *)applicationID;
+- (void)choicy_handleEnvironmentChangesForExecutionContext:(FBProcessExecutionContext *)executionContext forAppWithBundleIdentifier:(NSString *)bundleIdentifier;
 @end
-
-
 
 @interface SBApplicationInfo : NSObject
 @property (nonatomic,readonly) NSURL *executableURL;
