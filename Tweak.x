@@ -261,6 +261,10 @@ void *$dlopen(const char *path, int mode) {
 			performedOverwrite = YES;
 		}
 
+		if (performedOverwrite) {
+			g_tweakInjectionDisabled = NO;
+		}
+
 		if (g_tweakInjectionDisabled || g_customTweakConfigurationEnabled || g_globalDeniedTweaks.count > 0) {
 			// If g_tweakInjectionDisabled is true for an application other than SpringBoard,
 			// it means that tweak injection was enabled for one launch via 3D touch and we should not do anything
