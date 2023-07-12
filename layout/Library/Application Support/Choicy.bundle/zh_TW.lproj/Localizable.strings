@@ -1,4 +1,4 @@
-"PROCESS_CONFIGURATION" = "系統活動設定";
+"PROCESS_CONFIGURATION" = "行程設定";
 "PROCESS_CONFIGURATION_FOOTER" = "在變更設定時，應用程式會自動重新啟動。在更改一些守護程式設定時，有可能需要重新啟動畫面，或甚至是重新啟動使用者空間。";
 "APPLICATIONS" = "應用程式";
 "DAEMONS" = "守護程式";
