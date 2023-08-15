@@ -23,6 +23,7 @@
 #import "Shared.h"
 #import <substrate.h>
 #import <dlfcn.h>
+#import <mach-o/dyld.h>
 
 BOOL g_tweakInjectionDisabled = NO;
 BOOL g_customTweakConfigurationEnabled = NO;
@@ -36,9 +37,11 @@ NSString *g_bundleIdentifier = nil;
 
 //methods of getting executablePath and bundleIdentifier with the least side effects possible
 //for more information, check out https://github.com/checkra1n/BugTracker/issues/343
-extern char** *_NSGetArgv();
-NSString *safe_getExecutablePath() {
-	char *executablePathC = **_NSGetArgv();
+NSString *safe_getExecutablePath()
+{
+	char executablePathC[PATH_MAX];
+	uint32_t executablePathCSize = sizeof(executablePathC);
+	_NSGetExecutablePath(&executablePathC[0], &executablePathCSize);
 	return [NSString stringWithUTF8String:executablePathC];
 }
 
