@@ -65,9 +65,9 @@
 "CANCEL" = "取消";
 "TROUBLESHOOT_LOG_ENABLED_IN_GLOBAL" = "已於全域設定啟用「%@.dylib」";
 "TROUBLESHOOT_LOG_DISABLED_TO_ALLOW" = "「%@」已停用「停用插件」選項，「自訂插件設定」已啟用。 將開啟「允許」選項，而「%@.dylib」於白名單內";
-"TROUBLESHOOT_LOG_ADDED_TO_ALLOW" = "已加入 \"%@.dylib\" 到 \"%@\" 的允許清單。";
-"TROUBLESHOOT_LOG_REMOVED_FROM_DENY" = "已從 \"%@\" 的停用清單移除 \"%@.dylib\"。";
-"APPLIED_CHANGES" = "變更的設定";
+"TROUBLESHOOT_LOG_ADDED_TO_ALLOW" = "已將「%@.dylib」加入到「%@」的白名單。";
+"TROUBLESHOOT_LOG_REMOVED_FROM_DENY" = "已從 \"%@\" 的黑名單移除「%@.dylib」。";
+"APPLIED_CHANGES" = "已變更的設定";
 "RESET_PREFERENCES" = "重設設定";
 "RESET_PREFERENCES_MESSAGE" = "即將把所有設定調回預設，確定繼續？";
 "CONTINUE" = "繼續";
