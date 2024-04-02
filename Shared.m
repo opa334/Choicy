@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #import "Shared.h"
-#import "rootless.h"
+#import "libroot.h"
 
 BOOL parseNumberBool(id number, BOOL default_)
 {
@@ -49,7 +49,7 @@ NSString *localize(NSString *key)
 	}
 
 	if (!CHBundle) {
-		CHBundle = [NSBundle bundleWithPath:ROOT_PATH_NS(@"/Library/Application Support/Choicy.bundle")];
+		CHBundle = [NSBundle bundleWithPath:JBROOT_PATH_NSSTRING(@"/Library/Application Support/Choicy.bundle")];
 	}
 
 	NSString *localizedString = [CHBundle localizedStringForKey:key value:key table:nil];

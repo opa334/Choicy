@@ -21,12 +21,7 @@
 #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 #import <HBLog.h>
-#import <rootless.h>
-#ifdef XINA_SUPPORT
-#define ROOT_PATH_NS_NOXINA(x) x
-#else
-#define ROOT_PATH_NS_NOXINA(x) ROOT_PATH_NS(x)
-#endif
+#import <libroot.h>
 
 extern NSBundle *CHBundle;
 extern NSString *localize(NSString *key);
@@ -36,7 +31,7 @@ extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSSt
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
-#define kChoicyPrefsPlistPath ROOT_PATH_NS_NOXINA(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
+#define kChoicyPrefsPlistPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
 #define kChoicyDylibName @"   Choicy"
 
 #define kChoicyPrefsKeyGlobalDeniedTweaks @"globalDeniedTweaks"

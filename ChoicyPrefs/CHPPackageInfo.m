@@ -20,7 +20,7 @@
 
 #import "CHPPackageInfo.h"
 #import "CHPTweakList.h"
-#import <rootless.h>
+#import <libroot.h>
 
 NSDictionary *g_packageNamesByIdentifier;
 NSArray *g_packageInfos;
@@ -37,7 +37,7 @@ NSArray *g_packageInfos;
 {
 	NSMutableDictionary *packageNamesByIdentifierM = [NSMutableDictionary new];
 
-	NSString *status = [NSString stringWithContentsOfFile:ROOT_PATH_NS(@"/var/lib/dpkg/status") encoding:NSUTF8StringEncoding error:nil];
+	NSString *status = [NSString stringWithContentsOfFile:JBROOT_PATH_NSSTRING(@"/var/lib/dpkg/status") encoding:NSUTF8StringEncoding error:nil];
 	NSArray *statusSections = [status componentsSeparatedByString:@"\n\n"];
 	[statusSections enumerateObjectsUsingBlock:^(NSString *packageInfoStr, NSUInteger idx, BOOL *stop) {
 		if ([packageInfoStr hasPrefix:@"Package: "]) {
@@ -66,7 +66,7 @@ NSArray *g_packageInfos;
 	//Load all packages that have a dylib into g_packageInfos
 	NSMutableArray *packageInfos = [NSMutableArray new];
 
-	NSString *dirPath = ROOT_PATH_NS(@"/var/lib/dpkg/info");
+	NSString *dirPath = JBROOT_PATH_NSSTRING(@"/var/lib/dpkg/info");
 	NSDirectoryEnumerator *dirEnum = [[NSFileManager defaultManager] enumeratorAtPath:dirPath];
 
 	NSString *filename;
@@ -115,7 +115,7 @@ NSArray *g_packageInfos;
 
 - (void)loadTweakDylibs
 {
-	NSString *dpkgInfoPath = [NSString stringWithFormat:ROOT_PATH_NS(@"/var/lib/dpkg/info/%@.list"), _identifier];
+	NSString *dpkgInfoPath = [NSString stringWithFormat:JBROOT_PATH_NSSTRING(@"/var/lib/dpkg/info/%@.list"), _identifier];
 	NSString *dpkgInfo = [NSString stringWithContentsOfFile:dpkgInfoPath encoding:NSUTF8StringEncoding error:nil];
 
 	NSMutableArray *tweakDylibsM = [NSMutableArray new];

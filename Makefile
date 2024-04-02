@@ -1,5 +1,5 @@
 ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
-TARGET = iphone:clang:16.2:15.0
+TARGET = iphone:clang:16.5:15.0
 else
 TARGET = iphone:clang:13.7:8.0
 endif
@@ -10,10 +10,8 @@ TWEAK_NAME = Choicy
 
 Choicy_FILES = Tweak.x Shared.m ChoicyPrefsMigrator.m
 Choicy_CFLAGS = -fobjc-arc -DTHEOS_LEAN_AND_MEAN # <- this makes theos not link against anything by default (we do not want to link UIKit cause we inject system wide)
-ifneq ($(THEOS_PACKAGE_SCHEME),rootless)
-Choicy_CFLAGS += -DXINA_SUPPORT
-endif
 Choicy_FRAMEWORKS = Foundation
+Choicy_EXTRA_FRAMEWORKS = CydiaSubstrate
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += ChoicyPrefs
