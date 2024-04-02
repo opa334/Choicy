@@ -23,7 +23,7 @@
 "SHOW_ALL_DAEMONS" = "顯示全部常駐程式";
 "SYSTEM_APPLICATIONS" = "系統應用程式";
 "USER_APPLICATIONS" = "使用者應用程式";
-"HIDDEN_APPLICATIONS" = "隱藏應用程式";
+"HIDDEN_APPLICATIONS" = "隱藏的應用程式";
 "GLOBAL_CONFIGURATION" = "全域設定";
 "GLOBAL_TWEAK_CONFIGURATION" = "全域插體設定";
 "ADDITIONAL_EXECUTABLES_FOOTER" = "您可以在此處新增其他可執行檔（非常駐程式）並套用插體設定。\n\n警告：本部分適用於進階使用者，確保您清楚您在做什麼再使用它。";
