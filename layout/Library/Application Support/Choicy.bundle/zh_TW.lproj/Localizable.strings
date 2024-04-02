@@ -2,7 +2,7 @@
 "PROCESS_CONFIGURATION_FOOTER" = "應用程式在修改設定時會自動重新啟動。若要套用 SpringBoard 設定，需要手動重新啟動主畫面。若要將設定套用於某些常駐程式，可能需要重新啟動使用者空間。";
 "APPLICATIONS" = "應用程式";
 "DAEMONS" = "常駐程式";
-"ADDITIONAL_EXECUTABLES" = "額外可執行檔案";
+"ADDITIONAL_EXECUTABLES" = "額外的可執行檔案";
 "OVERWRITE_GLOBAL_TWEAK_CONFIGURATION" = "覆寫全域插體設定";
 "DISABLE_TWEAK_INJECTION" = "停用插體注入";
 "LAUNCH_WITHOUT_TWEAKS" = "不載入插體";
