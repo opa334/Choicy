@@ -21,7 +21,8 @@
 #import "Shared.h"
 #import "rootless.h"
 
-BOOL parseNumberBool(id number, BOOL default_) {
+BOOL parseNumberBool(id number, BOOL default_)
+{
 	if (!number) return default_;
 	if (![number isKindOfClass:[NSNumber class]]) return default_;
 
@@ -29,7 +30,8 @@ BOOL parseNumberBool(id number, BOOL default_) {
 	return numberNum.boolValue;
 }
 
-NSInteger parseNumberInteger(id number, NSInteger default_) {
+NSInteger parseNumberInteger(id number, NSInteger default_)
+{
 	if (!number) return default_;
 	if (![number isKindOfClass:[NSNumber class]]) return default_;
 
@@ -37,7 +39,8 @@ NSInteger parseNumberInteger(id number, NSInteger default_) {
 	return numberNum.integerValue;
 }
 
-NSString *localize(NSString *key) {	
+NSString *localize(NSString *key)
+{	
 	static NSBundle *CHBundle;
 	static NSDictionary *englishLocalizations;
 
@@ -71,12 +74,14 @@ NSString *localize(NSString *key) {
 	return localizedString;
 }
 
-NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID) {
+NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID)
+{
 	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
 	return [appSettings objectForKey:applicationID];
 }
 
-NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName) {
+NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName)
+{
 	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
 	return [daemonSettings objectForKey:daemonDisplayName];
 }

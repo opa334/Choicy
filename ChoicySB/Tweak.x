@@ -11,7 +11,8 @@ extern void choicy_initSpringBoard(void);
 extern void choicy_initRunningBoardd(void);
 
 extern char** *_NSGetArgv();
-NSString *safe_getExecutablePath() {
+NSString *safe_getExecutablePath()
+{
 	char *executablePathC = **_NSGetArgv();
 	return [NSString stringWithUTF8String:executablePathC];
 }

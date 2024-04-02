@@ -21,7 +21,8 @@
 #import "ChoicyPrefsMigrator.h"
 #import "Shared.h"
 
-void renameKey(NSMutableDictionary *dict, NSString *key, NSString *newKey) {
+void renameKey(NSMutableDictionary *dict, NSString *key, NSString *newKey)
+{
 	if (!dict || !key || !newKey) return;
 	NSObject *value = dict[key];
 	if (!value) return;
@@ -29,7 +30,8 @@ void renameKey(NSMutableDictionary *dict, NSString *key, NSString *newKey) {
 	dict[newKey] = value;
 }
 
-void renameKeys(NSMutableDictionary *dict, NSDictionary *keyChanges) {
+void renameKeys(NSMutableDictionary *dict, NSDictionary *keyChanges)
+{
 	if (!dict || !keyChanges) return;
 
 	[keyChanges enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *newKey, BOOL *stop) {
@@ -37,7 +39,8 @@ void renameKeys(NSMutableDictionary *dict, NSDictionary *keyChanges) {
 	}];
 }
 
-void removeKeys(NSMutableDictionary *dict, NSArray *keys) {
+void removeKeys(NSMutableDictionary *dict, NSArray *keys)
+{
 	if (!dict || !keys) return;
 
 	[keys enumerateObjectsUsingBlock:^(NSString *key, NSUInteger idx, BOOL *stop) {
@@ -47,12 +50,14 @@ void removeKeys(NSMutableDictionary *dict, NSArray *keys) {
 
 @implementation ChoicyPrefsMigrator
 
-+ (BOOL)preferencesNeedMigration:(NSDictionary *)prefs {
++ (BOOL)preferencesNeedMigration:(NSDictionary *)prefs
+{
 	NSInteger preferenceVersion = parseNumberInteger(prefs[kChoicyPrefsVersionKey], 0);
 	return preferenceVersion < kChoicyPrefsCurrentVersion;
 }
 
-+ (void)migratePreferences:(NSMutableDictionary *)prefs {
++ (void)migratePreferences:(NSMutableDictionary *)prefs
+{
 	NSInteger preferenceVersion = parseNumberInteger(prefs[kChoicyPrefsVersionKey], 0);
 
 	// pre 1.4 -> 1.4
@@ -97,7 +102,8 @@ void removeKeys(NSMutableDictionary *dict, NSArray *keys) {
 	}
 }
 
-+ (void)updatePreferenceVersion:(NSMutableDictionary *)prefs {
++ (void)updatePreferenceVersion:(NSMutableDictionary *)prefs
+{
 	prefs[kChoicyPrefsVersionKey] = @kChoicyPrefsCurrentVersion;
 }
 

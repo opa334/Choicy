@@ -86,7 +86,8 @@ BOOL env_getOverwriteGlobalTweakConfigurationOverwrite(BOOL *envOverwriteExists)
 	return !strcmp(overwriteGlobalTweakConfigurationStr, "1");
 }
 
-BOOL isTweakDylib(NSString *dylibPath) {
+BOOL isTweakDylib(NSString *dylibPath)
+{
 	if ([dylibPath containsString:@"TweakInject"] || [dylibPath containsString:@"MobileSubstrate/DynamicLibraries"]) {
 		NSString *plistPath = [[dylibPath stringByDeletingPathExtension] stringByAppendingPathExtension:@"plist"];
 
@@ -117,7 +118,8 @@ BOOL isTweakDylib(NSString *dylibPath) {
 	return NO;
 }
 
-BOOL shouldLoadDylib(NSString *dylibPath) {
+BOOL shouldLoadDylib(NSString *dylibPath)
+{
 	NSString *dylibName = [dylibPath.lastPathComponent stringByDeletingPathExtension];
 	HBLogDebugWeak(@"Checking whether %@.dylib should be loaded...", dylibName);
 
@@ -172,7 +174,8 @@ BOOL shouldLoadDylib(NSString *dylibPath) {
 }
 
 void *(*dlopen_internal_orig)(const char*, int, void *);
-void *$dlopen_internal(const char *path, int mode, void *lr) {
+void *$dlopen_internal(const char *path, int mode, void *lr)
+{
 	@autoreleasepool {
 		if (path != NULL) {
 			NSString *dylibPath = @(path);
@@ -185,7 +188,8 @@ void *$dlopen_internal(const char *path, int mode, void *lr) {
 }
 
 void *(*dlopen_orig)(const char*, int);
-void *$dlopen(const char *path, int mode) {
+void *$dlopen(const char *path, int mode)
+{
 	@autoreleasepool {
 		if (path != NULL) {
 			NSString *dylibPath = @(path);

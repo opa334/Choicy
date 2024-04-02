@@ -235,7 +235,7 @@ BOOL choicy_shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTwe
 
 void respring(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
 {
-  [[%c(FBSystemService) sharedInstance] exitAndRelaunch:YES];
+	[[%c(FBSystemService) sharedInstance] exitAndRelaunch:YES];
 }
 
 void choicy_initSpringBoard(void)
