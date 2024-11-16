@@ -28,7 +28,15 @@
 #include <dlfcn.h>
 #include <libroot.h>
 #include <mach-o/dyld.h>
+#include <ptrauth.h>
+#include <litehook.h>
 #include "dyld_interpose.h"
+
+void *(*dlopen_orig)(const char*, int);
+void *dlopen_hook(const char *path, int mode);
+
+void *(*dyld_dlopen_orig)(const void *, const char*, int);
+void *dyld_dlopen_hook(const void *dyld, const char *path, int mode);
 
 bool gShouldLog = true;
 #define os_log_dbg(args ...) if (gShouldLog) os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEBUG, args)
@@ -64,6 +72,27 @@ bool gTweakInjectionDisabled = false;
 xpc_object_t gAllowedTweaks = NULL;
 xpc_object_t gDeniedTweaks = NULL;
 xpc_object_t gGlobalDeniedTweaks = NULL;
+
+int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pacSalt)
+{
+	if (!dyld) return -1;
+
+	uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
+	void **dyldFuncPtrs = ptrauth_auth_data(*dyld, ptrauth_key_process_independent_data, dyldPacDiversifier);
+	if (!dyldFuncPtrs) return -1;
+
+	if (vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ | VM_PROT_WRITE) == 0) {
+		uint64_t location = (uint64_t)&dyldFuncPtrs[idx];
+		uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
+
+		*orig = ptrauth_auth_and_resign(dyldFuncPtrs[idx], ptrauth_key_process_independent_code, pacDiversifier, ptrauth_key_function_pointer, 0);
+		dyldFuncPtrs[idx] = ptrauth_auth_and_resign(hook, ptrauth_key_function_pointer, 0, ptrauth_key_process_independent_code, pacDiversifier);
+		vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ);
+		return 0;
+	}
+
+	return -1;
+}
 
 bool string_has_prefix(const char *str, const char* prefix)
 {
@@ -175,7 +204,7 @@ void load_global_preferences(xpc_object_t preferencesXdict, xpc_object_t process
 void load_process_preferences(xpc_object_t preferencesXdict, xpc_object_t processPreferencesXdict)
 {
 	if (gProcessType != PROCESS_TYPE_APP || !strcmp(gBundleIdentifier, kSpringboardBundleID)) {
-		gTweakInjectionDisabled = xpc_dictionary_get_bool(processPreferencesXdict, kChoicyProcessPrefsKeyTweakInjectionDisabled);;
+		gTweakInjectionDisabled = xpc_dictionary_get_bool(processPreferencesXdict, kChoicyProcessPrefsKeyTweakInjectionDisabled);
 	}
 
 	bool customTweakConfigurationEnabled = xpc_dictionary_get_bool(processPreferencesXdict, kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled);
@@ -276,31 +305,33 @@ void load_process_info(void)
 	}
 }
 
+char *path_copy_basename(const char *path)
+{
+	char pathdup[strlen(path + 1)];
+	strcpy(pathdup, path);
+	return strdup(basename(pathdup));
+}
+
+char *path_copy_dirname(const char *path)
+{
+	char pathdup[strlen(path + 1)];
+	strcpy(pathdup, path);
+	return strdup(dirname(pathdup));
+}
+
 bool dylib_is_tweak(const char *dylibPath)
 {
 	if (!dylibPath) return false;
 
 	__block bool isTweak = false;
 	if (strstr(dylibPath, "/TweakInject/") || strstr(dylibPath, "/MobileSubstrate/DynamicLibraries/")) {
-		char dylibPathDup1[strlen(dylibPath + 1)];
-		strcpy(dylibPathDup1, dylibPath);
-		char dylibPathDup2[strlen(dylibPath + 1)];
-		strcpy(dylibPathDup2, dylibPath);
+		char dylibPathLength = strlen(dylibPath)+1;
+		char plistPath[dylibPathLength];
+		strcpy(plistPath, dylibPath);
+		strlcpy(&plistPath[dylibPathLength - 6], "plist", 6);
 
-		char *dylibDir = dirname(dylibPathDup1);
-		char *dylibName = basename(dylibPathDup2);
-
-		size_t tweakPlistPathLength = strlen(dylibDir) + strlen(dylibName) + 2;
-		char tweakPlistPath[tweakPlistPathLength];
-		strlcpy(tweakPlistPath, dylibDir, tweakPlistPathLength);
-		strlcat(tweakPlistPath, "/", tweakPlistPathLength);
-		strlcat(tweakPlistPath, dylibName, tweakPlistPathLength);
-		strlcpy(&tweakPlistPath[tweakPlistPathLength - 6], "plist", 6);
-
-		os_log_dbg("tweakPlistPath = %{public}s", tweakPlistPath);
-
-		if (access(tweakPlistPath, R_OK) == 0) {
-			xpc_object_t tweakPlist = xpc_object_from_plist(tweakPlistPath);
+		if (access(plistPath, R_OK) == 0) {
+			xpc_object_t tweakPlist = xpc_object_from_plist(plistPath);
 			if (tweakPlist) {
 				xpc_object_t filterXdict = xpc_dictionary_get_value(tweakPlist, "Filter");
 				if (filterXdict && xpc_get_type(filterXdict) == XPC_TYPE_DICTIONARY) {
@@ -325,9 +356,11 @@ bool should_load_dylib(const char *dylibPath)
 {
 	if (!string_has_suffix(dylibPath, ".dylib")) return true;
 
-	char dylibPathDup[strlen(dylibPath + 1)];
-	strcpy(dylibPathDup, dylibPath);
-	char *dylibName = basename(dylibPathDup);
+	char *dylibNameHeap = path_copy_basename(dylibPath);
+	char dylibName[strlen(dylibNameHeap)+1];
+	strcpy(dylibName, dylibNameHeap);
+	free(dylibNameHeap);
+
 	dylibName[strlen(dylibName)-6] = '\0';
 
 	os_log_dbg("Checking whether %{public}s.dylib should be loaded...", dylibName);
@@ -393,17 +426,16 @@ void *dlopen_from_hook(const char *path, int mode, void *lr)
 	return dlopen_from_orig(path, mode, lr);
 }
 
-void *(*dlopen_orig)(const char*, int);
-void *dlopen_hook(const char *path, int mode);
-/*void *dlopen_hook(const char *path, int mode)
+void *(*dyld_dlopen_from_orig)(const void *, const char*, int, void *);
+void *dyld_dlopen_from_hook(const void *dyld, const char *path, int mode, void *lr)
 {
 	if (path) {
 		if (!should_load_dylib(path)) {
 			return NULL;
 		}
 	}
-	__attribute__((musttail)) return dlopen_orig(path, mode);
-}*/
+	return dyld_dlopen_from_orig(dyld, path, mode, lr);
+}
 
 const struct mach_header *find_tweak_loader_mach_header(void)
 {
@@ -447,18 +479,33 @@ __attribute__((constructor)) static void initializer(void)
 
 	if (gTweakInjectionDisabled || gAllowedTweaks || gDeniedTweaks || gGlobalDeniedTweaks) {
 		os_log_dbg("Initializing Choicy...");
-		void *libdyldHandle = dlopen("/usr/lib/system/libdyld.dylib", RTLD_NOW);
-		void *dlopen_from = dlsym(libdyldHandle, "dlopen_from");
 
-		const struct mach_header *tweakLoaderHeader = find_tweak_loader_mach_header();
-		os_log_dbg("tweakLoaderHeader: %p", tweakLoaderHeader);
-		if (tweakLoaderHeader) {
-			static struct dyld_interpose_tuple interposes[2];
-			interposes[0] = (struct dyld_interpose_tuple){ .replacement = dlopen_hook, .replacee = dlopen };
-			if (dlopen_from) {
-				interposes[1] = (struct dyld_interpose_tuple){ .replacement = dlopen_from_hook, .replacee = dlopen_from };
+		void **dyld4Struct = litehook_find_dsc_symbol("/usr/lib/system/libdyld.dylib", "__ZN5dyld45gDyldE");
+		if (dyld4Struct) {
+			// iOS 15+
+			// dyld_dynamic_interpose is a stub, so apply the hooks by overwriting function pointers in gDyld
+			// This will catch *all* dlopen calls
+
+			dyld_hook_routine(*dyld4Struct, 14, (void *)&dyld_dlopen_hook, (void **)&dyld_dlopen_orig, 0xBF31);
+			dyld_hook_routine(*dyld4Struct, 97, (void *)&dyld_dlopen_from_hook, (void **)&dyld_dlopen_from_orig, 0xD48C);
+		}
+		else {
+			// iOS <=14
+			// gDyld does not exist yet, but dyld_dynamic_interpose still works, so use that
+			// This will only catch dlopen calls originating from the tweak loader
+
+			void *libdyldHandle = dlopen("/usr/lib/system/libdyld.dylib", RTLD_NOW);
+			void *dlopen_from = dlsym(libdyldHandle, "dlopen_from");
+
+			const struct mach_header *tweakLoaderHeader = find_tweak_loader_mach_header();
+			if (tweakLoaderHeader) {
+				static struct dyld_interpose_tuple interposes[2];
+				interposes[0] = (struct dyld_interpose_tuple){ .replacement = dlopen_hook, .replacee = dlopen };
+				if (dlopen_from) {
+					interposes[1] = (struct dyld_interpose_tuple){ .replacement = dlopen_from_hook, .replacee = dlopen_from };
+				}
+				dyld_dynamic_interpose(tweakLoaderHeader, interposes, dlopen_from ? 2 : 1);
 			}
-			dyld_dynamic_interpose(tweakLoaderHeader, interposes, dlopen_from ? 2 : 1);
 		}
 	}
 }
