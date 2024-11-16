@@ -16,7 +16,7 @@ void *dlopen_hook(const char *path, int mode)
 .globl _dlopen_hook
 _dlopen_hook:
 #ifdef __arm64__
-	cbz x0, L_dlopen_hook_orig_tail_ret_nostack
+	cbz x0, L_dlopen_hook_orig_tail_ret_no_restore
 #ifdef __arm64e__
 	pacibsp
 #endif // __arm64e__
@@ -26,7 +26,6 @@ _dlopen_hook:
 	bl _should_load_dylib
 	cbnz x0, L_dlopen_hook_orig_tail_ret
 
-	ldp x0, x1, [sp, #0x10]
 	ldp x29, x30, [sp]
 	add sp, sp, #0x20
 	mov x0, #0
@@ -40,7 +39,7 @@ L_dlopen_hook_orig_tail_ret:
 	ldp x0, x1, [sp, #0x10]
 	ldp x29, x30, [sp]
 	add sp, sp, #0x20
-L_dlopen_hook_orig_tail_ret_nostack:
+L_dlopen_hook_orig_tail_ret_no_restore:
 	adrp x8, _dlopen_orig@PAGE
 	add x8, x8, _dlopen_orig@PAGEOFF
 	ldr x8, [x8]
@@ -67,7 +66,7 @@ void *dyld_dlopen_hook(const void *dyld, const char *path, int mode)
 .globl _dyld_dlopen_hook
 _dyld_dlopen_hook:
 #ifdef __arm64__
-	cbz x0, L_dyld_dlopen_hook_orig_tail_ret_nostack
+	cbz x0, L_dyld_dlopen_hook_orig_tail_ret_no_restore
 #ifdef __arm64e__
 	pacibsp
 #endif // __arm64e__
@@ -78,8 +77,6 @@ _dyld_dlopen_hook:
 	bl _should_load_dylib
 	cbnz x0, L_dyld_dlopen_hook_orig_tail_ret
 
-	ldr x2,       [sp, #0x20]
-	ldp x0, x1,   [sp, #0x10]
 	ldp x29, x30, [sp]
 	add sp, sp, #0x30
 	mov x0, #0
@@ -94,7 +91,7 @@ L_dyld_dlopen_hook_orig_tail_ret:
 	ldp x0, x1,   [sp, #0x10]
 	ldp x29, x30, [sp]
 	add sp, sp, #0x30
-L_dyld_dlopen_hook_orig_tail_ret_nostack:
+L_dyld_dlopen_hook_orig_tail_ret_no_restore:
 	adrp x8, _dyld_dlopen_orig@PAGE
 	add x8, x8, _dyld_dlopen_orig@PAGEOFF
 	ldr x8, [x8]
