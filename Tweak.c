@@ -77,13 +77,13 @@ int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pa
 {
 	if (!dyld) return -1;
 
-	uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
+	__unused uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
 	void **dyldFuncPtrs = ptrauth_auth_data(*dyld, ptrauth_key_process_independent_data, dyldPacDiversifier);
 	if (!dyldFuncPtrs) return -1;
 
 	if (vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ | VM_PROT_WRITE) == 0) {
 		uint64_t location = (uint64_t)&dyldFuncPtrs[idx];
-		uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
+		__unused uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
 
 		*orig = ptrauth_auth_and_resign(dyldFuncPtrs[idx], ptrauth_key_process_independent_code, pacDiversifier, ptrauth_key_function_pointer, 0);
 		dyldFuncPtrs[idx] = ptrauth_auth_and_resign(hook, ptrauth_key_function_pointer, 0, ptrauth_key_process_independent_code, pacDiversifier);
@@ -362,6 +362,8 @@ bool should_load_dylib(const char *dylibPath)
 	free(dylibNameHeap);
 
 	dylibName[strlen(dylibName)-6] = '\0';
+
+	if (!strcmp(dylibName, "   Choicy")) return true;
 
 	os_log_dbg("Checking whether %{public}s.dylib should be loaded...", dylibName);
 
