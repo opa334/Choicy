@@ -2,12 +2,12 @@ include $(THEOS)/makefiles/common.mk
 
 BUNDLE_NAME = ChoicyPrefs
 
-ChoicyPrefs_FILES = $(wildcard *.m) $(wildcard *.x) ../Shared.m ../ChoicyPrefsMigrator.m
+ChoicyPrefs_FILES = $(wildcard *.m) $(wildcard *.x) ../Shared.m ../ChoicyPrefsMigrator.m $(wildcard ../external/litehook/src/*.c) $(wildcard ../external/ChOma/src/*.c)
 ChoicyPrefs_INSTALL_PATH = /Library/PreferenceBundles
 ChoicyPrefs_FRAMEWORKS = UIKit
 ChoicyPrefs_PRIVATE_FRAMEWORKS = Preferences MobileCoreServices
 ChoicyPrefs_EXTRA_FRAMEWORKS = AltList
-ChoicyPrefs_CFLAGS = -fobjc-arc -Wno-deprecated-declarations
+ChoicyPrefs_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -I../external/ChOma/src -I../external/litehook/src
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 

@@ -204,7 +204,7 @@
 		}
 	}
 
-	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo *a, CHPDaemonInfo *b) { //Sort alphabetically
+	[daemonListM sortUsingComparator:^NSComparisonResult(CHPDaemonInfo *a, CHPDaemonInfo *b) { // Sort alphabetically
 		return [[a executableName] localizedCaseInsensitiveCompare:[b executableName]];
 	}];
 
@@ -213,7 +213,7 @@
 	CHPTweakList *tweakList = [CHPTweakList sharedInstance];
 
 	for (CHPDaemonInfo *daemonInfo in [daemonListM reverseObjectEnumerator]) {
-		daemonInfo.linkedFrameworkIdentifiers = frameworkBundleIDsForMachoAtPath(daemonInfo.executablePath);
+		daemonInfo.linkedFrameworkIdentifiers = [[CHPMachoParser sharedInstance] frameworkBundleIdentifiersForMachoAtPath:daemonInfo.executablePath];
 		if (![tweakList oneOrMoreTweaksInjectIntoExecutableAtPath:daemonInfo.executablePath]) {
 			[daemonListM removeObject:daemonInfo];
 		}

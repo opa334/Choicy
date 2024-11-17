@@ -20,6 +20,19 @@
 
 #import <Foundation/Foundation.h>
 
-extern NSSet *frameworkBundleIDsForMachoAtPath(NSString *path);
-extern NSArray *dependenciesForMachoAtPath(NSString *path, NSArray* *rpaths);
-extern BOOL isFileAtPathMacho(NSString *path);
+#import <DyldSharedCache.h>
+
+@interface CHPMachoParser : NSObject
+{
+	NSMutableDictionary<NSString *, NSMutableSet *> *_bundleIdentifierCache;
+	NSMutableDictionary<NSString *, NSMutableSet *> *_dependencyPathCache;
+	DyldSharedCache *_sharedCache;
+}
+
++ (instancetype)sharedInstance;
++ (BOOL)isMachoAtPath:(NSString *)path;
+
+- (NSSet *)dependencyPathsForMachoAtPath:(NSString *)path;
+- (NSSet *)frameworkBundleIdentifiersForMachoAtPath:(NSString *)path;
+
+@end

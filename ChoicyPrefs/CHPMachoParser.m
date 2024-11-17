@@ -19,409 +19,235 @@
 // SOFTWARE.
 
 #import "CHPMachoParser.h"
-#import <stdio.h>
-#import <string.h>
-#import <mach/mach.h>
-#import <mach-o/loader.h>
-#import <mach-o/fat.h>
-#import <unistd.h>
-#import <mach-o/arch.h>
-#import <sys/types.h>
-#import <sys/sysctl.h>
-#import "../HBLogWeak.h"
 
-#ifdef __LP64__
-#define segment_command_universal segment_command_64
-#define mach_header_universal mach_header_64
-#define MH_MAGIC_UNIVERSAL MH_MAGIC_64
-#define MH_CIGAM_UNIVERSAL MH_CIGAM_64
-#else
-#define segment_command_universal segment_command
-#define mach_header_universal mach_header
-#define MH_MAGIC_UNIVERSAL MH_MAGIC
-#define MH_CIGAM_UNIVERSAL MH_CIGAM
-#endif
+#import <litehook.h>
 
-#define SWAP32(x) ((((x) & 0xff000000) >> 24) | (((x) & 0xff0000) >> 8) | (((x) & 0xff00) << 8) | (((x) & 0xff) << 24))
+#import <Host.h>
+#import <Fat.h>
+#import <MachO.h>
 
-extern NSArray *getInjectionLibraries();
+#import <mach-o/dyld.h>
+#import <version.h>
 
-struct dyld_cache_header {
-    char magic[16];
-    uint32_t mappingOffset;
-    uint32_t mappingCount;
-    uint32_t imagesOffset;
-    uint32_t imagesCount;
-    uint64_t dyldBaseAddress;
-    uint64_t codeSignOffset;
-};
-
-struct shared_file_mapping {
-    uint64_t address;
-    uint64_t size;
-    uint64_t file_offset;
-    uint32_t max_prot;
-    uint32_t init_prot;
-};
-
-struct dyld_cache_image_info {
-    uint64_t address;
-    uint64_t modTime;
-    uint64_t inode;
-    uint32_t pathFileOffset;
-    uint32_t pad;
-};
-
-NSMutableDictionary *dyldCacheInformation;
-
-NSString *dyldCachePath()
+MachO *choicy_fat_find_preferred_slice(Fat *fat)
 {
-	return [[NSFileManager defaultManager] contentsOfDirectoryAtURL:[NSURL fileURLWithPath:@"/System/Library/Caches/com.apple.dyld/" isDirectory:YES] includingPropertiesForKeys:nil options:0 error:nil].firstObject.path;
-}
-
-void fetchDyldCacheInformation()
-{
-	HBLogDebugWeak(@"fetchDyldCacheInformation start");
-	static dispatch_once_t onceTokenDyld;
-
-    dispatch_once(&onceTokenDyld, ^ {
-		dyldCacheInformation = [NSMutableDictionary new];
-    });
-
-	FILE *dyldCacheFile = fopen(dyldCachePath().UTF8String, "rb");
-
-	if (dyldCacheFile == NULL) {
-		return;
-	}
-
-	struct dyld_cache_header header;
-
-	fread(&header,sizeof(header),1,dyldCacheFile);
-
-	for (NSInteger i = 0; i < header.imagesCount; i++) {
-		struct dyld_cache_image_info imageInfo;
-		uint32_t offset = header.imagesOffset + sizeof(imageInfo) *i;
-		fseek(dyldCacheFile,offset,SEEK_SET);
-		fread(&imageInfo,sizeof(imageInfo),1,dyldCacheFile);
-
-		uint64_t mappedAdress = 0;
-
-		for (uint32_t i = 0; i < header.mappingCount; i++) {
-			struct shared_file_mapping mapping;
-			fseek(dyldCacheFile,header.mappingOffset + sizeof(mapping) *i,SEEK_SET);
-			fread(&mapping,sizeof(mapping),1,dyldCacheFile);
-
-			if ((mapping.address <= imageInfo.address) && (imageInfo.address < (mapping.address + mapping.size))) {
-				mappedAdress = mapping.file_offset + imageInfo.address - mapping.address;
-				break;
-			}
-		}
-
-		fseek(dyldCacheFile,imageInfo.pathFileOffset,SEEK_SET);
-		char pathStr[256];
-		fread(pathStr, sizeof(pathStr),1,dyldCacheFile);
-		NSString *contentPath = [NSString stringWithUTF8String:pathStr];
-		[dyldCacheInformation setObject:[NSNumber numberWithUnsignedLongLong:mappedAdress] forKey:contentPath];
-	}
-
-	fclose(dyldCacheFile);
-
-	HBLogDebugWeak(@"fetchDyldCacheInformation end");
-}
-
-BOOL pathIsInsideDyldCache(NSString *path)
-{
-	return [[dyldCacheInformation allKeys] containsObject:path];
-}
-
-uint64_t offsetInsideDyldCacheForPath(NSString *path)
-{
-	return ((NSNumber *)[dyldCacheInformation objectForKey:path]).unsignedLongLongValue;
-}
-
-NSMutableDictionary *dependencyCache;
-
-NSString *threeCharsAfterString(NSString *string, NSString *substring)
-{
-	NSRange substringRange = [string rangeOfString:substring];
-
-	NSRange threeAfterSubstringRange = NSMakeRange(substringRange.location + substringRange.length, 3);
-
-	if (string.length >= threeAfterSubstringRange.location + threeAfterSubstringRange.length) {
-		return [string substringWithRange:threeAfterSubstringRange];
-	}
-
-	return @"";
-}
-
-NSString *resolvedPathForPath(NSString *path, NSString *executablePath, NSArray *rpaths)
-{
-	HBLogDebugWeak(@"resolvedPathForPaths(%@,%@,%@)", path, executablePath, rpaths);
-
-	NSString *resolvedPath = path;
-
-	if ([resolvedPath containsString:@"@executable_path"]) {
-		NSString *pathToResolve;
-
-		NSString *threeAfter = threeCharsAfterString(resolvedPath, @"executable_path");
-		HBLogDebugWeak(@"%@ threeAfter = %@", resolvedPath, threeAfter);
-
-		if ([threeAfter containsString:@".."]) {
-			pathToResolve = executablePath;
-		}
-		else {
-			pathToResolve = [executablePath stringByDeletingLastPathComponent];
-		}
-
-		resolvedPath = [resolvedPath stringByReplacingOccurrencesOfString:@"@executable_path" withString:pathToResolve];
-	}
-
-	if ([resolvedPath containsString:@"@loader_path"]) {
-		NSString *pathToResolve;
-
-		NSString *threeAfter = threeCharsAfterString(resolvedPath, @"loader_path");
-		HBLogDebugWeak(@"%@ threeAfter = %@", resolvedPath, threeAfter);
-
-		if ([threeAfter containsString:@".."]) {
-			pathToResolve = executablePath;
-		}
-		else {
-			pathToResolve = [executablePath stringByDeletingLastPathComponent];
-		}
-
-		resolvedPath = [resolvedPath stringByReplacingOccurrencesOfString:@"@loader_path" withString:pathToResolve];
-	}
-
-	if (!rpaths) {
-		HBLogDebugWeak(@"= %@", resolvedPath);
-		return resolvedPath;
-	}
-
-	if ([resolvedPath containsString:@"@rpath"]) {
-		for (NSString *rpath in rpaths) {
-			NSString *resolvedRpath = resolvedPathForPath(rpath, executablePath, nil);
-			NSString *possibleCandidatePath = [resolvedPath stringByReplacingOccurrencesOfString:@"@rpath" withString:resolvedRpath];
-
-			HBLogDebugWeak(@"possibleCandidatePath = %@", possibleCandidatePath);
-
-			if ([[NSFileManager defaultManager] fileExistsAtPath:possibleCandidatePath]) {
-				HBLogDebugWeak(@"= %@", possibleCandidatePath);
-				return possibleCandidatePath;
-			}
-		}
-	}
-
-	HBLogDebugWeak(@"= %@", resolvedPath);
-	return resolvedPath;
-}
-
-NSSet *frameworkBundleIDsForMachoAtPath_recursive(NSMutableSet *alreadyParsedPaths, NSString *path, NSString *pathOfLinkingExecutable, BOOL addInjectionLibs)
-{
-	static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^ {
-        fetchDyldCacheInformation();
-		dependencyCache = [NSMutableDictionary new];
-    });
-
-	if (!alreadyParsedPaths) {
-		alreadyParsedPaths = [NSMutableSet new];
-	}
-
-	HBLogDebugWeak(@"frameworkBundleIDsForMachoAtPath_recursive(%@)",path);
-
-	NSSet *cachedDependencies = [dependencyCache objectForKey:path];
-	if (cachedDependencies) {
-		HBLogDebugWeak(@"cache for %@", path);
-		return cachedDependencies;
-	}
-
-	NSArray *rpathsForBinary;
-	NSArray *dependencies = dependenciesForMachoAtPath(path, &rpathsForBinary);
-	if (addInjectionLibs) {
-		dependencies = [dependencies arrayByAddingObjectsFromArray:getInjectionLibraries()];
-	}
-
-	if (!dependencies) {
-		return nil;
-	}
-
-	NSMutableSet *frameworkBundleIDs = [NSMutableSet new];
-
-	for (NSString *dependencyPath in dependencies) {
-		NSString *resolvedDependecyPath = resolvedPathForPath(dependencyPath, path, rpathsForBinary);
-
-		if (!resolvedDependecyPath) {
-			continue;
-		}
-
-		if (![resolvedDependecyPath.pathExtension isEqualToString:@"dylib"]) {
-			NSBundle *frameworkBundle = [NSBundle bundleWithPath:[resolvedDependecyPath stringByDeletingLastPathComponent]];
-			if (frameworkBundle && frameworkBundle.bundleIdentifier) {
-				[frameworkBundleIDs addObject:frameworkBundle.bundleIdentifier];
-			}
-		}
-
-		if (![alreadyParsedPaths containsObject:resolvedDependecyPath]) {
-			[alreadyParsedPaths addObject:resolvedDependecyPath];
-			NSSet *dependencyDependants = frameworkBundleIDsForMachoAtPath_recursive(alreadyParsedPaths, resolvedDependecyPath, path, NO);
-			[frameworkBundleIDs unionSet:dependencyDependants];
-		}
-	}
-
-	NSSet *frameworkBundleIDsCopy = [frameworkBundleIDs copy];
-
-	[dependencyCache setObject:frameworkBundleIDsCopy forKey:path];
-
-	return frameworkBundleIDsCopy;
-}
-
-NSSet *frameworkBundleIDsForMachoAtPath(NSString *path)
-{
-	return frameworkBundleIDsForMachoAtPath_recursive(nil, path, path, YES);
-}
-
-uint32_t s32(uint32_t toSwap, BOOL shouldSwap)
-{
-	return shouldSwap ? SWAP32(toSwap) : toSwap;
-}
-
-uint32_t offsetForArchInFatBinary(FILE *machoFile)
-{
-	fseek(machoFile,0,SEEK_SET);
-
-	struct fat_header fatHeader;
-	fread(&fatHeader,sizeof(fatHeader),1,machoFile);
-
-	BOOL swp = fatHeader.magic == FAT_CIGAM;
-
-	for (int i = 0; i < s32(fatHeader.nfat_arch, swp); i++) {
-		struct fat_arch fatArch;
-		fseek(machoFile,sizeof(fatHeader) + sizeof(fatArch) *i,SEEK_SET);
-		fread(&fatArch,sizeof(fatArch),1,machoFile);
-
-		fseek(machoFile,s32(fatArch.offset, swp),SEEK_SET);
-		struct mach_header_universal header;
-		fread(&header,sizeof(header),1,machoFile);
-
-		if (header.magic == MH_MAGIC_UNIVERSAL || header.magic == MH_CIGAM_UNIVERSAL) {
-			return s32(fatArch.offset, swp);
-		}
-	}
-
-	return 0;
-}
-
-NSArray *dependenciesForMachoAtPath(NSString *path, NSArray* *rpaths)
-{
-	NSString *pathToUse = path;
-	NSMutableArray *dylibPaths;
-	NSMutableArray *rpathsTmp;
-	FILE *machoFile;
-
-	uint32_t archOffset = 0;
-	uint64_t dyldOffset = 0;
-
-	if (pathIsInsideDyldCache(path)) {
-		HBLogDebugWeak(@"dyld path detected!!!!");
-		dyldOffset = offsetInsideDyldCacheForPath(path);
-		pathToUse = dyldCachePath();
-	}
+	cpu_type_t cputype;
+	cpu_subtype_t cpusubtype;
+	if (host_get_cpu_information(&cputype, &cpusubtype) != 0) { return NULL; }
 	
-	const char *pathStr = [pathToUse UTF8String];
+	MachO *candidateSlice = NULL;
 
-	machoFile = fopen(pathStr, "rb");
-
-	if (machoFile == NULL) {
-		NSLog(@"failed to open macho at %@",pathToUse);
-		return nil;
-	}
-
-	fseek(machoFile,dyldOffset,SEEK_SET);
-	struct mach_header_universal header;
-	fread(&header,sizeof(header),1,machoFile);
-
-	HBLogDebugWeak(@"magic = %llX", (unsigned long long)header.magic);
-
-	if (header.magic == FAT_MAGIC || header.magic == FAT_CIGAM) {
-		archOffset = offsetForArchInFatBinary(machoFile);
-		fseek(machoFile,archOffset,SEEK_SET);
-		fread(&header,sizeof(header),1,machoFile);
-	}
-
-	uint64_t fullOffset = dyldOffset + archOffset;
-
-	HBLogDebugWeak(@"fullOffset: %llX", (unsigned long long)fullOffset);
-	HBLogDebugWeak(@"header.magic: %llX", (unsigned long long)header.magic);
-
-	if (header.magic == MH_MAGIC_UNIVERSAL || header.magic == MH_CIGAM_UNIVERSAL) {
-		BOOL swp = header.magic == MH_CIGAM_UNIVERSAL;
-		dylibPaths = [NSMutableArray new];
-		rpathsTmp = [NSMutableArray new];
-
-		uint32_t offset = fullOffset + sizeof(header);
-
-		while (offset < fullOffset + s32(header.sizeofcmds,swp)) {
-			fseek(machoFile,offset,SEEK_SET);
-			struct load_command cmd;
-			fread(&cmd,sizeof(cmd),1,machoFile);
-			//HBLogDebugWeak(@"fread(%p,%llu)", &cmd, (unsigned long long)sizeof(cmd));
-			uint32_t normalizedCmd = s32(cmd.cmd,swp);
-			if (normalizedCmd == LC_LOAD_DYLIB || normalizedCmd == LC_LOAD_WEAK_DYLIB || normalizedCmd == LC_REEXPORT_DYLIB) {
-				fseek(machoFile,offset,SEEK_SET);
-				struct dylib_command dylibCommand;
-				//HBLogDebugWeak(@"fread(%p,%llu)", &dylibCommand, (unsigned long long)sizeof(dylibCommand));
-				fread(&dylibCommand,sizeof(dylibCommand),1,machoFile);
-				size_t stringLength = s32(dylibCommand.cmdsize,swp) - sizeof(dylibCommand);
-				fseek(machoFile,offset + s32(dylibCommand.dylib.name.offset,swp),SEEK_SET);
-				char *dylibPathC = malloc(stringLength);
-				//HBLogDebugWeak(@"fread(%p,%llu)", dylibPathC, (unsigned long long)stringLength);
-				fread(dylibPathC,stringLength,1,machoFile);
-				NSString *dylibPath = [NSString stringWithUTF8String:dylibPathC];
-				[dylibPaths addObject:dylibPath];
-				free(dylibPathC);
+	if (cpusubtype == CPU_SUBTYPE_ARM64E) {
+		// New arm64e ABI
+		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0) {
+			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E | CPU_SUBTYPE_ARM64E_ABI_V2);
+			if (!candidateSlice && kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_15_0) {
+				// Old ABI slice is also allowed but only before 15.0
+				candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E);
 			}
-			else if (normalizedCmd == LC_RPATH) {
-				fseek(machoFile,offset,SEEK_SET);
-				struct rpath_command rpathCommand;
-				//HBLogDebugWeak(@"fread(%p,%llu)", &rpathCommand, (unsigned long long)sizeof(rpathCommand));
-				fread(&rpathCommand,sizeof(rpathCommand),1,machoFile);
-				size_t stringLength = s32(rpathCommand.cmdsize,swp) - sizeof(rpathCommand);
-				fseek(machoFile,offset + s32(rpathCommand.path.offset,swp),SEEK_SET);
-				char *rpathC = malloc(stringLength);
-				//HBLogDebugWeak(@"fread(%p,%llu)", rpathC, (unsigned long long)stringLength);
-				fread(rpathC,stringLength,1,machoFile);
-				NSString *rpath = [NSString stringWithUTF8String:rpathC];
-				[rpathsTmp addObject:rpath];
-				free(rpathC);
-			}
-
-			offset += cmd.cmdsize;
+		}
+		// Old arm64e ABI
+		else {
+			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E);
 		}
 	}
 
-	fclose(machoFile);
-
-	if (rpaths) {
-		*rpaths = [rpathsTmp copy];
+	if (!candidateSlice) {
+		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0) {
+			// On iOS 15+ the kernels prefers ARM64_V8 to ARM64_ALL
+			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_V8);
+		}
+		if (!candidateSlice) {
+			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_ALL);
+		}
 	}
 
-	HBLogDebugWeak(@"dependenciesForMachoAtPath(%@) => %@ (rpaths: %@)", path, dylibPaths, rpathsTmp);
-
-	return dylibPaths;
+	return candidateSlice;
 }
 
-BOOL isFileAtPathMacho(NSString *path)
+@implementation CHPMachoParser
+
++ (instancetype)sharedInstance
 {
-	const char *pathStr = [path UTF8String];
-	FILE *file = fopen(pathStr, "rb");
-	if (!file) return NO;
-
-	struct mach_header header;
-
-	fseek(file,0,SEEK_SET);
-	fread(&header,sizeof(header),1,file);
-
-	fclose(file);
-
-	return header.magic == MH_MAGIC || header.magic == MH_CIGAM || header.magic == MH_MAGIC_64 || header.magic == MH_CIGAM_64 || header.magic == FAT_MAGIC || header.magic == FAT_CIGAM;
+	static CHPMachoParser *sharedInstance = nil;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^ {
+		//Initialise instance
+		sharedInstance = [[CHPMachoParser alloc] init];
+	});
+	return sharedInstance;
 }
+
++ (BOOL)isMachoAtPath:(NSString *)path
+{
+	return NO;
+}
+
+- (instancetype)init
+{
+	self = [super init];
+	if (self) {
+		_bundleIdentifierCache = [NSMutableDictionary new];
+		_dependencyPathCache = [NSMutableDictionary new];
+		_sharedCache = dsc_init_from_path(litehook_locate_dsc());
+	}
+	return self;
+}
+
+- (NSString *)resolvedDependencyPathForDependencyPath:(NSString *)dependencyPath sourceImagePath:(NSString *)sourceImagePath sourceExecutablePath:(NSString *)sourceExecutablePath
+{
+	@autoreleasepool {
+		if (!dependencyPath) return nil;
+		NSString *loaderPath = [sourceImagePath stringByDeletingLastPathComponent];
+		NSString *executablePath = [sourceExecutablePath stringByDeletingLastPathComponent];
+
+		NSString *resolvedPath = nil;
+
+		NSString *(^resolveLoaderExecutablePaths)(NSString *) = ^NSString *(NSString *candidatePath) {
+			if (!candidatePath) return nil;
+			if ([[NSFileManager defaultManager] fileExistsAtPath:candidatePath]) return candidatePath;
+			if (dsc_get_fat_for_path(_sharedCache, candidatePath.fileSystemRepresentation)) return candidatePath;
+			if ([candidatePath hasPrefix:@"@loader_path"] && loaderPath) {
+				NSString *loaderCandidatePath = [candidatePath stringByReplacingOccurrencesOfString:@"@loader_path" withString:loaderPath];
+				if ([[NSFileManager defaultManager] fileExistsAtPath:loaderCandidatePath]) return loaderCandidatePath;
+			}
+			if ([candidatePath hasPrefix:@"@executable_path"] && executablePath) {
+				NSString *executableCandidatePath = [candidatePath stringByReplacingOccurrencesOfString:@"@executable_path" withString:executablePath];
+				if ([[NSFileManager defaultManager] fileExistsAtPath:executableCandidatePath]) return executableCandidatePath;
+			}
+			return nil;
+		};
+
+		if ([dependencyPath hasPrefix:@"@rpath"]) {
+			NSString *(^resolveRpaths)(NSString *) = ^NSString *(NSString *binaryPath) {
+				if (!binaryPath) return nil;
+				__block NSString *rpathResolvedPath = nil;
+				Fat *fat = dsc_get_fat_for_path(_sharedCache, binaryPath.fileSystemRepresentation);
+				bool ownsFAT = false;
+				if (!fat) {
+					ownsFAT = true;
+					fat = fat_init_from_path(binaryPath.fileSystemRepresentation);
+				}
+				if (fat) {
+					MachO *macho = choicy_fat_find_preferred_slice(fat);
+					if (macho) {
+						macho_enumerate_rpaths(macho, ^(const char *rpathC, bool *stop) {
+							if (rpathC) {
+								NSString *rpath = [NSString stringWithUTF8String:rpathC];
+								if (rpath) {
+									rpathResolvedPath = resolveLoaderExecutablePaths([dependencyPath stringByReplacingOccurrencesOfString:@"@rpath" withString:rpath]);
+									if (rpathResolvedPath) {
+										*stop = true;
+									}
+								}
+							}
+						});
+					}
+
+					if (ownsFAT) {
+						fat_free(fat);
+					}
+				}
+				return rpathResolvedPath;
+			};
+
+			resolvedPath = resolveRpaths(sourceImagePath);
+			if (resolvedPath) return resolvedPath;
+
+			// TODO: Check if this is even neccessary
+			resolvedPath = resolveRpaths(sourceExecutablePath);
+			if (resolvedPath) return resolvedPath;
+		}
+		else {
+			resolvedPath = resolveLoaderExecutablePaths(dependencyPath);
+			if (resolvedPath) return resolvedPath;
+		}
+		
+		return nil;
+	}
+}
+
+- (NSSet *)_dependencyPathsForMachoAtPath:(NSString *)path sourceImagePath:(NSString *)sourceImagePath sourceExecutablePath:(NSString *)sourceExecutablePath
+{
+	NSString *standardizedPath = path.stringByStandardizingPath;
+
+	if (_dependencyPathCache[standardizedPath]) {
+		return _dependencyPathCache[standardizedPath];
+	}
+
+	_dependencyPathCache[standardizedPath] = [NSMutableSet new];
+
+	Fat *fat = dsc_get_fat_for_path(_sharedCache, standardizedPath.fileSystemRepresentation);
+	bool ownsFAT = false;
+	if (!fat) {
+		ownsFAT = true;
+		fat = fat_init_from_path(standardizedPath.fileSystemRepresentation);
+	}
+
+	if (fat) {
+		MachO *macho = choicy_fat_find_preferred_slice(fat);
+		if (macho) {
+			macho_enumerate_dependencies(macho, ^(const char *imagePathC, uint32_t cmd, struct dylib* dylib, bool *stop){
+				if (!imagePathC) return;
+				NSString *imagePath = [NSString stringWithUTF8String:imagePathC].stringByStandardizingPath;
+				imagePath = [self resolvedDependencyPathForDependencyPath:imagePath sourceImagePath:sourceImagePath sourceExecutablePath:sourceExecutablePath];
+				if (!imagePath) return;
+				if (![_dependencyPathCache[standardizedPath] containsObject:imagePath]) {
+					[_dependencyPathCache[standardizedPath] addObject:imagePath];
+					NSSet *nestedPaths = [self _dependencyPathsForMachoAtPath:imagePath sourceImagePath:path sourceExecutablePath:sourceExecutablePath];
+					[_dependencyPathCache[standardizedPath] unionSet:nestedPaths];
+				}
+			});
+		}
+
+		if (ownsFAT) {
+			fat_free(fat);
+		}
+	}
+
+	return _dependencyPathCache[standardizedPath];
+}
+
+- (NSSet *)dependencyPathsForMachoAtPath:(NSString *)path
+{
+	return [self _dependencyPathsForMachoAtPath:path sourceImagePath:nil sourceExecutablePath:path];
+}
+
+- (NSSet *)frameworkBundleIdentifiersForMachoAtPath:(NSString *)path
+{
+	NSString *standardizedPath = path.stringByStandardizingPath;
+
+	if (_bundleIdentifierCache[standardizedPath]) {
+		return _bundleIdentifierCache[standardizedPath];
+	}
+
+	NSMutableSet *bundleIdentifiers = [NSMutableSet set];
+	NSSet *dependencyPaths = [self dependencyPathsForMachoAtPath:standardizedPath];
+
+	void (^processDependencyPaths)(NSString *) = ^(NSString *dependencyPath){
+		NSString *parentPath = [dependencyPath stringByDeletingLastPathComponent];
+		if ([parentPath.pathExtension isEqualToString:@"framework"]) {
+			NSString *infoPlistPath = [parentPath stringByAppendingPathComponent:@"Info.plist"];
+			NSDictionary *infoDictionary = [NSDictionary dictionaryWithContentsOfFile:infoPlistPath];
+			if (infoDictionary) {
+				NSString *bundleIdentifier = infoDictionary[@"CFBundleIdentifier"];
+				if (bundleIdentifier) {
+					[bundleIdentifiers addObject:bundleIdentifier];
+				}
+			}
+		}
+	};
+
+	processDependencyPaths(standardizedPath);
+	for (NSString *dependencyPath in dependencyPaths) {
+		processDependencyPaths(dependencyPath);
+	}
+
+	if (bundleIdentifiers) {
+		_bundleIdentifierCache[standardizedPath] = bundleIdentifiers;
+	}
+
+	return bundleIdentifiers;
+}
+
+@end

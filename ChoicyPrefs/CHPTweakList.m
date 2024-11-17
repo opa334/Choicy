@@ -108,7 +108,7 @@
 
 	NSString *bundleID = [NSBundle bundleWithPath:executablePath.stringByDeletingLastPathComponent].bundleIdentifier;
 	NSString *executableName = executablePath.lastPathComponent;
-	NSSet *linkedFrameworks = frameworkBundleIDsForMachoAtPath(executablePath);
+	NSSet *linkedFrameworks = [[CHPMachoParser sharedInstance] frameworkBundleIdentifiersForMachoAtPath:executablePath];
 
 	NSMutableArray *tweakListForExecutable = [NSMutableArray new];
 	[self.tweakList enumerateObjectsUsingBlock:^(CHPTweakInfo *tweakInfo, NSUInteger idx, BOOL *stop) {

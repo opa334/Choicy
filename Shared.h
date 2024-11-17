@@ -88,3 +88,7 @@ extern void BKSTerminateApplicationForReasonAndReportWithDescription(NSString *b
 #ifndef kCFCoreFoundationVersionNumber_iOS_14_1
 #define kCFCoreFoundationVersionNumber_iOS_14_1 1751.108
 #endif
+
+#ifndef kCFCoreFoundationVersionNumber_iOS_15_0
+#define kCFCoreFoundationVersionNumber_iOS_15_0 1854
+#endif
