@@ -73,27 +73,6 @@ xpc_object_t gAllowedTweaks = NULL;
 xpc_object_t gDeniedTweaks = NULL;
 xpc_object_t gGlobalDeniedTweaks = NULL;
 
-int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pacSalt)
-{
-	if (!dyld) return -1;
-
-	__unused uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
-	void **dyldFuncPtrs = ptrauth_auth_data(*dyld, ptrauth_key_process_independent_data, dyldPacDiversifier);
-	if (!dyldFuncPtrs) return -1;
-
-	if (vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ | VM_PROT_WRITE) == 0) {
-		uint64_t location = (uint64_t)&dyldFuncPtrs[idx];
-		__unused uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
-
-		*orig = ptrauth_auth_and_resign(dyldFuncPtrs[idx], ptrauth_key_process_independent_code, pacDiversifier, ptrauth_key_function_pointer, 0);
-		dyldFuncPtrs[idx] = ptrauth_auth_and_resign(hook, ptrauth_key_function_pointer, 0, ptrauth_key_process_independent_code, pacDiversifier);
-		vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ);
-		return 0;
-	}
-
-	return -1;
-}
-
 bool string_has_prefix(const char *str, const char* prefix)
 {
 	if (!str || !prefix) {
@@ -124,6 +103,20 @@ bool string_has_suffix(const char* str, const char* suffix)
 	}
 
 	return !strcmp(str + str_len - suffix_len, suffix);
+}
+
+char *path_copy_basename(const char *path)
+{
+	char pathdup[strlen(path + 1)];
+	strcpy(pathdup, path);
+	return strdup(basename(pathdup));
+}
+
+char *path_copy_dirname(const char *path)
+{
+	char pathdup[strlen(path + 1)];
+	strcpy(pathdup, path);
+	return strdup(dirname(pathdup));
 }
 
 xpc_object_t xpc_object_from_plist(const char *path)
@@ -238,11 +231,11 @@ void load_process_info(void)
 	gExecutablePath = malloc(executablePathSize);
 	_NSGetExecutablePath(gExecutablePath, &executablePathSize);
 
-	// Calling os_log from inside logd deadlocks the system, prevent that...
-	if (!strcmp(gExecutablePath, "/usr/libexec/logd")) gShouldLog = false;
+	// Calling os_log from inside logd or notifyd deadlocks the system, prevent that...
+	if (!strcmp(gExecutablePath, "/usr/libexec/logd") || !strcmp(gExecutablePath, "/usr/sbin/notifyd")) gShouldLog = false;
 
 	// Load process type
-	char *executableDir = dirname(strdup(gExecutablePath));
+	char *executableDir = path_copy_dirname(gExecutablePath);
 	if (string_has_suffix(executableDir, ".app"))		 gProcessType = PROCESS_TYPE_APP;
 	else if (string_has_suffix(executableDir, ".appex")) gProcessType = PROCESS_TYPE_PLUGIN;
 	else												 gProcessType = PROCESS_TYPE_BINARY;
@@ -303,20 +296,6 @@ void load_process_info(void)
 		}
 		xpc_release(preferencesXdict);
 	}
-}
-
-char *path_copy_basename(const char *path)
-{
-	char pathdup[strlen(path + 1)];
-	strcpy(pathdup, path);
-	return strdup(basename(pathdup));
-}
-
-char *path_copy_dirname(const char *path)
-{
-	char pathdup[strlen(path + 1)];
-	strcpy(pathdup, path);
-	return strdup(dirname(pathdup));
 }
 
 bool dylib_is_tweak(const char *dylibPath)
@@ -472,6 +451,27 @@ const struct mach_header *find_tweak_loader_mach_header(void)
 	}
 
 	return NULL;
+}
+
+int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pacSalt)
+{
+	if (!dyld) return -1;
+
+	__unused uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
+	void **dyldFuncPtrs = ptrauth_auth_data(*dyld, ptrauth_key_process_independent_data, dyldPacDiversifier);
+	if (!dyldFuncPtrs) return -1;
+
+	if (vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ | VM_PROT_WRITE) == 0) {
+		uint64_t location = (uint64_t)&dyldFuncPtrs[idx];
+		__unused uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
+
+		*orig = ptrauth_auth_and_resign(dyldFuncPtrs[idx], ptrauth_key_process_independent_code, pacDiversifier, ptrauth_key_function_pointer, 0);
+		dyldFuncPtrs[idx] = ptrauth_auth_and_resign(hook, ptrauth_key_function_pointer, 0, ptrauth_key_process_independent_code, pacDiversifier);
+		vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ);
+		return 0;
+	}
+
+	return -1;
 }
 
 __attribute__((constructor)) static void initializer(void)
