@@ -28,9 +28,11 @@
 #include <dlfcn.h>
 #include <libroot.h>
 #include <mach-o/dyld.h>
+#include <mach-o/getsect.h>
 #include <ptrauth.h>
 #include <litehook.h>
 #include "dyld_interpose.h"
+#include "nextstep_plist.h"
 
 void *(*dlopen_orig)(const char*, int);
 void *dlopen_hook(const char *path, int mode);
@@ -107,38 +109,59 @@ bool string_has_suffix(const char* str, const char* suffix)
 
 char *path_copy_basename(const char *path)
 {
-	char pathdup[strlen(path + 1)];
+	char pathdup[strlen(path) + 1];
 	strcpy(pathdup, path);
 	return strdup(basename(pathdup));
 }
 
 char *path_copy_dirname(const char *path)
 {
-	char pathdup[strlen(path + 1)];
+	char pathdup[strlen(path) + 1];
 	strcpy(pathdup, path);
 	return strdup(dirname(pathdup));
 }
 
 xpc_object_t xpc_object_from_plist(const char *path)
 {
-	xpc_object_t xObj = NULL;
-	int ldFd = open(path, O_RDONLY);
-	if (ldFd >= 0) {
-		struct stat s = {};
-		if(fstat(ldFd, &s) != 0) {
-			close(ldFd);
-			return NULL;
-		}
-		size_t len = s.st_size;
-		void *addr = mmap(NULL, len, PROT_READ, MAP_FILE | MAP_PRIVATE, ldFd, 0);
-		if (addr != MAP_FAILED) {
-			close(ldFd);
+	int fd = open(path, O_RDONLY);
+    if (fd < 0) return NULL;
 
-			xObj = xpc_create_from_plist(addr, len);
-			munmap(addr, len);
-		}
-	}
-	return xObj;
+    struct stat st = {0};
+    if (fstat(fd, &st) != 0 || st.st_size == 0) {
+        close(fd);
+        return NULL;
+    }
+
+    void *data = mmap(NULL, st.st_size, PROT_READ, MAP_FILE | MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (data == MAP_FAILED) return NULL;
+
+    xpc_object_t plist = xpc_create_from_plist(data, st.st_size);
+    if (plist == NULL) {
+        char *plist_str = (char *)data;
+        if (strnstr(plist_str, "bplist", st.st_size) ||
+            strnstr(plist_str, "?xml", st.st_size) ||
+            strnstr(plist_str, "!DOCTYPE plist", st.st_size)) {
+            munmap(data, st.st_size);
+            return NULL;
+        }
+
+        for (int i = 0; i < st.st_size; i++) {
+            if (plist_str[i] < 0 || plist_str[i] > 127) {
+                munmap(data, st.st_size);
+                return NULL;
+            }
+        }
+
+        nextstep_plist_t nextstep_plist = {0};
+        nextstep_plist.index = 0;
+        nextstep_plist.size = st.st_size;
+        nextstep_plist.data = plist_str;
+        plist = nxp_parse_object(&nextstep_plist);
+    }
+
+    munmap(data, st.st_size);
+    return plist;
 }
 
 bool xpc_array_contains_string(xpc_object_t xArr, const char *string)
@@ -396,7 +419,7 @@ bool should_load_dylib(const char *dylibPath)
 	return true;
 }
 
-void *(*dlopen_from_orig)(const char*, int, void *);
+void *(*dlopen_from_orig)(const char*, int, void *) = NULL;
 void *dlopen_from_hook(const char *path, int mode, void *lr)
 {
 	if (path) {
@@ -407,7 +430,7 @@ void *dlopen_from_hook(const char *path, int mode, void *lr)
 	return dlopen_from_orig(path, mode, lr);
 }
 
-void *(*dyld_dlopen_from_orig)(const void *, const char*, int, void *);
+void *(*dyld_dlopen_from_orig)(const void *, const char*, int, void *) = NULL;
 void *dyld_dlopen_from_hook(const void *dyld, const char *path, int mode, void *lr)
 {
 	if (path) {
@@ -421,10 +444,12 @@ void *dyld_dlopen_from_hook(const void *dyld, const char *path, int mode, void *
 const struct mach_header *find_tweak_loader_mach_header(void)
 {
 	const char *tweakLoaderPaths[] = {
-		JBROOT_PATH("/usr/lib/TweakLoader.dylib"),				   // Ellekit, rootless standard
-		JBROOT_PATH("/usr/lib/substitute-loader.dylib"),		   // Substitute
-		JBROOT_PATH("/usr/lib/TweakInject.dylib"),				   // libhooker
-		JBROOT_PATH("/usr/lib/substrate/SubstrateInserter.dylib"), // Substrate 
+		JBROOT_PATH("/usr/lib/TweakLoader.dylib"),													 // Ellekit (Rootless Standard)
+		JBROOT_PATH("/usr/lib/substitute-loader.dylib"),											 // Substitute
+		JBROOT_PATH("/usr/lib/TweakInject.dylib"),													 // libhooker
+		JBROOT_PATH("/usr/lib/substrate/SubstrateLoader.dylib"),									 // Substrate
+		JBROOT_PATH("/Library/Frameworks/CydiaSubstrate.framework/Libraries/SubstrateLoader.dylib"), // Substrate (Older versions)
+		JBROOT_PATH("/usr/lib/Sonar/libsonar.dylib"),												 // Sonar
 	};
 
 	bool foundTweakLoader = false;
@@ -474,6 +499,25 @@ int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pa
 	return -1;
 }
 
+int replace_bss_pointer(const struct mach_header *mh, void *pointerToReplace, void *replacementPointer)
+{
+	unsigned long bssSectionSize = 0;
+	uint8_t *bssSection = getsectiondata((void *)mh, "__DATA", "__bss", &bssSectionSize);
+	if (!bssSection) return 0;
+
+	int c = 0;
+	uint8_t *curPtr = bssSection;
+	while (true) {
+		void **found = memmem(curPtr, bssSectionSize - (curPtr - bssSection), &pointerToReplace, sizeof(pointerToReplace));
+		if (!found) break;
+		*found = replacementPointer;
+		c++;
+		curPtr = (uint8_t *)found + sizeof(pointerToReplace);
+	}
+
+	return c;
+}
+
 __attribute__((constructor)) static void initializer(void)
 {
 	load_process_info();
@@ -502,11 +546,27 @@ __attribute__((constructor)) static void initializer(void)
 			const struct mach_header *tweakLoaderHeader = find_tweak_loader_mach_header();
 			if (tweakLoaderHeader) {
 				static struct dyld_interpose_tuple interposes[2];
+				dlopen_orig = dlopen;
 				interposes[0] = (struct dyld_interpose_tuple){ .replacement = dlopen_hook, .replacee = dlopen };
 				if (dlopen_from) {
+					dlopen_from_orig = dlopen_from;
 					interposes[1] = (struct dyld_interpose_tuple){ .replacement = dlopen_from_hook, .replacee = dlopen_from };
 				}
 				dyld_dynamic_interpose(tweakLoaderHeader, interposes, dlopen_from ? 2 : 1);
+				os_log_dbg("Initialized %u interpose(s) in tweak loader", dlopen_from ? 2 : 1);
+
+				// Also replace any already existing pointers in the __bss section of the tweak loader
+				// substitute-loader.dylib is heavily obfuscated and gets the dlopen pointer via dlsym before Choicy runs
+				// So in order to support substitute, we have to do this
+				int c = replace_bss_pointer(tweakLoaderHeader, dlopen, dlopen_hook);
+				os_log_dbg("Replaced %u dlopen pointer(s) in bss section", c);
+				if (dlopen_from) {
+					c = replace_bss_pointer(tweakLoaderHeader, dlopen_from, dlopen_from_hook);
+					os_log_dbg("Replaced %u dlopen_from pointer(s) in bss section", c);
+				}
+			}
+			else {
+				os_log_dbg("Unable to find tweak loader");
 			}
 		}
 	}

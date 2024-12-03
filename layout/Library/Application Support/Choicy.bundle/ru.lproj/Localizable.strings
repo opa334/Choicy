@@ -25,7 +25,7 @@
 "ERROR_FILE_NO_EXECUTABLE"="Выбранный файл не является исполняемым.";
 "ERROR_NO_TWEAKS_INJECT"="Выбранный файл не был добавлен, потому как твиков, загружаемых в него, не установлено. Присутствие записи об этом файле здесь попросту бессмысленно.";
 "FIX"="Исправить";
-"FOLLOW_ME_ON_TWITTER"="Подписаться на Twitter";
+"FOLLOW_ME_ON_MASTODON"="Подписаться на Mastodon";
 "GLOBAL_CONFIGURATION"="Общие настройки";
 "GLOBAL_OVERWRITE"="Переопределять Общие";
 "GLOBAL_TWEAK_CONFIGURATION"="Общие настройки модулей";

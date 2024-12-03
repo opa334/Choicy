@@ -38,7 +38,7 @@
 "TWEAKS" = "插件";
 "GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE" = "此全局配置可以通过在进程的首选项页面中启用「覆盖全局插件配置」开关来进行逐个进程的覆盖。";
 "OTHER" = "其他";
-"FOLLOW_ME_ON_TWITTER" = "在 Twitter 上关注我";
+"FOLLOW_ME_ON_MASTODON" = "在 Mastodon 上关注我";
 "DONATE" = "捐赠";
 "SOURCE_CODE" = "源代码";
 "CREDITS" = "致谢";

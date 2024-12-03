@@ -38,7 +38,7 @@
 /*TWEAKS*/
 /*GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE*/
 "OTHER" = "Άλλα";
-"FOLLOW_ME_ON_TWITTER" = "Ακολουθήστε με στο twitter";
+"FOLLOW_ME_ON_MASTODON" = "Ακολουθήστε με στο mastodon";
 "DONATE" = "Δωρεά";
 "SOURCE_CODE" = "Κωδικός πηγής";
 "CREDITS" = "Πιστώσεις";

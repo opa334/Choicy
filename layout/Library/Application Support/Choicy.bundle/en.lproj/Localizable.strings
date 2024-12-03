@@ -38,7 +38,7 @@
 "TWEAKS" = "Tweaks";
 "GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE" = "This global configuration can be overwritten on a per process basis by enabling the \"Overwrite Global Tweak Configuration\" toggle in the preference page of a process.";
 "OTHER" = "Other";
-"FOLLOW_ME_ON_TWITTER" = "Follow me on Twitter";
+"FOLLOW_ME_ON_MASTODON" = "Follow me on Mastodon";
 "DONATE" = "Donate";
 "SOURCE_CODE" = "Source Code";
 "CREDITS" = "Credits";

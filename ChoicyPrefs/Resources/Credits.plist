@@ -4,12 +4,12 @@
 <dict>
 	<key>items</key>
 	<array>
-        <dict>
+		<dict>
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
 			<string>No code was directly taken from the credited repos. They still helped with the development, that's why they are mentioned here.</string>
-        </dict>
+		</dict>
 		<dict>
 			<key>action</key>
 			<string>openQuickPrefs</string>
@@ -20,7 +20,7 @@
 			<key>label</key>
 			<string>QuickPrefs (AnthoPakPak)</string>
 		</dict>
-        <dict>
+		<dict>
 			<key>action</key>
 			<string>openTweakConfigurator</string>
 			<key>cell</key>
@@ -30,7 +30,7 @@
 			<key>label</key>
 			<string>TweakConfigurator (pixelomer)</string>
 		</dict>
-        <dict>
+		<dict>
 			<key>action</key>
 			<string>openUnSub</string>
 			<key>cell</key>
@@ -44,8 +44,8 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>Search related contributions on GitHub.</string>
-        </dict>
+			<string>Search related contributions on GitHub</string>
+		</dict>
 		<dict>
 			<key>action</key>
 			<string>openBrendonjkding</string>
@@ -55,6 +55,22 @@
 			<string>GitHub</string>
 			<key>label</key>
 			<string>brendonjkding</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>NeXTSTEP plist parser</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openStaturnz</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>staturnz</string>
 		</dict>
 	</array>
 </dict>

@@ -26,6 +26,7 @@
 #import <Fat.h>
 #import <MachO.h>
 
+#import <mach-o/dyld_images.h>
 #import <mach-o/dyld.h>
 #import <version.h>
 
@@ -37,28 +38,36 @@ MachO *choicy_fat_find_preferred_slice(Fat *fat)
 	
 	MachO *candidateSlice = NULL;
 
-	if (cpusubtype == CPU_SUBTYPE_ARM64E) {
-		// New arm64e ABI
-		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0) {
-			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E | CPU_SUBTYPE_ARM64E_ABI_V2);
-			if (!candidateSlice && kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_15_0) {
-				// Old ABI slice is also allowed but only before 15.0
+	if (cputype == CPU_TYPE_ARM64) {
+		if (!candidateSlice && cpusubtype == CPU_SUBTYPE_ARM64E) {
+			// New arm64e ABI
+			if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_14_0) {
+				candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E | CPU_SUBTYPE_ARM64E_ABI_V2);
+				if (!candidateSlice && kCFCoreFoundationVersionNumber < kCFCoreFoundationVersionNumber_iOS_15_0) {
+					// Old ABI slice is also allowed but only before 15.0
+					candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E);
+				}
+			}
+			// Old arm64e ABI
+			else {
 				candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E);
 			}
 		}
-		// Old arm64e ABI
-		else {
-			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64E);
+
+		if (!candidateSlice) {
+			if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0) {
+				// On iOS 15+ the kernels prefers ARM64_V8 to ARM64_ALL
+				candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_V8);
+			}
+			if (!candidateSlice) {
+				candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_ALL);
+			}
 		}
 	}
-
-	if (!candidateSlice) {
-		if (kCFCoreFoundationVersionNumber >= kCFCoreFoundationVersionNumber_iOS_15_0) {
-			// On iOS 15+ the kernels prefers ARM64_V8 to ARM64_ALL
-			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_V8);
-		}
-		if (!candidateSlice) {
-			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM64_ALL);
+	else if (cputype == CPU_TYPE_ARM) {
+		candidateSlice = fat_find_slice(fat, cputype, cpusubtype);
+		if (!candidateSlice && cpusubtype == CPU_SUBTYPE_ARM_V7S) {
+			candidateSlice = fat_find_slice(fat, cputype, CPU_SUBTYPE_ARM_V7);
 		}
 	}
 
@@ -89,7 +98,13 @@ MachO *choicy_fat_find_preferred_slice(Fat *fat)
 	if (self) {
 		_bundleIdentifierCache = [NSMutableDictionary new];
 		_dependencyPathCache = [NSMutableDictionary new];
-		_sharedCache = dsc_init_from_path(litehook_locate_dsc());
+
+		task_dyld_info_data_t dyldInfo;
+		uint32_t count = TASK_DYLD_INFO_COUNT;
+		task_info(mach_task_self_, TASK_DYLD_INFO, (task_info_t)&dyldInfo, &count);
+		struct dyld_all_image_infos *allImageInfos = (void *)dyldInfo.all_image_info_addr;
+
+		_sharedCache = dsc_init_from_path_premapped(litehook_locate_dsc(), allImageInfos->sharedCacheSlide);
 	}
 	return self;
 }
@@ -106,7 +121,7 @@ MachO *choicy_fat_find_preferred_slice(Fat *fat)
 		NSString *(^resolveLoaderExecutablePaths)(NSString *) = ^NSString *(NSString *candidatePath) {
 			if (!candidatePath) return nil;
 			if ([[NSFileManager defaultManager] fileExistsAtPath:candidatePath]) return candidatePath;
-			if (dsc_get_fat_for_path(_sharedCache, candidatePath.fileSystemRepresentation)) return candidatePath;
+			if (dsc_lookup_macho_by_path(_sharedCache, candidatePath.fileSystemRepresentation, NULL)) return candidatePath;
 			if ([candidatePath hasPrefix:@"@loader_path"] && loaderPath) {
 				NSString *loaderCandidatePath = [candidatePath stringByReplacingOccurrencesOfString:@"@loader_path" withString:loaderPath];
 				if ([[NSFileManager defaultManager] fileExistsAtPath:loaderCandidatePath]) return loaderCandidatePath;
@@ -122,31 +137,29 @@ MachO *choicy_fat_find_preferred_slice(Fat *fat)
 			NSString *(^resolveRpaths)(NSString *) = ^NSString *(NSString *binaryPath) {
 				if (!binaryPath) return nil;
 				__block NSString *rpathResolvedPath = nil;
-				Fat *fat = dsc_get_fat_for_path(_sharedCache, binaryPath.fileSystemRepresentation);
-				bool ownsFAT = false;
-				if (!fat) {
-					ownsFAT = true;
+				Fat *fat = NULL;
+				MachO *macho = dsc_lookup_macho_by_path(_sharedCache, binaryPath.fileSystemRepresentation, NULL);
+				if (!macho) {
 					fat = fat_init_from_path(binaryPath.fileSystemRepresentation);
+					if (fat) {
+						macho = choicy_fat_find_preferred_slice(fat);
+					}
 				}
-				if (fat) {
-					MachO *macho = choicy_fat_find_preferred_slice(fat);
-					if (macho) {
-						macho_enumerate_rpaths(macho, ^(const char *rpathC, bool *stop) {
-							if (rpathC) {
-								NSString *rpath = [NSString stringWithUTF8String:rpathC];
-								if (rpath) {
-									rpathResolvedPath = resolveLoaderExecutablePaths([dependencyPath stringByReplacingOccurrencesOfString:@"@rpath" withString:rpath]);
-									if (rpathResolvedPath) {
-										*stop = true;
-									}
+				if (macho) {
+					macho_enumerate_rpaths(macho, ^(const char *rpathC, bool *stop) {
+						if (rpathC) {
+							NSString *rpath = [NSString stringWithUTF8String:rpathC];
+							if (rpath) {
+								rpathResolvedPath = resolveLoaderExecutablePaths([dependencyPath stringByReplacingOccurrencesOfString:@"@rpath" withString:rpath]);
+								if (rpathResolvedPath) {
+									*stop = true;
 								}
 							}
-						});
-					}
-
-					if (ownsFAT) {
-						fat_free(fat);
-					}
+						}
+					});
+				}
+				if (fat) {
+					fat_free(fat);
 				}
 				return rpathResolvedPath;
 			};
@@ -177,32 +190,31 @@ MachO *choicy_fat_find_preferred_slice(Fat *fat)
 
 	_dependencyPathCache[standardizedPath] = [NSMutableSet new];
 
-	Fat *fat = dsc_get_fat_for_path(_sharedCache, standardizedPath.fileSystemRepresentation);
-	bool ownsFAT = false;
-	if (!fat) {
-		ownsFAT = true;
+	Fat *fat = NULL;
+	MachO *macho = dsc_lookup_macho_by_path(_sharedCache, standardizedPath.fileSystemRepresentation, NULL);
+	if (!macho) {
 		fat = fat_init_from_path(standardizedPath.fileSystemRepresentation);
+		if (fat) {
+			macho = choicy_fat_find_preferred_slice(fat);
+		}
+	}
+
+	if (macho) {
+		macho_enumerate_dependencies(macho, ^(const char *imagePathC, uint32_t cmd, struct dylib* dylib, bool *stop){
+			if (!imagePathC) return;
+			NSString *imagePath = [NSString stringWithUTF8String:imagePathC].stringByStandardizingPath;
+			imagePath = [self resolvedDependencyPathForDependencyPath:imagePath sourceImagePath:sourceImagePath sourceExecutablePath:sourceExecutablePath];
+			if (!imagePath) return;
+			if (![_dependencyPathCache[standardizedPath] containsObject:imagePath]) {
+				[_dependencyPathCache[standardizedPath] addObject:imagePath];
+				NSSet *nestedPaths = [self _dependencyPathsForMachoAtPath:imagePath sourceImagePath:path sourceExecutablePath:sourceExecutablePath];
+				[_dependencyPathCache[standardizedPath] unionSet:nestedPaths];
+			}
+		});
 	}
 
 	if (fat) {
-		MachO *macho = choicy_fat_find_preferred_slice(fat);
-		if (macho) {
-			macho_enumerate_dependencies(macho, ^(const char *imagePathC, uint32_t cmd, struct dylib* dylib, bool *stop){
-				if (!imagePathC) return;
-				NSString *imagePath = [NSString stringWithUTF8String:imagePathC].stringByStandardizingPath;
-				imagePath = [self resolvedDependencyPathForDependencyPath:imagePath sourceImagePath:sourceImagePath sourceExecutablePath:sourceExecutablePath];
-				if (!imagePath) return;
-				if (![_dependencyPathCache[standardizedPath] containsObject:imagePath]) {
-					[_dependencyPathCache[standardizedPath] addObject:imagePath];
-					NSSet *nestedPaths = [self _dependencyPathsForMachoAtPath:imagePath sourceImagePath:path sourceExecutablePath:sourceExecutablePath];
-					[_dependencyPathCache[standardizedPath] unionSet:nestedPaths];
-				}
-			});
-		}
-
-		if (ownsFAT) {
-			fat_free(fat);
-		}
+		fat_free(fat);
 	}
 
 	return _dependencyPathCache[standardizedPath];

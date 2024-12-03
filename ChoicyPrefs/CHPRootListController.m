@@ -131,11 +131,33 @@ NSString *getInjectionPlatform()
 
 - (void)openTwitterWithUsername:(NSString *)username
 {
-	if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"twitter://"]]) {
-		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"twitter://user?screen_name=%@", username]]];
+	UIApplication *app = [UIApplication sharedApplication];
+
+	if ([app canOpenURL:[NSURL URLWithString:@"twitter://"]]) {
+		[app openURL:[NSURL URLWithString:[NSString stringWithFormat:@"twitter://user?screen_name=%@", username]]];
 	}
 	else {
-		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://twitter.com/%@", username]]];
+		[app openURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://twitter.com/%@", username]]];
+	}
+}
+
+- (void)openMastodonWithUsername:(NSString *)username instance:(NSString *)instance
+{
+	UIApplication *app = [UIApplication sharedApplication];
+
+	NSArray *candidateURLs = @[
+		[NSURL URLWithString:[NSString stringWithFormat:@"opener://x-callback-url/show-options?url=https%%3A%%2F%%2F%@%%2F%@", instance, username]],
+		[NSURL URLWithString:[NSString stringWithFormat:@"ivory://%@/@%@", instance, username]],
+		[NSURL URLWithString:[NSString stringWithFormat:@"icecubesapp://%@/@%@", instance, username]],
+		[NSURL URLWithString:[NSString stringWithFormat:@"mastodon://profile/%@@%@", username, instance]],
+		[NSURL URLWithString:[NSString stringWithFormat:@"https://%@/@%@", instance, username]],
+	];
+
+	for (NSURL *candidateURL in candidateURLs) {
+		if ([app canOpenURL:candidateURL]) {
+			[app openURL:candidateURL];
+			break;
+		}
 	}
 }
 
@@ -144,9 +166,9 @@ NSString *getInjectionPlatform()
 	[[UIApplication sharedApplication] openURL:[NSURL URLWithString:@"https://github.com/opa334/Choicy"]];
 }
 
-- (void)openTwitter
+- (void)openMastodon
 {
-	[self openTwitterWithUsername:@"opa334dev"];
+	[self openMastodonWithUsername:@"opa334" instance:@"infosec.exchange"];
 }
 
 - (void)donationLink
