@@ -104,7 +104,7 @@ NSDictionary *choicy_applyEnvironmentChanges(NSDictionary *originalEnvironment, 
 				NSArray *allowDenyList = [overrideManager customTweakConfigurationAllowOrDenyListOverrideForApplication:bundleIdentifier overrideExists:&overrideExists];
 
 				if (overrideManager && allowDenyList) {
-					NSString *allowDenyString = [allowDenyList componentsJoinedByString:@"/"];
+					NSString *allowDenyString = [allowDenyList componentsJoinedByString:@":"];
 
 					NSString *envName;
 					if (customTweakAllowDenyOverride) { // DENY

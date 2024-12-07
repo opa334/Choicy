@@ -38,7 +38,7 @@
 "TWEAKS" = "Tweaks";
 "GLOBAL_TWEAK_CONFIGURATION_BOTTOM_NOTICE" = "Diese Globale Konfiguration kann per Prozess überschrieben werden indem die \"Globale Konfiguration überschreiben\" Option in den Einstellungen eines Prozesses aktiviert wird.";
 "OTHER" = "Anderes";
-"FOLLOW_ME_ON_TWITTER" = "Folge mir auf Twitter";
+"FOLLOW_ME_ON_MASTODON" = "Folge mir auf Mastodon";
 "DONATE" = "Spenden";
 "SOURCE_CODE" = "Quellcode";
 "CREDITS" = "Credits";

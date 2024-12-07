@@ -1,0 +1,6 @@
+[submodule "external/litehook"]
+	path = external/litehook
+	url = https://github.com/opa334/litehook
+[submodule "external/ChOma"]
+	path = external/ChOma
+	url = https://github.com/opa334/ChOma

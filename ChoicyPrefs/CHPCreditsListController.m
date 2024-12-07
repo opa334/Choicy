@@ -63,4 +63,9 @@
 	[self openURL:[NSURL URLWithString:@"https://github.com/brendonjkding"]];
 }
 
+- (void)openStaturnz
+{
+	[self openURL:[NSURL URLWithString:@"https://github.com/staturnzz"]];
+}
+
 @end

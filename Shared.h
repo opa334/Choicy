@@ -31,7 +31,7 @@ extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSSt
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
-#define kChoicyPrefsPlistPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
+#define kChoicyPrefsPlistPath JBROOT_PATH(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
 #define kChoicyDylibName @"   Choicy"
 
 #define kChoicyPrefsKeyGlobalDeniedTweaks @"globalDeniedTweaks"
@@ -87,4 +87,8 @@ extern void BKSTerminateApplicationForReasonAndReportWithDescription(NSString *b
 
 #ifndef kCFCoreFoundationVersionNumber_iOS_14_1
 #define kCFCoreFoundationVersionNumber_iOS_14_1 1751.108
+#endif
+
+#ifndef kCFCoreFoundationVersionNumber_iOS_15_0
+#define kCFCoreFoundationVersionNumber_iOS_15_0 1854
 #endif

@@ -155,13 +155,13 @@
 		</dict>
 		<dict>
 			<key>action</key>
-			<string>openTwitter</string>
+			<string>openMastodon</string>
 			<key>cell</key>
 			<string>PSButtonCell</string>
 			<key>icon</key>
-			<string>Twitter</string>
+			<string>Mastodon</string>
 			<key>label</key>
-			<string>FOLLOW_ME_ON_TWITTER</string>
+			<string>FOLLOW_ME_ON_MASTODON</string>
 		</dict>
 		<dict>
 			<key>action</key>
@@ -203,7 +203,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>footerText</key>
-			<string>© 2019-2023 Lars Fröder (opa334)</string>
+			<string>© 2019-2024 Lars Fröder (opa334)</string>
 		</dict>
 	</array>
 	<key>title</key>

@@ -105,7 +105,7 @@
 		return;
 	}
 
-	if (!isFileAtPathMacho(executablePath)) {
+	if ([CHPMachoParser isMachoAtPath:executablePath]) {
 		[self showErrorMessage:localize(@"ERROR_FILE_NO_EXECUTABLE")];
 		return;
 	}

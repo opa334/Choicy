@@ -1,4 +1,5 @@
 #/bin/sh
+set -e
 
 export PREFIX=$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/
 
