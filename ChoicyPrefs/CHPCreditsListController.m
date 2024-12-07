@@ -68,4 +68,9 @@
 	[self openURL:[NSURL URLWithString:@"https://github.com/staturnzz"]];
 }
 
+- (void)openAlfie
+{
+	[self openURL:[NSURL URLWithString:@"https://github.com/alfiecg24"]];
+}
+
 @end

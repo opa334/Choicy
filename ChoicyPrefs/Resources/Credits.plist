@@ -72,6 +72,22 @@
 			<key>label</key>
 			<string>staturnz</string>
 		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>footerText</key>
+			<string>ChOma</string>
+		</dict>
+		<dict>
+			<key>action</key>
+			<string>openAlfie</string>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>icon</key>
+			<string>GitHub</string>
+			<key>label</key>
+			<string>alfiecg24</string>
+		</dict>
 	</array>
 </dict>
 </plist>
