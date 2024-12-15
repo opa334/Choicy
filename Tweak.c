@@ -441,7 +441,7 @@ void *dyld_dlopen_from_hook(const void *dyld, const char *path, int mode, void *
 	return dyld_dlopen_from_orig(dyld, path, mode, lr);
 }
 
-const struct mach_header *find_tweak_loader_mach_header(void)
+const struct mach_header *find_tweak_loader_mach_header(const char **pathOut)
 {
 	const char *tweakLoaderPaths[] = {
 		JBROOT_PATH("/usr/lib/TweakLoader.dylib"),													 // Ellekit (Rootless Standard)
@@ -470,6 +470,7 @@ const struct mach_header *find_tweak_loader_mach_header(void)
 		if (stat(path, &pathStat) == 0) {
 			if (pathStat.st_dev == tweakLoaderStat.st_dev && pathStat.st_ino == tweakLoaderStat.st_ino) {
 				os_log_dbg("Found tweak loader: %{public}s\n", path);
+				if (pathOut) *pathOut = path;
 				return _dyld_get_image_header(i);
 			}
 		}
@@ -543,27 +544,42 @@ __attribute__((constructor)) static void initializer(void)
 			void *libdyldHandle = dlopen("/usr/lib/system/libdyld.dylib", RTLD_NOW);
 			void *dlopen_from = dlsym(libdyldHandle, "dlopen_from");
 
-			const struct mach_header *tweakLoaderHeader = find_tweak_loader_mach_header();
+			dlopen_orig = dlopen;
+			if (dlopen_from) dlopen_from_orig = dlopen_from;
+
+			const char *tweakLoaderPath = NULL;
+			const struct mach_header *tweakLoaderHeader = find_tweak_loader_mach_header(&tweakLoaderPath);
 			if (tweakLoaderHeader) {
+				// On rootful / iOS <=14, there are multiple different special cases we need to take care of
+				// First: substitute-loader.dylib is heavily obfuscated and gets the dlopen pointer via dlsym before Choicy runs
+				// So in order to support substitute, we have to find the dlopen pointer in it's BSS section and replace it
+				if (!strcmp(tweakLoaderPath, "/usr/lib/substitute-loader.dylib")) {
+					__unused int c = replace_bss_pointer(tweakLoaderHeader, dlopen, dlopen_hook);
+					os_log_dbg("Replaced %u dlopen pointer(s) in bss section", c);
+					if (dlopen_from) {
+						c = replace_bss_pointer(tweakLoaderHeader, dlopen_from, dlopen_from_hook);
+						os_log_dbg("Replaced %u dlopen_from pointer(s) in bss section", c);
+					}
+
+					// Fall through, since older versions of substitute-loader still called dlopen normally and we don't know what we're dealing with
+				}
+#ifdef __arm64e__
+				// Second: dyld_dynamic_interpose seems to cause a nullptr deref in arm64e processes
+				// So, we have to use a litehook rebind instead
+				litehook_rebind_symbol((const mach_header *)tweakLoaderHeader, dlopen, dlopen_hook);
+				if (dlopen_from) {
+					litehook_rebind_symbol((const mach_header *)tweakLoaderHeader, dlopen_from, dlopen_from_hook);
+				}
+				return;
+#endif
+				// If not arm64e, we can just use dyld_dynamic_interpose, which (unlike litehook) supports armv7 aswell
 				static struct dyld_interpose_tuple interposes[2];
-				dlopen_orig = dlopen;
 				interposes[0] = (struct dyld_interpose_tuple){ .replacement = dlopen_hook, .replacee = dlopen };
 				if (dlopen_from) {
-					dlopen_from_orig = dlopen_from;
 					interposes[1] = (struct dyld_interpose_tuple){ .replacement = dlopen_from_hook, .replacee = dlopen_from };
 				}
 				dyld_dynamic_interpose(tweakLoaderHeader, interposes, dlopen_from ? 2 : 1);
 				os_log_dbg("Initialized %u interpose(s) in tweak loader", dlopen_from ? 2 : 1);
-
-				// Also replace any already existing pointers in the __bss section of the tweak loader
-				// substitute-loader.dylib is heavily obfuscated and gets the dlopen pointer via dlsym before Choicy runs
-				// So in order to support substitute, we have to do this
-				int c = replace_bss_pointer(tweakLoaderHeader, dlopen, dlopen_hook);
-				os_log_dbg("Replaced %u dlopen pointer(s) in bss section", c);
-				if (dlopen_from) {
-					c = replace_bss_pointer(tweakLoaderHeader, dlopen_from, dlopen_from_hook);
-					os_log_dbg("Replaced %u dlopen_from pointer(s) in bss section", c);
-				}
 			}
 			else {
 				os_log_dbg("Unable to find tweak loader");
