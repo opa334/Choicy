@@ -302,9 +302,12 @@ void load_process_info(void)
 			else {
 				xpc_object_t daemonPreferencesXdict = xpc_dictionary_get_value(preferencesXdict, kChoicyPrefsKeyDaemonSettings);
 				if (daemonPreferencesXdict && xpc_get_type(daemonPreferencesXdict) == XPC_TYPE_DICTIONARY) {
-					xpc_object_t thisDaemonXdict = xpc_dictionary_get_value(daemonPreferencesXdict, gExecutablePath);
-					if (thisDaemonXdict && xpc_get_type(thisDaemonXdict) == XPC_TYPE_DICTIONARY) {
-						processPreferencesXdict = thisDaemonXdict;
+					const char *executableName = strrchr(gExecutablePath, '/');
+					if (executableName) {
+						xpc_object_t thisDaemonXdict = xpc_dictionary_get_value(daemonPreferencesXdict, &executableName[1]);
+						if (thisDaemonXdict && xpc_get_type(thisDaemonXdict) == XPC_TYPE_DICTIONARY) {
+							processPreferencesXdict = thisDaemonXdict;
+						}
 					}
 				}
 			}
