@@ -113,13 +113,19 @@
 		}
 	}
 
-	HBLogDebugWeak(@"XPC before");
-
 	NSDirectoryEnumerator *systemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
 		return YES;
 	}];
 
+	NSDirectoryEnumerator *cryptexSystemLibraryFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/private/preboot/Cryptexes/OS/System/Library/Frameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
+		return YES;
+	}];
+
 	NSDirectoryEnumerator *systemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
+		return YES;
+	}];
+
+	NSDirectoryEnumerator *cryptexSystemLibraryPrivateFrameworksEnumerator = [[NSFileManager defaultManager] enumeratorAtURL:[NSURL fileURLWithPath:@"/private/preboot/Cryptexes/OS/System/Library/PrivateFrameworks" isDirectory:YES] includingPropertiesForKeys:nil options:0 errorHandler:^(NSURL *url, NSError *error) {
 		return YES;
 	}];
 
@@ -131,7 +137,19 @@
 		}
 	}
 
+	for (NSURL *fileURL in cryptexSystemLibraryFrameworksEnumerator) {
+		if ([fileURL.path hasSuffix:@".xpc"]) {
+			[XPCUrls addObject:fileURL];
+		}
+	}
+
 	for (NSURL *fileURL in systemLibraryPrivateFrameworksEnumerator) {
+		if ([fileURL.path hasSuffix:@".xpc"]) {
+			[XPCUrls addObject:fileURL];
+		}
+	}
+
+	for (NSURL *fileURL in cryptexSystemLibraryPrivateFrameworksEnumerator) {
 		if ([fileURL.path hasSuffix:@".xpc"]) {
 			[XPCUrls addObject:fileURL];
 		}
@@ -153,8 +171,6 @@
 			}
 		}
 	}
-
-	HBLogDebugWeak(@"XPC after");
 
 	NSMutableArray *additionalPotentialDaemons = [NSMutableArray new];
 
