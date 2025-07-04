@@ -58,9 +58,16 @@ BOOL choicy_shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTwe
 	toggleOneTimeApplicationID = nil;
 	if (toggleOnce) {
 		NSMutableDictionary *environmentM = [executionContext.environment mutableCopy];
-		BOOL newValue = !choicy_shouldDisableTweakInjectionForApplication(bundleIdentifier);
-		[environmentM setObject:@(newValue) forKey:@"_MSSafeMode"];
-		[environmentM setObject:@(newValue) forKey:@"_SafeMode"];
+		BOOL shouldDisableTweaks = !choicy_shouldDisableTweakInjectionForApplication(bundleIdentifier);
+		if (shouldDisableTweaks) {
+			[environmentM setObject:@(shouldDisableTweaks) forKey:@"_MSSafeMode"];
+			[environmentM setObject:@(shouldDisableTweaks) forKey:@"_SafeMode"];
+		}
+		else {
+			// If the the "Launch with Tweaks" option was pressed, we need to let the Choicy dylib know
+			[environmentM setObject:@YES forKey:@"_ChoicyInjectionEnabledFromSpringBoard"];
+		}
+
 		executionContext.environment = [environmentM copy];
 	}
 	

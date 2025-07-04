@@ -220,7 +220,15 @@ void load_global_preferences(xpc_object_t preferencesXdict, xpc_object_t process
 
 void load_process_preferences(xpc_object_t preferencesXdict, xpc_object_t processPreferencesXdict)
 {
-	if (gProcessType != PROCESS_TYPE_APP || !strcmp(gBundleIdentifier, kSpringboardBundleID)) {
+	// There are two possible cases how we can get here with kChoicyProcessPrefsKeyTweakInjectionDisabled=true in the plist
+	// (Since normally that option will also prevent this dylib from injecting, meaning our code would not execute in the first place)
+	// 1) The process is not an app spawned by SpringBoard (Since we can only set _SafeMode variables from SpringBoard/runningboardd)
+	// 2) The process was launched via the "Launch with Tweaks" haptic touch option on SpringBoard
+	// We can differentiate between the two, because 2) will also set the "_ChoicyInjectionEnabledFromSpringBoard" env variable
+	if (getenv("_ChoicyInjectionEnabledFromSpringBoard")) {
+		gTweakInjectionDisabled = false;
+	}
+	else {
 		gTweakInjectionDisabled = xpc_dictionary_get_bool(processPreferencesXdict, kChoicyProcessPrefsKeyTweakInjectionDisabled);
 	}
 
