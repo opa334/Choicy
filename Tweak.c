@@ -544,23 +544,25 @@ int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pa
 	return -1;
 }
 
-int replace_bss_pointer(const struct mach_header *mh, void *pointerToReplace, void *replacementPointer)
+int replace_bss_pointers(const struct mach_header *mh, void *pointersToReplace[], void *replacementPointers[], uint32_t pointerCount)
 {
 	unsigned long bssSectionSize = 0;
 	uint8_t *bssSection = getsectiondata((void *)mh, "__DATA", "__bss", &bssSectionSize);
 	if (!bssSection) return 0;
 
-	int c = 0;
-	uint8_t *curPtr = bssSection;
-	while (true) {
-		void **found = memmem(curPtr, bssSectionSize - (curPtr - bssSection), &pointerToReplace, sizeof(pointerToReplace));
-		if (!found) break;
-		*found = replacementPointer;
-		c++;
-		curPtr = (uint8_t *)found + sizeof(pointerToReplace);
+	int replacementCount = 0;
+	void **bssPtrs = (void **)bssSection;
+	uint32_t bssPtrCount = (bssSectionSize / 8);
+	for (uint32_t i = 0; i < bssPtrCount; i++) {
+		void *curPtr = bssPtrs[i];
+		for (uint32_t k = 0; k < pointerCount; k++) {
+			if ((uintptr_t)curPtr == (uintptr_t)pointersToReplace[k]) {
+				bssPtrs[i] = replacementPointers[k];
+				replacementCount++;
+			}
+		}
 	}
-
-	return c;
+	return replacementCount;
 }
 
 __attribute__((constructor)) static void initializer(void)
@@ -598,12 +600,20 @@ __attribute__((constructor)) static void initializer(void)
 				// First: substitute-loader.dylib is heavily obfuscated and gets the dlopen pointer via dlsym before Choicy runs
 				// So in order to support substitute, we have to find the dlopen pointer in it's BSS section and replace it
 				if (!strcmp(tweakLoaderPath, "/usr/lib/substitute-loader.dylib")) {
-					__unused int c = replace_bss_pointer(tweakLoaderHeader, dlopen, dlopen_hook);
-					os_log_dbg("Replaced %u dlopen pointer(s) in bss section", c);
-					if (dlopen_from) {
-						c = replace_bss_pointer(tweakLoaderHeader, dlopen_from, dlopen_from_hook);
-						os_log_dbg("Replaced %u dlopen_from pointer(s) in bss section", c);
-					}
+					void *pointersToReplace[] = {
+						dlopen,
+						dlopen_from,
+					};
+
+					void *replacementPointers[] = {
+						dlopen_hook,
+						dlopen_from_hook,
+					};
+
+					uint32_t pointerCount = sizeof(pointersToReplace) / sizeof(*pointersToReplace);
+					if (!dlopen_from) pointerCount--;
+					__unused int c = replace_bss_pointers(tweakLoaderHeader, pointersToReplace, replacementPointers, pointerCount);
+					os_log_dbg("Replaced %u dlopen/dlopen_from pointer(s) in bss section", c);
 
 					// Fall through, since older versions of substitute-loader still called dlopen normally and we don't know what we're dealing with
 				}
