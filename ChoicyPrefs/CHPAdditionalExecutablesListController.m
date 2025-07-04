@@ -29,10 +29,16 @@
 
 @implementation CHPAdditionalExecutablesListController
 
+// iOS 16+
+- (UIBarButtonItem *)editBarButtonItem
+{
+	return [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonPressed)];
+}
+
+// iOS 11-15
 - (id)_editButtonBarItem
 {
-	UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonPressed)];
-	return addButton;
+	return [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addButtonPressed)];
 }
 
 - (id)previewStringForSpecifier:(PSSpecifier *)specifier
