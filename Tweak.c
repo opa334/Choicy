@@ -42,6 +42,7 @@ void *dyld_dlopen_hook(const void *dyld, const char *path, int mode);
 
 bool gShouldLog = true;
 #define os_log_dbg(args ...) if (gShouldLog) os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEBUG, args)
+#define os_log_err(args ...) if (gShouldLog) os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_ERROR, args)
 
 extern xpc_object_t xpc_create_from_plist(const void *buf, size_t len);
 #define kEnvDeniedTweaksOverride "CHOICY_DENIED_TWEAKS_OVERRIDE"
@@ -263,6 +264,8 @@ void load_process_info(void)
 	else if (string_has_suffix(executableDir, ".appex")) gProcessType = PROCESS_TYPE_PLUGIN;
 	else												 gProcessType = PROCESS_TYPE_BINARY;
 
+	os_log_dbg("Identified process type: %d\n", gProcessType);
+
 	// Load application identifier
 	size_t infoPlistPathSize = strlen(executableDir) + strlen("/Info.plist") + 1;
 	char infoPlistPath[infoPlistPathSize];
@@ -275,6 +278,7 @@ void load_process_info(void)
 			const char *bundleIdentifier = xpc_dictionary_get_string(infoXdict, "CFBundleIdentifier");
 			if (bundleIdentifier) {
 				gBundleIdentifier = strdup(bundleIdentifier);
+				os_log_dbg("Identified bundle identifier: %{PUBLIC}s", gBundleIdentifier);
 			}
 			xpc_release(infoXdict);
 		}
@@ -283,6 +287,18 @@ void load_process_info(void)
 	// Load overwrites from environment
 	parse_allow_deny_list(getenv(kEnvDeniedTweaksOverride), &gDeniedTweaks);
 	parse_allow_deny_list(getenv(kEnvAllowedTweaksOverride), &gAllowedTweaks);
+
+	if (gDeniedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+		char *gDeniedTweaksDesc = xpc_copy_description(gDeniedTweaks);
+		os_log_dbg("Loaded denied tweaks from environment: %{PUBLIC}s", gDeniedTweaksDesc ?: "<none>");
+		if (gDeniedTweaksDesc) free(gDeniedTweaksDesc);
+
+	}
+	if (gAllowedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+		char *gAllowedTweaksDesc = xpc_copy_description(gAllowedTweaks);
+		os_log_dbg("Loaded allowed tweaks from environment: %{PUBLIC}s", gAllowedTweaksDesc ?: "<none>");
+		if (gAllowedTweaksDesc) free(gAllowedTweaksDesc);
+	}
 
 	// Load preferences
 	xpc_object_t preferencesXdict = xpc_object_from_plist(kChoicyPrefsPlistPath);
@@ -312,15 +328,40 @@ void load_process_info(void)
 				}
 			}
 
+			if (processPreferencesXdict && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+				char *processPreferencesXdictDesc = xpc_copy_description(processPreferencesXdict);
+				os_log_dbg("Loaded process preferences: %{PUBLIC}s", processPreferencesXdictDesc ?: "<none>");
+				if (processPreferencesXdictDesc) free(processPreferencesXdictDesc);
+			}
+
 			// Load global preferences
 			load_global_preferences(preferencesXdict, processPreferencesXdict);
+			if (gGlobalDeniedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+				char *gGlobalDeniedTweaksDesc = xpc_copy_description(gGlobalDeniedTweaks);
+				os_log_dbg("Loaded globally denied tweaks: %{PUBLIC}s", gGlobalDeniedTweaksDesc ?: "<none>");
+				if (gGlobalDeniedTweaksDesc) free(gGlobalDeniedTweaksDesc);
+			}
 
 			// If neither the allow nor the deny list has been overwritten from the environment, load them from preferences
 			if (!gDeniedTweaks && !gAllowedTweaks && processPreferencesXdict) {
 				load_process_preferences(preferencesXdict, processPreferencesXdict);
+
+				if (gDeniedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+					char *gDeniedTweaksDesc = xpc_copy_description(gDeniedTweaks);
+					os_log_dbg("Loaded denied tweaks from process preferences: %{PUBLIC}s", gDeniedTweaksDesc ?: "<none>");
+					if (gDeniedTweaksDesc) free(gDeniedTweaksDesc);
+				}
+				if (gAllowedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+					char *gAllowedTweaksDesc = xpc_copy_description(gAllowedTweaks);
+					os_log_dbg("Loaded allowed tweaks from process preferences: %{PUBLIC}s", gAllowedTweaksDesc ?: "<none>");
+					if (gAllowedTweaksDesc) free(gAllowedTweaksDesc);
+				}
 			}
 		}
 		xpc_release(preferencesXdict);
+	}
+	else if (gShouldLog) {
+		os_log_err("Choicy failed to load preferences");
 	}
 }
 
@@ -525,7 +566,7 @@ int replace_bss_pointer(const struct mach_header *mh, void *pointerToReplace, vo
 __attribute__((constructor)) static void initializer(void)
 {
 	load_process_info();
-	os_log_dbg("Choicy works");
+	os_log_dbg("Choicy loaded");
 
 	if (gTweakInjectionDisabled || gAllowedTweaks || gDeniedTweaks || gGlobalDeniedTweaks) {
 		os_log_dbg("Initializing Choicy...");
