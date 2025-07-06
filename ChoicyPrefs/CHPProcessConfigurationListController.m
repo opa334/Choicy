@@ -112,11 +112,11 @@
 
 - (void)viewDidLoad
 {
+	[super viewDidLoad];
+
 	if ([_appIdentifier isEqualToString:kSpringboardBundleID]) {
 		self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:localize(@"RESPRING") style:UIBarButtonItemStylePlain target:self action:@selector(respring)];
 	}
-
-	[super viewDidLoad];
 
 	[self updateSwitchesAvailability];
 }
