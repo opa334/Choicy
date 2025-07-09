@@ -296,13 +296,12 @@ void load_process_info(void)
 	parse_allow_deny_list(getenv(kEnvDeniedTweaksOverride), &gDeniedTweaks);
 	parse_allow_deny_list(getenv(kEnvAllowedTweaksOverride), &gAllowedTweaks);
 
-	if (gDeniedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+	if (gDeniedTweaks && gShouldLog && os_log_debug_enabled(OS_LOG_DEFAULT)) {
 		char *gDeniedTweaksDesc = xpc_copy_description(gDeniedTweaks);
 		os_log_dbg("Loaded denied tweaks from environment: %{PUBLIC}s", gDeniedTweaksDesc ?: "<none>");
 		if (gDeniedTweaksDesc) free(gDeniedTweaksDesc);
-
 	}
-	if (gAllowedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+	if (gAllowedTweaks && gShouldLog && os_log_debug_enabled(OS_LOG_DEFAULT)) {
 		char *gAllowedTweaksDesc = xpc_copy_description(gAllowedTweaks);
 		os_log_dbg("Loaded allowed tweaks from environment: %{PUBLIC}s", gAllowedTweaksDesc ?: "<none>");
 		if (gAllowedTweaksDesc) free(gAllowedTweaksDesc);
@@ -336,7 +335,7 @@ void load_process_info(void)
 				}
 			}
 
-			if (processPreferencesXdict && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+			if (processPreferencesXdict && gShouldLog && os_log_debug_enabled(OS_LOG_DEFAULT)) {
 				char *processPreferencesXdictDesc = xpc_copy_description(processPreferencesXdict);
 				os_log_dbg("Loaded process preferences: %{PUBLIC}s", processPreferencesXdictDesc ?: "<none>");
 				if (processPreferencesXdictDesc) free(processPreferencesXdictDesc);
@@ -344,7 +343,7 @@ void load_process_info(void)
 
 			// Load global preferences
 			load_global_preferences(preferencesXdict, processPreferencesXdict);
-			if (gGlobalDeniedTweaks && os_log_debug_enabled(OS_LOG_DEFAULT)) {
+			if (gGlobalDeniedTweaks && gShouldLog && os_log_debug_enabled(OS_LOG_DEFAULT)) {
 				char *gGlobalDeniedTweaksDesc = xpc_copy_description(gGlobalDeniedTweaks);
 				os_log_dbg("Loaded globally denied tweaks: %{PUBLIC}s", gGlobalDeniedTweaksDesc ?: "<none>");
 				if (gGlobalDeniedTweaksDesc) free(gGlobalDeniedTweaksDesc);
