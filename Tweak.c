@@ -624,16 +624,18 @@ __attribute__((constructor)) static void initializer(void)
 
 					// Fall through, since older versions of substitute-loader still called dlopen normally and we don't know what we're dealing with
 				}
-#ifdef __arm64e__
-				// Second: dyld_dynamic_interpose seems to cause a nullptr deref in arm64e processes
-				// So, we have to use a litehook rebind instead
+#ifdef __arm64__
+				// arm64/arm64e: use litehook GOT rebinding in tweak loader.
+				// dyld_dynamic_interpose is a no-op stub on iOS 15+ and causes
+				// nullptr deref on arm64e, so it cannot be used on modern iOS.
 				litehook_rebind_symbol((const mach_header *)tweakLoaderHeader, dlopen, dlopen_hook);
 				if (dlopen_from) {
 					litehook_rebind_symbol((const mach_header *)tweakLoaderHeader, dlopen_from, dlopen_from_hook);
 				}
+				os_log_dbg("Rebinding dlopen in tweak loader via litehook");
 				return;
-#endif
-				// If not arm64e, we can just use dyld_dynamic_interpose, which (unlike litehook) supports armv7 aswell
+#else
+				// armv7: litehook doesn't support armv7, use dyld_dynamic_interpose
 				static struct dyld_interpose_tuple interposes[2];
 				interposes[0] = (struct dyld_interpose_tuple){ .replacement = dlopen_hook, .replacee = dlopen };
 				if (dlopen_from) {
@@ -641,6 +643,7 @@ __attribute__((constructor)) static void initializer(void)
 				}
 				dyld_dynamic_interpose(tweakLoaderHeader, interposes, dlopen_from ? 2 : 1);
 				os_log_dbg("Initialized %u interpose(s) in tweak loader", dlopen_from ? 2 : 1);
+#endif
 			}
 			else {
 				os_log_dbg("Unable to find tweak loader");
