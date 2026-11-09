@@ -68,6 +68,15 @@ jobs:
           path: .ci/AltList
           persist-credentials: false
 
+      - name: Check out pinned XPC development headers
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: theos/templates
+          ref: 7d98646871281e5b71e280e8f80d3fc27b69aeef # C XPC service headers
+          path: .ci/xpc-headers
+          sparse-checkout: ios/xpc_service/headers/xpc
+          persist-credentials: false
+
       - name: Select the pre-installed Xcode compiler for every scheme
         run: |
           set -euo pipefail
@@ -95,6 +104,16 @@ jobs:
           echo "$SDK_SHA256  $sdk_archive" | shasum -a 256 -c -
           tar -xf "$sdk_archive" -C "$THEOS/sdks"
 
+      - name: Install XPC development headers
+        run: |
+          set -euo pipefail
+          source_headers=.ci/xpc-headers/ios/xpc_service/headers/xpc
+          mkdir -p "$THEOS/include/xpc"
+          for header in activity.h availability.h base.h connection.h debug.h endpoint.h xpc.h; do
+            test -s "$source_headers/$header"
+            cp "$source_headers/$header" "$THEOS/include/xpc/$header"
+          done
+
       - name: Verify source, SDK, and scheme development files
         run: |
           set -euo pipefail
@@ -106,6 +125,9 @@ jobs:
           test -n "$(find external/ChOma/src -name '*.c' -print -quit)"
           test -s "$THEOS/vendor/include/Preferences/PSListController.h"
           test -s "$THEOS/vendor/include/libroot/libroot.h"
+          test -s "$THEOS/include/xpc/xpc.h"
+          test -s "$THEOS/vendor/include/launch.h"
+          test -s "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/usr/include/bsm/audit.h"
           test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/Frameworks/UIKit.framework"
           test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/PrivateFrameworks/Preferences.framework"
           test -x "${PREFIX}clang"
