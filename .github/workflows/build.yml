@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       xcode11_archive_url:
-        description: 'HTTPS tar archive containing one complete Xcode 11.7 .xctoolchain directory (Rootful only)'
+        description: 'HTTPS download URL for Xcode_11.7.xip or a complete Xcode 11.7 .xctoolchain tar archive (Rootful only)'
         required: true
         type: string
       xcode11_archive_sha256:
-        description: 'SHA-256 of the Xcode 11.7 toolchain archive (64 hexadecimal characters)'
+        description: 'SHA-256 of the supplied .xip or tar archive (64 hexadecimal characters)'
         required: true
         type: string
 
@@ -121,13 +121,23 @@ jobs:
           set -euo pipefail
           [[ "$XCODE11_ARCHIVE_URL" == https://* ]]
           [[ "$XCODE11_ARCHIVE_SHA256" =~ ^[[:xdigit:]]{64}$ ]]
-          archive="$GITHUB_WORKSPACE/.ci/downloads/xcode11-toolchain.tar"
+          archive="$GITHUB_WORKSPACE/.ci/downloads/xcode11-archive"
           unpacked="$GITHUB_WORKSPACE/.ci/xcode11-unpacked"
           mkdir -p "$unpacked" "$THEOS/toolchain"
           curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
             "$XCODE11_ARCHIVE_URL" --output "$archive"
           echo "$XCODE11_ARCHIVE_SHA256  $archive" | shasum -a 256 -c -
-          tar -xf "$archive" -C "$unpacked"
+          if [[ "$(head -c 4 "$archive")" == 'xar!' ]]; then
+            # Apple distributes Xcode as a signed XAR/XIP. The hosted Mac can
+            # expand it; the owner does not need a Mac to prepare a tar archive.
+            mv "$archive" "${archive}.xip"
+            archive="${archive}.xip"
+            mkdir -p "$GITHUB_WORKSPACE/.ci/xip-tmp"
+            df -h "$GITHUB_WORKSPACE"
+            (cd "$unpacked" && TMPDIR="$GITHUB_WORKSPACE/.ci/xip-tmp" /usr/bin/xip --expand "$archive")
+          else
+            tar -xf "$archive" -C "$unpacked"
+          fi
           toolchains=()
           while IFS= read -r -d '' candidate; do
             toolchains+=("$candidate")
@@ -139,6 +149,10 @@ jobs:
           test -s "$THEOS/toolchain/Xcode11.xctoolchain/usr/lib/arc/libarclite_iphoneos.a"
           "${compiler_prefix}clang" --version | tee .ci/xcode11-version.txt
           grep -Eq 'Apple clang version 11\.' .ci/xcode11-version.txt
+          # Only the complete toolchain is needed after expansion. These paths
+          # are temporary downloads/extraction directories inside this checkout.
+          rm -f -- "$archive"
+          rm -rf -- "$unpacked" "$GITHUB_WORKSPACE/.ci/xip-tmp"
           echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
 
       - name: Select the modern compiler
