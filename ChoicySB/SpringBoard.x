@@ -100,33 +100,66 @@ void choicy_refreshIconTags(void)
 	});
 }
 
-static void choicyOpenApplicationSettings(SBSApplicationShortcutItem *item)
+static void choicyOpenSettingsURL(NSURL *url, void (^completion)(BOOL))
+{
+	SpringBoard *application = (SpringBoard *)[UIApplication sharedApplication];
+	SBUserAgent *userAgent = [application respondsToSelector:@selector(pluginUserAgent)] ? [application pluginUserAgent] : nil;
+	if ([userAgent respondsToSelector:@selector(openURL:allowUnlock:animated:)]) {
+		completion([userAgent openURL:url allowUnlock:NO animated:NO]);
+		return;
+	}
+	if ([application respondsToSelector:@selector(openURL:options:completionHandler:)]) {
+		[application openURL:url options:@{} completionHandler:completion];
+		return;
+	}
+	NSLog(@"Choicy could not find a Settings URL opener");
+	completion(NO);
+}
+
+static dispatch_block_t choicyPrepareApplicationSettingsActivation(SBSApplicationShortcutItem *item)
 {
 	NSString *applicationID = [item.userInfo isKindOfClass:[NSDictionary class]] ? item.userInfo[@"applicationIdentifier"] : nil;
-	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length) return;
-	if (!choicyWriteApplicationSettingsRequest(applicationID)) return;
-	NSURLComponents *components = [NSURLComponents new];
-	components.scheme = @"prefs";
-	components.queryItems = @[
-		[NSURLQueryItem queryItemWithName:@"root" value:kChoicyPreferencesRootID],
-		[NSURLQueryItem queryItemWithName:@"path" value:[@[kChoicyApplicationsSpecifierID, applicationID] componentsJoinedByString:@"/"]]
-	];
-	// Preferences uses an opaque resource specifier (prefs:root=...&path=...),
-	// rather than a hierarchical URL. Let NSURLComponents encode the values.
-	NSString *encodedRoute = components.percentEncodedQuery;
-	components.queryItems = nil;
-	components.percentEncodedPath = encodedRoute;
-	UIApplication *application = [UIApplication sharedApplication];
-	if (@available(iOS 10.0, *)) {
-		[application openURL:components.URL options:@{} completionHandler:nil];
+	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length) return nil;
+
+	NSString *route = [@"prefs:root=" stringByAppendingString:kChoicyPreferencesRootID];
+	NSURL *url = [NSURL URLWithString:route];
+	if (![route isEqualToString:url.absoluteString]) {
+		NSLog(@"Choicy could not construct its Settings URL");
+		return nil;
 	}
-	else {
-		#pragma clang diagnostic push
-		#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-		[application openURL:components.URL];
-		#pragma clang diagnostic pop
+
+	// Stage during the tap so a new selection supersedes any pending dismissal or launch.
+	NSString *requestID = choicyStageApplicationSettingsRequest(applicationID);
+	if (!requestID) {
+		NSLog(@"Choicy could not stage its Settings request");
+		return nil;
 	}
-	CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kChoicyOpenRequestNotification, NULL, NULL, YES);
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kChoicyOpenRequestLifetime * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+		if (choicyCancelApplicationSettingsRequest(requestID)) {
+			NSLog(@"Choicy Settings request expired before navigation");
+		}
+	});
+
+	return ^{
+		dispatch_async(dispatch_get_main_queue(), ^{
+			NSString *currentRequestID = choicyPendingApplicationSettingsRequest(NO)[@"requestID"];
+			if (![requestID isEqualToString:currentRequestID]) return;
+			choicyOpenSettingsURL(url, ^(BOOL accepted) {
+				if (!accepted) {
+					choicyCancelApplicationSettingsRequest(requestID);
+					NSLog(@"Choicy could not open %@", url);
+					return;
+				}
+				if (!choicyMarkApplicationSettingsRequestReady(requestID)) {
+					if (choicyCancelApplicationSettingsRequest(requestID)) {
+						NSLog(@"Choicy could not mark its Settings request ready");
+					}
+					return;
+				}
+				CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), kChoicyOpenRequestNotification, NULL, NULL, YES);
+			});
+		});
+	};
 }
 
 BOOL choicy_shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjectionState)
@@ -156,6 +189,14 @@ static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, 
 		if (![item.type isEqualToString:kChoicyLaunchShortcutType] && ![item.type isEqualToString:kChoicyOpenShortcutType]) [items addObject:item];
 	}
 	if (!applicationID.length) return items;
+	if (parseNumberBool(preferences[kChoicyPrefsKeyOpenInChoicyOptionEnabled], NO)) {
+		SBSApplicationShortcutItem *open = [[NSClassFromString(@"SBSApplicationShortcutItem") alloc] init];
+		open.type = kChoicyOpenShortcutType;
+		open.localizedTitle = localize(@"OPEN_IN_CHOICY");
+		open.userInfo = @{@"applicationIdentifier": applicationID};
+		open.bundleIdentifierToLaunch = kPreferencesBundleID;
+		[items addObject:open];
+	}
 	BOOL disabled = choicy_shouldDisableTweakInjectionForApplication(applicationID);
 	if (choicy_shouldShow3DTouchOptionForDisableTweakInjectionState(disabled)) {
 		SBSApplicationShortcutItem *launch = [[NSClassFromString(@"SBSApplicationShortcutItem") alloc] init];
@@ -167,14 +208,6 @@ static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, 
 			launch.icon = [[NSClassFromString(@"SBSApplicationShortcutCustomImageIcon") alloc] initWithImageData:UIImagePNGRepresentation(image) dataType:0 isTemplate:YES];
 		}
 		[items addObject:launch];
-	}
-	if (parseNumberBool(preferences[kChoicyPrefsKeyOpenInChoicyOptionEnabled], NO)) {
-		SBSApplicationShortcutItem *open = [[NSClassFromString(@"SBSApplicationShortcutItem") alloc] init];
-		open.type = kChoicyOpenShortcutType;
-		open.localizedTitle = localize(@"OPEN_IN_CHOICY");
-		open.userInfo = @{@"applicationIdentifier": applicationID};
-		open.bundleIdentifierToLaunch = kPreferencesBundleID;
-		[items addObject:open];
 	}
 	return items;
 }
@@ -272,10 +305,21 @@ static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, 
 	return choicyShortcutItems(original, choicyApplicationIDForIconView(self), YES);
 }
 
-+ (void)activateShortcut:(SBSApplicationShortcutItem *)item withBundleIdentifier:(NSString *)bundleID forIconView:(id)iconView
++ (void)activateShortcut:(SBSApplicationShortcutItem *)item withBundleIdentifier:(NSString *)bundleID forIconView:(SBIconView *)iconView
 {
 	if ([item.type isEqualToString:kChoicyOpenShortcutType]) {
-		choicyOpenApplicationSettings(item);
+		dispatch_block_t activate = choicyPrepareApplicationSettingsActivation(item);
+		if (!activate) return;
+		// Leave the action callback before checking the system's dismissal state.
+		dispatch_async(dispatch_get_main_queue(), ^{
+			if ([iconView respondsToSelector:@selector(performAfterContextMenusDismissUsingBlock:)]
+				&& [iconView respondsToSelector:@selector(isContextMenuInteractionActive)] && [iconView isContextMenuInteractionActive]) {
+				[iconView performAfterContextMenusDismissUsingBlock:activate];
+			}
+			else {
+				activate();
+			}
+		});
 		return;
 	}
 	if ([item.type isEqualToString:kChoicyLaunchShortcutType]) {
@@ -308,13 +352,16 @@ static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, 
 - (void)appIconForceTouchShortcutViewController:(id)arg1 activateApplicationShortcutItem:(SBSApplicationShortcutItem *)item
 {
 	if ([item.type isEqualToString:kChoicyOpenShortcutType]) {
+		dispatch_block_t activate = choicyPrepareApplicationSettingsActivation(item);
 		if ([self respondsToSelector:@selector(dismissAnimated:withCompletionHandler:)]) {
-			[self dismissAnimated:NO withCompletionHandler:nil];
+			[self dismissAnimated:NO withCompletionHandler:activate];
 		}
 		else if ([arg1 isKindOfClass:[UIViewController class]]) {
-			[(UIViewController *)arg1 dismissViewControllerAnimated:NO completion:nil];
+			[(UIViewController *)arg1 dismissViewControllerAnimated:NO completion:activate];
 		}
-		choicyOpenApplicationSettings(item);
+		else if (activate) {
+			activate();
+		}
 		return;
 	}
 	if ([item.type isEqualToString:kChoicyLaunchShortcutType]) {

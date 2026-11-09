@@ -22,6 +22,14 @@
 #import <UIKit/UIKit.h>
 #import "RunningBoard.h"
 
+@interface SBUserAgent : NSObject
+- (BOOL)openURL:(NSURL *)url allowUnlock:(BOOL)allowUnlock animated:(BOOL)animated;
+@end
+
+@interface SpringBoard : UIApplication
+- (SBUserAgent *)pluginUserAgent;
+@end
+
 @interface FBSystemService : NSObject
 + (id)sharedInstance;
 - (void)exitAndRelaunch:(BOOL)arg1;
@@ -77,6 +85,8 @@
 - (UIView *)_iconImageView;
 - (NSString *)applicationBundleIdentifier;
 - (NSString *)applicationBundleIdentifierForShortcuts;
+- (BOOL)isContextMenuInteractionActive;
+- (void)performAfterContextMenusDismissUsingBlock:(id)block;
 @end
 
 @interface SBUIAppIconForceTouchControllerDataProvider : NSObject
