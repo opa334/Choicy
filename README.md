@@ -11,17 +11,17 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 - **NEW** Option for an application shortcut to launch injection settings for that app.
 - **NEW** Option to add grey dot to app icons that have custom / blocked injection. 
 
+## Install Choicy on iOS 15+
+
+1. Download the deb file matching your jailbreak environment from the [latest release](https://github.com/EolnMsuk/ChoySee/releases).
+2. Open it with Sileo or Zebra and install.
+
 | Verified output | Firmware dependency | Filename |
 | --- | --- | --- |
 | GitHub Rootless | `>= 15.0` | `Choicy_1.5.5~b3_Rootless.deb` |
 | GitHub native Roothide | `>= 15.0` | `Choicy_1.5.5~b3_Roothide.deb` |
 | GitHub Rootful | `>= 15.0` | `Choicy_1.5.5~b3_Rootful.deb` |
 | Local Legacy Rootful | `>= 10.0` | `Choicy_1.5.5~b3_Rootful_Legacy_iOS10.deb` |
-
-## Install Choicy on iOS 15+
-
-1. Download the deb file matching your jailbreak environment from the [latest release](https://github.com/EolnMsuk/ChoySee/releases).
-2. Open it with Sileo or Zebra and install.
 
 ### Legacy Rootful on a prepared macOS host
 
