@@ -82,15 +82,12 @@ jobs:
       - name: Provision packaging tools, signing tool, and patched SDK
         run: |
           set -euo pipefail
-          brew install make dpkg xz zstd
-          mkdir -p .ci/bin .ci/downloads "$THEOS/sdks"
+          brew install make dpkg xz zstd ldid-procursus
+          brew list --versions make dpkg xz zstd ldid-procursus
+          test -x "$(brew --prefix ldid-procursus)/bin/ldid"
+          mkdir -p .ci/downloads "$THEOS/sdks"
           echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
-          echo "$GITHUB_WORKSPACE/.ci/bin" >> "$GITHUB_PATH"
-          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
-            https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_macosx_x86_64 \
-            --output .ci/bin/ldid
-          echo '9d46e0feedf96e399edfca09872802ba21e729f79c01927ad25ea2b0a35bca23  .ci/bin/ldid' | shasum -a 256 -c -
-          chmod +x .ci/bin/ldid
+          echo "$(brew --prefix ldid-procursus)/bin" >> "$GITHUB_PATH"
           sdk_archive=".ci/downloads/iPhoneOS${BUILD_SDK}.sdk.tar.xz"
           curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS${BUILD_SDK}.sdk.tar.xz" \
