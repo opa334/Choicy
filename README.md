@@ -10,6 +10,7 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 - Option for an application shortcut to launch the application with or without tweaks once
 - **NEW** - Option for an application shortcut to launch injection settings for that app.
 - **NEW** - Option to add grey dot to app icons that have custom / blocked injection. 
+- **NEW** - Auto sorts the application and daemon lists to show configured at the top.
 
 ## Install Choicy on iOS 15+
 
