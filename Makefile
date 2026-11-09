@@ -1,7 +1,9 @@
-ifeq ($(THEOS_PACKAGE_SCHEME),rootless)
-TARGET = iphone:clang:16.5:15.0
+ifneq ($(filter rootless roothide,$(THEOS_PACKAGE_SCHEME)),)
+export TARGET = iphone:clang:16.5:15.0
+export ARCHS = arm64 arm64e
 else
-TARGET = iphone:clang:13.7:8.0
+export TARGET = iphone:clang:13.7:8.0
+export ARCHS = armv7 arm64 arm64e
 endif
 
 include $(THEOS)/makefiles/common.mk
@@ -10,6 +12,9 @@ TWEAK_NAME = Choicy
 
 Choicy_FILES = Tweak.c Tweak.s nextstep_plist.c $(wildcard external/litehook/src/*.c)
 Choicy_CFLAGS = -DTHEOS_LEAN_AND_MEAN -I./external/litehook/src -I./external/litehook/external/include
+ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
+Choicy_LIBRARIES += roothide
+endif
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 SUBPROJECTS += ChoicyPrefs

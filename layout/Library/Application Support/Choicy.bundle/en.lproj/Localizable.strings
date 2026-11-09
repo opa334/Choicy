@@ -10,6 +10,11 @@
 "LAUNCH_WITHOUT_TWEAKS_OPTION" = "\"Launch Without Tweaks\" Option";
 "LAUNCH_WITH_TWEAKS_OPTION" = "\"Launch With Tweaks\" Option";
 "APP_OPTIONS" = "App Options";
+"TAG_CUSTOM_APPS" = "Tag Custom Apps";
+"OPEN_IN_CHOICY_OPTION" = "\"Open in Choicy\" Option";
+"OPEN_IN_CHOICY" = "Open in Choicy";
+"CONFIGURED" = "Configured";
+"APP_OPTIONS_LAUNCH_AND_ICON_TAG_FOOTER" = "Adds an option to 3D touch / haptic touch menu on apps to launch with or without tweak injection.\n\nTag Custom Apps places a small grey dot at the bottom-right of an app's icon when tweak injection is disabled or custom rules are enabled.";
 "APP_OPTIONS_FOOTER" = "Adds an option to the 3D touch / haptic touch menu of applications with the ability to launch the application once without tweaks. If enabled, the option will turn into \"Launch with Tweaks\" when tweak injection has been disabled inside the process configuration of the application.";
 "CUSTOM_TWEAK_CONFIGURATION" = "Custom Tweak Configuration";
 "ALLOW" = "Allow";

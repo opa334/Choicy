@@ -19,7 +19,9 @@
 // SOFTWARE.
 
 #import "Shared.h"
-#import "libroot.h"
+#import <sys/file.h>
+#import <fcntl.h>
+#import <unistd.h>
 
 BOOL parseNumberBool(id number, BOOL default_)
 {
@@ -76,12 +78,88 @@ NSString *localize(NSString *key)
 
 NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID)
 {
+	if (![preferences isKindOfClass:[NSDictionary class]] || ![applicationID isKindOfClass:[NSString class]]) return nil;
 	NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
-	return [appSettings objectForKey:applicationID];
+	if (![appSettings isKindOfClass:[NSDictionary class]]) return nil;
+	id processPreferences = [appSettings objectForKey:applicationID];
+	return [processPreferences isKindOfClass:[NSDictionary class]] ? processPreferences : nil;
 }
 
 NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName)
 {
+	if (![preferences isKindOfClass:[NSDictionary class]] || ![daemonDisplayName isKindOfClass:[NSString class]]) return nil;
 	NSDictionary *daemonSettings = [preferences objectForKey:kChoicyPrefsKeyDaemonSettings];
-	return [daemonSettings objectForKey:daemonDisplayName];
+	if (![daemonSettings isKindOfClass:[NSDictionary class]]) return nil;
+	id processPreferences = [daemonSettings objectForKey:daemonDisplayName];
+	return [processPreferences isKindOfClass:[NSDictionary class]] ? processPreferences : nil;
+}
+
+BOOL processPreferencesAreConfigured(NSDictionary *processPreferences)
+{
+	if (![processPreferences isKindOfClass:[NSDictionary class]]) return NO;
+	return parseNumberBool(processPreferences[kChoicyProcessPrefsKeyTweakInjectionDisabled], NO)
+		|| parseNumberBool(processPreferences[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled], NO);
+}
+
+// Serialize the read/consume pair with SpringBoard's next write, so consuming an
+// older request cannot accidentally remove a newer app selection.
+static int choicyLockOpenRequest(void)
+{
+	NSString *directory = [kChoicyOpenRequestPath stringByDeletingLastPathComponent];
+	[[NSFileManager defaultManager] createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:nil];
+	int descriptor = open([[kChoicyOpenRequestPath stringByAppendingString:@".lock"] fileSystemRepresentation], O_CREAT | O_RDWR, 0600);
+	if (descriptor >= 0 && flock(descriptor, LOCK_EX) != 0) {
+		close(descriptor);
+		return -1;
+	}
+	return descriptor;
+}
+
+static void choicyUnlockOpenRequest(int descriptor)
+{
+	flock(descriptor, LOCK_UN);
+	close(descriptor);
+}
+
+BOOL choicyWriteApplicationSettingsRequest(NSString *applicationID)
+{
+	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length) return NO;
+	int descriptor = choicyLockOpenRequest();
+	if (descriptor < 0) return NO;
+	NSDictionary *request = @{@"applicationIdentifier": applicationID, @"requestID": [NSUUID UUID].UUIDString, @"createdAt": [NSDate date]};
+	BOOL written = [request writeToFile:kChoicyOpenRequestPath atomically:YES];
+	choicyUnlockOpenRequest(descriptor);
+	return written;
+}
+
+NSDictionary *choicyPendingApplicationSettingsRequest(void)
+{
+	int descriptor = choicyLockOpenRequest();
+	if (descriptor < 0) return nil;
+	NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:kChoicyOpenRequestPath];
+	NSString *applicationID = request[@"applicationIdentifier"];
+	NSString *requestID = request[@"requestID"];
+	NSDate *createdAt = request[@"createdAt"];
+	BOOL valid = [applicationID isKindOfClass:[NSString class]] && applicationID.length
+		&& [requestID isKindOfClass:[NSString class]] && requestID.length
+		&& [createdAt isKindOfClass:[NSDate class]]
+		&& createdAt.timeIntervalSinceNow <= 0 && createdAt.timeIntervalSinceNow >= -60;
+	if (!valid) {
+		[[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
+		request = nil;
+	}
+	choicyUnlockOpenRequest(descriptor);
+	return request;
+}
+
+BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID)
+{
+	if (!requestID.length) return NO;
+	int descriptor = choicyLockOpenRequest();
+	if (descriptor < 0) return NO;
+	NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:kChoicyOpenRequestPath];
+	BOOL matches = [requestID isEqual:request[@"requestID"]];
+	BOOL consumed = matches && [[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
+	choicyUnlockOpenRequest(descriptor);
+	return consumed;
 }

@@ -21,23 +21,36 @@
 #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 #import <HBLog.h>
-#import <libroot.h>
+#import "ChoicyRoot.h"
 
 extern NSBundle *CHBundle;
 extern NSString *localize(NSString *key);
 extern NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID);
 extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName);
+extern BOOL processPreferencesAreConfigured(NSDictionary *processPreferences);
+
+// This one-shot navigation request is separate from injection preferences.
+extern BOOL choicyWriteApplicationSettingsRequest(NSString *applicationID);
+extern NSDictionary *choicyPendingApplicationSettingsRequest(void);
+extern BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID);
 
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
 #define kChoicyPrefsPlistPath JBROOT_PATH(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
+#define kChoicyOpenRequestPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicy.open-request.plist")
+#define kChoicyOpenRequestNotification CFSTR("com.opa334.choicy/OpenApplicationSettings")
+#define kChoicyPreferencesDidReloadNotification @"ChoicyPreferencesDidReload"
+#define kChoicyPreferencesRootID @"ChoicyPrefs"
+#define kChoicyApplicationsSpecifierID @"Applications"
 #define kChoicyDylibName @"   Choicy"
 
 #define kChoicyPrefsKeyGlobalDeniedTweaks @"globalDeniedTweaks"
 #define kChoicyPrefsKeyAppSettings @"appSettings"
 #define kChoicyPrefsKeyDaemonSettings @"daemonSettings"
 #define kChoicyPrefsKeyAdditionalExecutables @"additionalExecutables"
+#define kChoicyPrefsKeyTagCustomAppsEnabled @"tagCustomAppsEnabled"
+#define kChoicyPrefsKeyOpenInChoicyOptionEnabled @"openInChoicyOptionEnabled"
 #define kChoicyProcessPrefsKeyTweakInjectionDisabled @"tweakInjectionDisabled"
 #define kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled @"customTweakConfigurationEnabled"
 #define kChoicyProcessPrefsKeyAllowDenyMode @"allowDenyMode"

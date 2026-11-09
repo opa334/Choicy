@@ -26,7 +26,7 @@
 #include <libgen.h>
 #include <os/log.h>
 #include <dlfcn.h>
-#include <libroot.h>
+#include "ChoicyRoot.h"
 #include <mach-o/dyld.h>
 #include <mach-o/getsect.h>
 #include <ptrauth.h>
