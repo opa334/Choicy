@@ -38,6 +38,7 @@
 {
 	[self applySearchControllerHideWhileScrolling:NO];
 	[[CHPDaemonList sharedInstance] addObserver:self];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(choicy_preferencesDidReload:) name:kChoicyPreferencesDidReloadNotification object:nil];
 
 	if (![CHPDaemonList sharedInstance].loaded) {
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^ {
@@ -49,6 +50,24 @@
 	}
 
 	[super viewDidLoad];
+}
+
+- (void)dealloc
+{
+	[[CHPDaemonList sharedInstance] removeObserver:self];
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+	[super viewWillAppear:animated];
+	choicy_reloadPreferences();
+	[self reloadSpecifiers];
+}
+
+- (void)choicy_preferencesDidReload:(NSNotification *)notification
+{
+	[self reloadSpecifiers];
 }
 
 - (NSString *)topTitle
@@ -109,6 +128,8 @@
 			[_specifiers addObject:daemonsGroup];
 
 			NSArray<CHPDaemonInfo*> *daemonList = [CHPDaemonList sharedInstance].daemonList;
+			NSMutableArray *configured = [NSMutableArray new];
+			NSMutableArray *ordinary = [NSMutableArray new];
 
 			for (CHPDaemonInfo *info in daemonList) {
 				if (_showsAllDaemons || [_suggestedDaemons containsObject:[info executableName]]) {
@@ -119,9 +140,16 @@
 					}
 					
 					PSSpecifier *specifier = [CHPListController createSpecifierForExecutable:info.executablePath named:info.executableName];
-					[_specifiers addObject:specifier];
+					NSString *applicationID = [specifier propertyForKey:@"applicationIdentifier"] ?: [specifier propertyForKey:@"pluginIdentifier"];
+					NSString *executablePath = [specifier propertyForKey:@"executablePath"];
+					NSDictionary *processPreferences = applicationID
+						? processPreferencesForApplication(preferences, applicationID)
+						: processPreferencesForDaemon(preferences, executablePath.lastPathComponent);
+					[(processPreferencesAreConfigured(processPreferences) ? configured : ordinary) addObject:specifier];
 				}
 			}
+			[_specifiers addObjectsFromArray:configured];
+			[_specifiers addObjectsFromArray:ordinary];
 		}
 	}
 
@@ -164,8 +192,10 @@
 
 - (void)daemonListDidUpdate:(CHPDaemonList *)list
 {
-	[self updateSuggestedDaemons];
-	[self reloadSpecifiers];
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[self updateSuggestedDaemons];
+		[self reloadSpecifiers];
+	});
 }
 
 - (id)controllerForSpecifier:(PSSpecifier *)specifier

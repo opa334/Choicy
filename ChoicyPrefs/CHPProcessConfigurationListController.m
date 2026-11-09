@@ -123,9 +123,10 @@
 
 - (void)viewWillDisappear:(BOOL)animated
 {
+	[super viewWillDisappear:animated];
 	// reload preview string in previous page
 	PSListController *topVC = (PSListController *)self.navigationController.topViewController;
-	if ([topVC respondsToSelector:@selector(reloadSpecifier:)]) {
+	if ([topVC respondsToSelector:@selector(reloadSpecifier:)] && [[topVC specifiers] containsObject:[self specifier]]) {
 		[topVC reloadSpecifier:[self specifier]];
 	}
 }

@@ -19,39 +19,42 @@ NSString *safe_getExecutablePath()
 
 void choicy_reloadPreferences(void)
 {
-	if (preferences) {
-		NSDictionary *oldPreferences = [preferences copy];
-		preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
-
-		if (gIsSpringBoard) {
-			NSDictionary *appSettings = [preferences objectForKey:kChoicyPrefsKeyAppSettings];
-			NSDictionary *oldAppSettings = [oldPreferences objectForKey:kChoicyPrefsKeyAppSettings];
-
-			NSMutableSet *allApps = [NSMutableSet setWithArray:[appSettings allKeys]];
-			[allApps unionSet:[NSMutableSet setWithArray:[oldAppSettings allKeys]]];
-
-			NSMutableSet *changedApps = [NSMutableSet new];
-
-			for (NSString *appKey in allApps) {
-				if (![((NSDictionary *)[appSettings objectForKey:appKey]) isEqualToDictionary:((NSDictionary *)[oldAppSettings objectForKey:appKey])]) {
-					[changedApps addObject:appKey];
-				}
-			}
-
-			for (NSString *applicationID in changedApps) {
-				if (![applicationID isEqualToString:kSpringboardBundleID] && ![applicationID isEqualToString:kPreferencesBundleID]) {
-					BKSTerminateApplicationForReasonAndReportWithDescription(applicationID, 5, false, @"Choicy - prefs changed, killed");
-				}
-			}
-		}
+	if (gIsSpringBoard && ![NSThread isMainThread]) {
+		dispatch_async(dispatch_get_main_queue(), ^{ choicy_reloadPreferences(); });
+		return;
 	}
-	else {
+	NSDictionary *oldPreferences = preferences ?: @{};
+	if (!preferences) {
 		NSString *parentDir = [kChoicyPrefsPlistPath stringByDeletingLastPathComponent];
 		if (![[NSFileManager defaultManager] fileExistsAtPath:parentDir]) {
 			[[NSFileManager defaultManager] createDirectoryAtPath:parentDir withIntermediateDirectories:YES attributes:nil error:nil];
 		}
-		preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
 	}
+	preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath] ?: @{};
+	if (gIsSpringBoard) {
+		NSDictionary *appSettings = preferences[kChoicyPrefsKeyAppSettings];
+		NSDictionary *oldAppSettings = oldPreferences[kChoicyPrefsKeyAppSettings];
+		if (![appSettings isKindOfClass:[NSDictionary class]]) appSettings = @{};
+		if (![oldAppSettings isKindOfClass:[NSDictionary class]]) oldAppSettings = @{};
+		NSMutableSet *allApps = [NSMutableSet setWithArray:appSettings.allKeys];
+		[allApps addObjectsFromArray:oldAppSettings.allKeys];
+		for (NSString *applicationID in allApps) {
+			if (![applicationID isKindOfClass:[NSString class]]) continue;
+			id current = appSettings[applicationID];
+			id previous = oldAppSettings[applicationID];
+			BOOL changed = current != previous && ![current isEqual:previous];
+			if (changed && ![applicationID isEqualToString:kSpringboardBundleID] && ![applicationID isEqualToString:kPreferencesBundleID]) {
+				BKSTerminateApplicationForReasonAndReportWithDescription(applicationID, 5, false, @"Choicy - prefs changed, killed");
+			}
+		}
+		// Also runs on first write and reset, and when only the visual switch changes.
+		choicy_refreshIconTags();
+	}
+}
+
+static void choicyPreferencesChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
+{
+	choicy_reloadPreferences();
 }
 
 BOOL choicy_shouldDisableTweakInjectionForApplication(NSString *applicationID)
@@ -161,7 +164,7 @@ void choicy_applyEnvironmentChangesToExecutionContext(FBProcessExecutionContext 
 %ctor
 {
 	choicy_reloadPreferences();
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)choicy_reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, choicyPreferencesChanged, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
 	if (preferences && [ChoicyPrefsMigrator preferencesNeedMigration:preferences]) {
 		NSMutableDictionary *preferencesM = preferences.mutableCopy;

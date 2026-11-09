@@ -47,6 +47,8 @@
 			<string>APPLICATIONS</string>
 			<key>detail</key>
 			<string>CHPApplicationListSubcontrollerController</string>
+			<key>id</key>
+			<string>Applications</string>
 			<key>subcontrollerClass</key>
 			<string>CHPProcessConfigurationListController</string>
 			<key>sections</key>
@@ -93,7 +95,7 @@
 			<key>label</key>
 			<string>APP_OPTIONS</string>
 			<key>footerText</key>
-			<string>APP_OPTIONS_FOOTER</string>
+			<string>APP_OPTIONS_LAUNCH_AND_ICON_TAG_FOOTER</string>
 		</dict>
 		<dict>
 			<key>cell</key>
@@ -118,6 +120,30 @@
 			<string>launchWithTweaksOptionEnabled</string>
 			<key>label</key>
 			<string>LAUNCH_WITH_TWEAKS_OPTION</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>PostNotification</key>
+			<string>com.opa334.choicyprefs/ReloadPrefs</string>
+			<key>default</key>
+			<false/>
+			<key>key</key>
+			<string>tagCustomAppsEnabled</string>
+			<key>label</key>
+			<string>TAG_CUSTOM_APPS</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>PostNotification</key>
+			<string>com.opa334.choicyprefs/ReloadPrefs</string>
+			<key>default</key>
+			<false/>
+			<key>key</key>
+			<string>openInChoicyOptionEnabled</string>
+			<key>label</key>
+			<string>OPEN_IN_CHOICY_OPTION</string>
 		</dict>
 		<dict>
 			<key>cell</key>
