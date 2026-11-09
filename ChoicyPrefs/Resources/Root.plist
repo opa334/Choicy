@@ -103,7 +103,19 @@
 			<key>PostNotification</key>
 			<string>com.opa334.choicyprefs/ReloadPrefs</string>
 			<key>default</key>
-			<false/>
+			<true/>
+			<key>key</key>
+			<string>tagCustomAppsEnabled</string>
+			<key>label</key>
+			<string>TAG_CUSTOM_APPS</string>
+		</dict>
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>PostNotification</key>
+			<string>com.opa334.choicyprefs/ReloadPrefs</string>
+			<key>default</key>
+			<true/>
 			<key>key</key>
 			<string>openInChoicyOptionEnabled</string>
 			<key>label</key>
@@ -115,7 +127,7 @@
 			<key>PostNotification</key>
 			<string>com.opa334.choicyprefs/ReloadPrefs</string>
 			<key>default</key>
-			<true/>
+			<false/>
 			<key>key</key>
 			<string>launchWithoutTweaksOptionEnabled</string>
 			<key>label</key>
@@ -132,18 +144,6 @@
 			<string>launchWithTweaksOptionEnabled</string>
 			<key>label</key>
 			<string>LAUNCH_WITH_TWEAKS_OPTION</string>
-		</dict>
-		<dict>
-			<key>cell</key>
-			<string>PSSwitchCell</string>
-			<key>PostNotification</key>
-			<string>com.opa334.choicyprefs/ReloadPrefs</string>
-			<key>default</key>
-			<false/>
-			<key>key</key>
-			<string>tagCustomAppsEnabled</string>
-			<key>label</key>
-			<string>TAG_CUSTOM_APPS</string>
 		</dict>
 		<dict>
 			<key>cell</key>

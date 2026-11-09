@@ -6,6 +6,6 @@ set -eu
 : "${THEOS:?Set THEOS to the prepared RootHide Theos checkout}"
 
 for scheme in rootless roothide ''; do
-	make clean THEOS_PACKAGE_SCHEME="$scheme"
-	make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME="$scheme"
+	make clean CHOICY_LEGACY=0 THEOS_PACKAGE_SCHEME="$scheme"
+	make package FINALPACKAGE=1 CHOICY_LEGACY=0 THEOS_PACKAGE_SCHEME="$scheme"
 done

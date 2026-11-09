@@ -322,7 +322,14 @@ static void choicyOpenRequestReceived(CFNotificationCenterRef center, void *obse
 	UIAlertController *resetPreferencesAlert = [UIAlertController alertControllerWithTitle:localize(@"RESET_PREFERENCES") message:localize(@"RESET_PREFERENCES_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
 
 	UIAlertAction *continueAction = [UIAlertAction actionWithTitle:localize(@"CONTINUE") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-		[[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:nil];
+		NSError *error = nil;
+		if (![[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:&error]
+			&& !([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == NSFileNoSuchFileError)) {
+			NSLog(@"Choicy could not reset preferences: %@", error);
+			return;
+		}
+		choicy_reloadPreferences();
+		[self reloadSpecifiers];
 		[[self class] sendChoicyPrefsPostNotification];
 	}];
 

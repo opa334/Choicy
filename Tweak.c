@@ -534,12 +534,12 @@ int dyld_hook_routine(void **dyld, int idx, void *hook, void **orig, uint16_t pa
 {
 	if (!dyld) return -1;
 
-	__unused uint64_t dyldPacDiversifier = ((uint64_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
+	__unused uint64_t dyldPacDiversifier = ((uint64_t)(uintptr_t)dyld & ~(0xFFFFull << 48)) | (0x63FAull << 48);
 	void **dyldFuncPtrs = ptrauth_auth_data(*dyld, ptrauth_key_process_independent_data, dyldPacDiversifier);
 	if (!dyldFuncPtrs) return -1;
 
 	if (vm_protect(mach_task_self_, (mach_vm_address_t)&dyldFuncPtrs[idx], sizeof(void *), false, VM_PROT_READ | VM_PROT_WRITE) == 0) {
-		uint64_t location = (uint64_t)&dyldFuncPtrs[idx];
+		uint64_t location = (uintptr_t)&dyldFuncPtrs[idx];
 		__unused uint64_t pacDiversifier = (location & ~(0xFFFFull << 48)) | ((uint64_t)pacSalt << 48);
 
 		*orig = ptrauth_auth_and_resign(dyldFuncPtrs[idx], ptrauth_key_process_independent_code, pacDiversifier, ptrauth_key_function_pointer, 0);
@@ -559,8 +559,8 @@ int replace_bss_pointers(const struct mach_header *mh, void *pointersToReplace[]
 
 	int replacementCount = 0;
 	void **bssPtrs = (void **)bssSection;
-	uint32_t bssPtrCount = (bssSectionSize / 8);
-	for (uint32_t i = 0; i < bssPtrCount; i++) {
+	size_t bssPtrCount = bssSectionSize / sizeof(*bssPtrs);
+	for (size_t i = 0; i < bssPtrCount; i++) {
 		void *curPtr = bssPtrs[i];
 		for (uint32_t k = 0; k < pointerCount; k++) {
 			if ((uintptr_t)curPtr == (uintptr_t)pointersToReplace[k]) {

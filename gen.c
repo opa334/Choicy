@@ -1,4 +1,5 @@
-// Modern Clang compiles these tail-call hooks directly for arm64 and arm64e.
+// Modern builds compile these hooks directly. The legacy build generates
+// per-architecture assembly from this source for its older toolchain.
 // musttail preserves the caller's return address when forwarding to dyld.
 
 #include <stdlib.h>
