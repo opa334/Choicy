@@ -27,9 +27,7 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 
 ### Legacy Rootful on a prepared macOS host
 
-Select this profile explicitly when targeting older Rootful jailbreaks. The shared sources target iOS 10.0 on `armv7` and `arm64`, and iOS 12.0 on old-ABI `arm64e`.
-
-From the project root, with `THEOS_PACKAGE_SCHEME` unset or empty, run the following with local paths to the prepared tools.
+Select this profile explicitly when targeting older Rootful jailbreaks. The shared sources target iOS 10.0 on `armv7` and `arm64`, and iOS 12.0 on old-ABI `arm64e`. From the project root, with `THEOS_PACKAGE_SCHEME` unset or empty, run the following with local paths to the prepared tools.
 
 ```sh
 THEOS=/absolute/path/to/prepared/theos \
