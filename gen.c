@@ -1,7 +1,5 @@
-// We need to compile fucking old ABI with Xcode 11
-// Xcode 11 however does not fucking support __attribute__((musttail))
-// So what we do instead is compile this C code into assembly with latest clang using gen_asm.sh
-// The right assembly file will then be included in Tweak.s
+// Modern Clang compiles these tail-call hooks directly for arm64 and arm64e.
+// musttail preserves the caller's return address when forwarding to dyld.
 
 #include <stdlib.h>
 #include <stdbool.h>

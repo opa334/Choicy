@@ -1,12 +1,11 @@
-#/bin/sh
-set -e
+#!/bin/sh
+set -eu
 
-export PREFIX=$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/
+# Use modern Xcode and a RootHide Theos checkout (which also supports the
+# default and rootless schemes), with matching AltList development frameworks.
+: "${THEOS:?Set THEOS to the prepared RootHide Theos checkout}"
 
-make clean
-make package FINALPACKAGE=1
-
-export -n PREFIX
-
-make clean
-make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+for scheme in rootless roothide ''; do
+	make clean THEOS_PACKAGE_SCHEME="$scheme"
+	make package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME="$scheme"
+done
