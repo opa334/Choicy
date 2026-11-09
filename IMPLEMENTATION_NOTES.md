@@ -43,8 +43,27 @@ Objective-C/Logos compilation and package verification were not run locally. Tho
 
 Dispatch `Build Choicy packages` with:
 
-- `xcode11_archive_url`: an HTTPS URL accessible to the runner without interactive authentication. Supply a tar archive, optionally gzip/xz compressed, containing exactly one complete `.xctoolchain` directory extracted from Xcode 11.7. Include its `usr/bin`, compiler libraries, and `usr/lib/arc/libarclite_iphoneos.a`.
-- `xcode11_archive_sha256`: the archive's 64-character SHA-256. The job verifies it before extracting and renames the toolchain directory to `$THEOS/toolchain/Xcode11.xctoolchain`.
+- `xcode11_archive_url`: an HTTPS URL accessible to the runner without interactive authentication. Supply Apple's original `Xcode_11.7.xip`, or a tar archive (optionally gzip/xz compressed) containing exactly one complete `.xctoolchain` directory from Xcode 11.7. Include its `usr/bin`, compiler libraries, and `usr/lib/arc/libarclite_iphoneos.a`.
+- `xcode11_archive_sha256`: the supplied `.xip` or tar archive's 64-character SHA-256. The job verifies the downloaded bytes before extracting. It detects an XIP by its `xar!` signature and expands it with Apple's `xip` on the hosted Mac, then moves the complete toolchain to `$THEOS/toolchain/Xcode11.xctoolchain`. Tar input continues to work. Temporary downloaded archives and the unused extracted Xcode files are removed after compiler validation.
+
+### Preparing the inputs from Windows
+
+Access to a personal Mac is not required. GitHub supplies the macOS runner that extracts and uses the compiler. The earlier Mac-only preparation instructions were unnecessarily restrictive.
+
+1. Sign in to [Apple's downloads page](https://developer.apple.com/download/all/?q=Xcode%2011.7) from Windows and download `Xcode_11.7.xip`. Save it in `C:\Choicy\toolchain-prep`. Keep the original file format; extraction on Windows is unnecessary.
+2. In PowerShell, calculate the hash of that original downloaded file:
+
+   ```powershell
+   Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Choicy\toolchain-prep\Xcode_11.7.xip' | Select-Object -ExpandProperty Hash
+   ```
+
+3. Upload that same `.xip` to private storage that can supply a direct, time-limited HTTPS download link. For example, in a private Amazon S3 bucket, upload the file, select it, and choose **Object actions > Share with a presigned URL**. Generate a link valid long enough for the queued CI job to download it. See [S3 upload instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/upload-objects.html) and [presigned URL instructions](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html).
+4. In GitHub's Run workflow form, paste the entire direct download link into `xcode11_archive_url` and the 64-character PowerShell result into `xcode11_archive_sha256`. An Apple login/download page URL is not a direct download link usable by this job.
+5. Run the workflow before the link expires. For subsequent runs, generate a new link if needed; the hash stays the same for an unchanged file.
+
+The original Apple archive is larger than a toolchain-only tar archive. XIP extraction therefore needs additional runner disk space and time; `df -h` is logged before expansion. The XIP follow-up passed YAML parsing, comparison of the unchanged matrix/settings/other steps, and whitespace checks. XIP extraction still needs its first owner-run CI execution. No compatibility target or package label was changed for this alternative.
+
+Apple documents [XIP extraction](https://developer.apple.com/forums/thread/133985), and GitHub documents its [hosted macOS runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). The Rootful legacy ABI requirement still applies; the change moves archive preparation onto that hosted runner.
 
 Confirm the current `macos-15-intel` image still supplies Xcode 16.4, the recursive source checkout resolves both submodules, and all three jobs finish. Each job builds a matching AltList development framework and calls `make package FINALPACKAGE=1` once for Choicy. The package verifier checks metadata and payload before copying and uploading one file.
 
