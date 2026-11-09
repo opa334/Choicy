@@ -8,6 +8,8 @@ ChoicyPrefs_FRAMEWORKS = UIKit
 ChoicyPrefs_PRIVATE_FRAMEWORKS = Preferences MobileCoreServices
 ChoicyPrefs_EXTRA_FRAMEWORKS = AltList
 ChoicyPrefs_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -I../external/ChOma/src -I../external/litehook/src
+# LiteHook's Mach return code can be unused in final builds.
+../external/litehook/src/litehook.c_CFLAGS += -Wno-error=unused-variable
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 ChoicyPrefs_LIBRARIES += roothide
 endif

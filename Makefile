@@ -7,6 +7,8 @@ TWEAK_NAME = Choicy
 
 Choicy_FILES = Tweak.c gen.c nextstep_plist.c $(wildcard external/litehook/src/*.c)
 Choicy_CFLAGS = -DTHEOS_LEAN_AND_MEAN -I./external/litehook/src -I./external/litehook/external/include
+# LiteHook's Mach return code can be unused in final builds.
+external/litehook/src/litehook.c_CFLAGS += -Wno-error=unused-variable
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
 Choicy_LIBRARIES += roothide
 endif
