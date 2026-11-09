@@ -27,9 +27,13 @@ def main():
         raise SystemExit(f"Expected exactly one fresh .deb; found {len(packages)}")
     package = packages[0]
     metadata = {key: output("dpkg-deb", "-f", str(package), key) for key in ("Package", "Version", "Architecture")}
-    expected = {"Package": "com.opa334.choicy", "Version": "1.5.5~b1", "Architecture": args.architecture}
+    expected = {"Package": "com.opa334.choicy", "Version": "1.5.5~b2", "Architecture": args.architecture}
     if metadata != expected:
         raise SystemExit(f"Unexpected package metadata: {metadata!r}; expected {expected!r}")
+    minimum_ios = "15.0"
+    dependencies = {dependency.strip() for dependency in output("dpkg-deb", "-f", str(package), "Depends").split(",")}
+    if f"firmware (>= {minimum_ios})" not in dependencies:
+        raise SystemExit(f"Missing firmware requirement for iOS {minimum_ios}: {dependencies!r}")
 
     review = Path(".ci")
     review.mkdir(exist_ok=True)
@@ -64,18 +68,20 @@ def main():
             alternate = relative if prefix else "var/jb/" + relative
             if alternate in members:
                 raise SystemExit(f"Unexpected payload for another package scheme: /{alternate}")
-        if args.label == "Roothide":
-            # Native RootHide stages at /Library (no /var/jb prefix) and links
-            # its bootstrap through .jbroot. Inspect the actual packaged images.
-            for relative in (required[0], required[2], required[4]):
-                image = review / (Path(relative).name.strip() + ".verify")
-                image.write_bytes(archive.extractfile(members[relative]).read())
-                try:
+        for relative in (required[0], required[2], required[4]):
+            image = review / (Path(relative).name.strip() + ".verify")
+            image.write_bytes(archive.extractfile(members[prefix + relative]).read())
+            try:
+                slices = set(output("lipo", "-archs", str(image)).split())
+                if slices != {"arm64", "arm64e"}:
+                    raise SystemExit(f"Unexpected Mach-O architectures in {relative}: {sorted(slices)!r}")
+                if args.label == "Roothide":
+                    # Native RootHide stages at /Library and links via .jbroot.
                     dependencies = output("otool", "-L", str(image))
                     if ".jbroot/" not in dependencies or "libroothide.dylib" not in dependencies:
                         raise SystemExit(f"Missing native RootHide linkage in {relative}:\n{dependencies}")
-                finally:
-                    image.unlink()
+            finally:
+                image.unlink()
 
     artifacts = Path("artifacts")
     artifacts.mkdir(exist_ok=True)
