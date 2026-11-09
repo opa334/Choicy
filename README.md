@@ -8,8 +8,8 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 - Configure each tweak dylib individually for every process
 - Disable tweaks globally (with the ability to set exceptions for individual processes)
 - Option for an application shortcut to launch the application with or without tweaks once
-- **NEW** Option for an application shortcut to launch injection settings for that app.
-- **NEW** Option to add grey dot to app icons that have custom / blocked injection. 
+- **NEW** - Option for an application shortcut to launch injection settings for that app.
+- **NEW** - Option to add grey dot to app icons that have custom / blocked injection. 
 
 ## Install Choicy on iOS 15+
 
