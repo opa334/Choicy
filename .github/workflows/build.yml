@@ -1,0 +1,222 @@
+name: Build Choicy packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode11_archive_url:
+        description: 'HTTPS tar archive containing one complete Xcode 11.7 .xctoolchain directory (Rootful only)'
+        required: true
+        type: string
+      xcode11_archive_sha256:
+        description: 'SHA-256 of the Xcode 11.7 toolchain archive (64 hexadecimal characters)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.label }}
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Rootless
+            scheme: rootless
+            theos_repository: theos/theos
+            theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
+            sdk: '16.5'
+            sdk_sha256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
+            deployment: '15.0'
+            archs: arm64 arm64e
+            package_arch: iphoneos-arm64
+          - label: Roothide
+            scheme: roothide
+            theos_repository: roothide/theos
+            theos_ref: 958fea4f779943505b15b93c88bb4db8d97b346d
+            sdk: '16.5'
+            sdk_sha256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
+            deployment: '15.0'
+            archs: arm64 arm64e
+            package_arch: iphoneos-arm64e
+          - label: Rootful
+            scheme: ''
+            theos_repository: theos/theos
+            theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
+            sdk: '13.7'
+            sdk_sha256: 661d1a8c518025f084d8c1e70dd8767581fb5730fb5950378f0915d840a7b5c3
+            deployment: '8.0'
+            archs: armv7 arm64 arm64e
+            package_arch: iphoneos-arm
+    env:
+      THEOS: ${{ github.workspace }}/.ci/theos
+      THEOS_PACKAGE_SCHEME: ${{ matrix.scheme }}
+      BUILD_LABEL: ${{ matrix.label }}
+      BUILD_SDK: ${{ matrix.sdk }}
+      BUILD_TARGET: iphone:clang:${{ matrix.sdk }}:${{ matrix.deployment }}
+      BUILD_ARCHS: ${{ matrix.archs }}
+      PACKAGE_ARCH: ${{ matrix.package_arch }}
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Choicy and its source dependencies
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check out the pinned scheme toolchain
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ matrix.theos_repository }}
+          ref: ${{ matrix.theos_ref }}
+          path: .ci/theos
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check out AltList development sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: opa334/AltList
+          ref: 9db09f92eff0404ae7fa9c2fe6c25ba13d5e02d7 # 1.0.11
+          path: .ci/AltList
+          persist-credentials: false
+
+      - name: Provision packaging tools, signing tool, and patched SDK
+        env:
+          SDK_SHA256: ${{ matrix.sdk_sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          brew install make dpkg xz zstd
+          mkdir -p .ci/bin .ci/downloads "$THEOS/sdks"
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$GITHUB_WORKSPACE/.ci/bin" >> "$GITHUB_PATH"
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
+            https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_macosx_x86_64 \
+            --output .ci/bin/ldid
+          echo '9d46e0feedf96e399edfca09872802ba21e729f79c01927ad25ea2b0a35bca23  .ci/bin/ldid' | shasum -a 256 -c -
+          chmod +x .ci/bin/ldid
+          sdk_archive=".ci/downloads/iPhoneOS${BUILD_SDK}.sdk.tar.xz"
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS${BUILD_SDK}.sdk.tar.xz" \
+            --output "$sdk_archive"
+          echo "$SDK_SHA256  $sdk_archive" | shasum -a 256 -c -
+          tar -xf "$sdk_archive" -C "$THEOS/sdks"
+
+      - name: Provision and verify the Xcode 11 compiler for Rootful
+        if: matrix.label == 'Rootful'
+        env:
+          XCODE11_ARCHIVE_URL: ${{ inputs.xcode11_archive_url }}
+          XCODE11_ARCHIVE_SHA256: ${{ inputs.xcode11_archive_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$XCODE11_ARCHIVE_URL" == https://* ]]
+          [[ "$XCODE11_ARCHIVE_SHA256" =~ ^[[:xdigit:]]{64}$ ]]
+          archive="$GITHUB_WORKSPACE/.ci/downloads/xcode11-toolchain.tar"
+          unpacked="$GITHUB_WORKSPACE/.ci/xcode11-unpacked"
+          mkdir -p "$unpacked" "$THEOS/toolchain"
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
+            "$XCODE11_ARCHIVE_URL" --output "$archive"
+          echo "$XCODE11_ARCHIVE_SHA256  $archive" | shasum -a 256 -c -
+          tar -xf "$archive" -C "$unpacked"
+          toolchains=()
+          while IFS= read -r -d '' candidate; do
+            toolchains+=("$candidate")
+          done < <(find "$unpacked" -type d -name '*.xctoolchain' -prune -print0)
+          test "${#toolchains[@]}" -eq 1
+          mv "${toolchains[0]}" "$THEOS/toolchain/Xcode11.xctoolchain"
+          compiler_prefix="$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/"
+          for tool in clang clang++ ld strip; do test -x "${compiler_prefix}${tool}"; done
+          test -s "$THEOS/toolchain/Xcode11.xctoolchain/usr/lib/arc/libarclite_iphoneos.a"
+          "${compiler_prefix}clang" --version | tee .ci/xcode11-version.txt
+          grep -Eq 'Apple clang version 11\.' .ci/xcode11-version.txt
+          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
+
+      - name: Select the modern compiler
+        if: matrix.label != 'Rootful'
+        run: |
+          set -euo pipefail
+          compiler_prefix="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/"
+          test -x "${compiler_prefix}clang"
+          "${compiler_prefix}clang" --version
+          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
+
+      - name: Verify source, SDK, and scheme development files
+        run: |
+          set -euo pipefail
+          test -s external/litehook/src/litehook.h
+          test -s external/ChOma/src/MachO.h
+          test -s external/ChOma/src/Fat.h
+          test -s external/ChOma/src/Host.h
+          test -n "$(find external/litehook/src -name '*.c' -print -quit)"
+          test -n "$(find external/ChOma/src -name '*.c' -print -quit)"
+          test -s "$THEOS/vendor/include/Preferences/PSListController.h"
+          test -s "$THEOS/vendor/include/libroot/libroot.h"
+          test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/Frameworks/UIKit.framework"
+          test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/PrivateFrameworks/Preferences.framework"
+          test -x "${PREFIX}clang"
+          command -v ldid
+          command -v dpkg-deb
+          command -v make
+          case "$THEOS_PACKAGE_SCHEME" in
+            rootless)
+              test -s "$THEOS/vendor/lib/iphone/rootless/libroot.a"
+              ;;
+            roothide)
+              test -s "$THEOS/vendor/include/roothide/roothide.h"
+              test -s "$THEOS/vendor/lib/iphone/roothide/libroothide.tbd"
+              test -f "$THEOS/vendor/mod/roothide/package/deb.mk"
+              ;;
+            '')
+              test -s "$THEOS/vendor/lib/libroot.a"
+              test -s "$THEOS/vendor/lib/libroot_oldabi.a"
+              test -x "$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/clang"
+              ;;
+          esac
+
+      - name: Build and install the matching AltList development framework
+        run: |
+          set -euo pipefail
+          make -C .ci/AltList FINALPACKAGE=1 TARGET="$BUILD_TARGET" ARCHS="$BUILD_ARCHS" THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME"
+          framework=.ci/AltList/.theos/obj/AltList.framework
+          test -s "$framework/AltList"
+          test -s "$framework/Headers/ATLApplicationListSubcontrollerController.h"
+          test -s "$framework/Headers/ATLApplicationListControllerBase.h"
+          destination="$THEOS/lib"
+          if [[ -n "$THEOS_PACKAGE_SCHEME" ]]; then destination="$destination/iphone/$THEOS_PACKAGE_SCHEME"; fi
+          mkdir -p "$destination"
+          cp -R "$framework" "$destination/AltList.framework"
+          otool -D "$destination/AltList.framework/AltList" | tee .ci/altlist-install-name.txt
+          if [[ "$THEOS_PACKAGE_SCHEME" == roothide ]]; then
+            grep -F '@loader_path/.jbroot/Library/Frameworks/AltList.framework/AltList' .ci/altlist-install-name.txt
+          fi
+
+      - name: Build one clean final package
+        run: |
+          set -euo pipefail
+          python3 -c 'from pathlib import Path; assert not list(Path("packages").glob("*.deb")), "Unexpected preexisting packages"'
+          make clean
+          make package FINALPACKAGE=1 TARGET="$BUILD_TARGET" ARCHS="$BUILD_ARCHS" THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME"
+
+      - name: Verify metadata and payload, then label the package
+        id: package
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify-package.py --label "$BUILD_LABEL" --architecture "$PACKAGE_ARCH"
+
+      - name: Upload ${{ matrix.label }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Choicy_${{ steps.package.outputs.version }}_${{ matrix.label }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          compression-level: 0
