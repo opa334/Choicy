@@ -23,6 +23,8 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 | GitHub Rootful | `>= 15.0` | `Choicy_1.5.5~b3_Rootful.deb` |
 | Local Legacy Rootful | `>= 10.0` | `Choicy_1.5.5~b3_Rootful_Legacy_iOS10.deb` |
 
+---
+
 ### Legacy Rootful on a prepared macOS host
 
 Select this profile explicitly when targeting older Rootful jailbreaks. The shared sources target iOS 10.0 on `armv7` and `arm64`, and iOS 12.0 on old-ABI `arm64e`.
