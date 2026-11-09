@@ -40,5 +40,5 @@ sh ./legacy_build.sh
 ```
 
 ## Credit
-- [oppa334 - Choicy](https://github.com/opa334/Choicy)
-- [EolnMsuk - ChoySee](https://github.com/EolnMsuk/ChoySee)
+- [oppa334 - Choicy](https://github.com/opa334/Choicy) - [Support oppa334](opa334.github.io/donate.html)
+- [EolnMsuk - ChoySee](https://github.com/EolnMsuk/ChoySee) - [Support EolnMsuk](https://venmo.com/u/RustOnRails/)
