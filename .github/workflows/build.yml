@@ -2,15 +2,6 @@ name: Build Choicy packages
 
 on:
   workflow_dispatch:
-    inputs:
-      xcode11_archive_url:
-        description: 'HTTPS download URL for Xcode_11.7.xip or a complete Xcode 11.7 .xctoolchain tar archive (Rootful only)'
-        required: true
-        type: string
-      xcode11_archive_sha256:
-        description: 'SHA-256 of the supplied .xip or tar archive (64 hexadecimal characters)'
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -28,36 +19,25 @@ jobs:
             scheme: rootless
             theos_repository: theos/theos
             theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
-            sdk: '16.5'
-            sdk_sha256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
-            deployment: '15.0'
-            archs: arm64 arm64e
             package_arch: iphoneos-arm64
           - label: Roothide
             scheme: roothide
             theos_repository: roothide/theos
             theos_ref: 958fea4f779943505b15b93c88bb4db8d97b346d
-            sdk: '16.5'
-            sdk_sha256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
-            deployment: '15.0'
-            archs: arm64 arm64e
             package_arch: iphoneos-arm64e
           - label: Rootful
             scheme: ''
             theos_repository: theos/theos
             theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
-            sdk: '13.7'
-            sdk_sha256: 661d1a8c518025f084d8c1e70dd8767581fb5730fb5950378f0915d840a7b5c3
-            deployment: '8.0'
-            archs: armv7 arm64 arm64e
             package_arch: iphoneos-arm
     env:
       THEOS: ${{ github.workspace }}/.ci/theos
       THEOS_PACKAGE_SCHEME: ${{ matrix.scheme }}
       BUILD_LABEL: ${{ matrix.label }}
-      BUILD_SDK: ${{ matrix.sdk }}
-      BUILD_TARGET: iphone:clang:${{ matrix.sdk }}:${{ matrix.deployment }}
-      BUILD_ARCHS: ${{ matrix.archs }}
+      BUILD_SDK: '16.5'
+      SDK_SHA256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
+      BUILD_TARGET: iphone:clang:16.5:15.0
+      BUILD_ARCHS: arm64 arm64e
       PACKAGE_ARCH: ${{ matrix.package_arch }}
       DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       HOMEBREW_NO_AUTO_UPDATE: '1'
@@ -88,14 +68,20 @@ jobs:
           path: .ci/AltList
           persist-credentials: false
 
-      - name: Provision packaging tools, signing tool, and patched SDK
-        env:
-          SDK_SHA256: ${{ matrix.sdk_sha256 }}
+      - name: Select the pre-installed Xcode compiler for every scheme
         run: |
           set -euo pipefail
           test "$(uname -m)" = x86_64
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
+          compiler_prefix="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/"
+          for tool in clang clang++ ld strip; do test -x "${compiler_prefix}${tool}"; done
+          "${compiler_prefix}clang" --version
+          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
+
+      - name: Provision packaging tools, signing tool, and patched SDK
+        run: |
+          set -euo pipefail
           brew install make dpkg xz zstd
           mkdir -p .ci/bin .ci/downloads "$THEOS/sdks"
           echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
@@ -111,58 +97,6 @@ jobs:
             --output "$sdk_archive"
           echo "$SDK_SHA256  $sdk_archive" | shasum -a 256 -c -
           tar -xf "$sdk_archive" -C "$THEOS/sdks"
-
-      - name: Provision and verify the Xcode 11 compiler for Rootful
-        if: matrix.label == 'Rootful'
-        env:
-          XCODE11_ARCHIVE_URL: ${{ inputs.xcode11_archive_url }}
-          XCODE11_ARCHIVE_SHA256: ${{ inputs.xcode11_archive_sha256 }}
-        run: |
-          set -euo pipefail
-          [[ "$XCODE11_ARCHIVE_URL" == https://* ]]
-          [[ "$XCODE11_ARCHIVE_SHA256" =~ ^[[:xdigit:]]{64}$ ]]
-          archive="$GITHUB_WORKSPACE/.ci/downloads/xcode11-archive"
-          unpacked="$GITHUB_WORKSPACE/.ci/xcode11-unpacked"
-          mkdir -p "$unpacked" "$THEOS/toolchain"
-          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
-            "$XCODE11_ARCHIVE_URL" --output "$archive"
-          echo "$XCODE11_ARCHIVE_SHA256  $archive" | shasum -a 256 -c -
-          if [[ "$(head -c 4 "$archive")" == 'xar!' ]]; then
-            # Apple distributes Xcode as a signed XAR/XIP. The hosted Mac can
-            # expand it; the owner does not need a Mac to prepare a tar archive.
-            mv "$archive" "${archive}.xip"
-            archive="${archive}.xip"
-            mkdir -p "$GITHUB_WORKSPACE/.ci/xip-tmp"
-            df -h "$GITHUB_WORKSPACE"
-            (cd "$unpacked" && TMPDIR="$GITHUB_WORKSPACE/.ci/xip-tmp" /usr/bin/xip --expand "$archive")
-          else
-            tar -xf "$archive" -C "$unpacked"
-          fi
-          toolchains=()
-          while IFS= read -r -d '' candidate; do
-            toolchains+=("$candidate")
-          done < <(find "$unpacked" -type d -name '*.xctoolchain' -prune -print0)
-          test "${#toolchains[@]}" -eq 1
-          mv "${toolchains[0]}" "$THEOS/toolchain/Xcode11.xctoolchain"
-          compiler_prefix="$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/"
-          for tool in clang clang++ ld strip; do test -x "${compiler_prefix}${tool}"; done
-          test -s "$THEOS/toolchain/Xcode11.xctoolchain/usr/lib/arc/libarclite_iphoneos.a"
-          "${compiler_prefix}clang" --version | tee .ci/xcode11-version.txt
-          grep -Eq 'Apple clang version 11\.' .ci/xcode11-version.txt
-          # Only the complete toolchain is needed after expansion. These paths
-          # are temporary downloads/extraction directories inside this checkout.
-          rm -f -- "$archive"
-          rm -rf -- "$unpacked" "$GITHUB_WORKSPACE/.ci/xip-tmp"
-          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
-
-      - name: Select the modern compiler
-        if: matrix.label != 'Rootful'
-        run: |
-          set -euo pipefail
-          compiler_prefix="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/"
-          test -x "${compiler_prefix}clang"
-          "${compiler_prefix}clang" --version
-          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
 
       - name: Verify source, SDK, and scheme development files
         run: |
@@ -192,8 +126,6 @@ jobs:
               ;;
             '')
               test -s "$THEOS/vendor/lib/libroot.a"
-              test -s "$THEOS/vendor/lib/libroot_oldabi.a"
-              test -x "$THEOS/toolchain/Xcode11.xctoolchain/usr/bin/clang"
               ;;
           esac
 
