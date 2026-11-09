@@ -30,16 +30,19 @@ extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSSt
 extern BOOL processPreferencesAreConfigured(NSDictionary *processPreferences);
 
 // This one-shot navigation request is separate from injection preferences.
-extern BOOL choicyWriteApplicationSettingsRequest(NSString *applicationID);
-extern NSDictionary *choicyPendingApplicationSettingsRequest(void);
+extern NSString *choicyStageApplicationSettingsRequest(NSString *applicationID);
+extern NSDictionary *choicyPendingApplicationSettingsRequest(BOOL readyOnly);
+extern BOOL choicyMarkApplicationSettingsRequestReady(NSString *requestID);
 extern BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID);
+extern BOOL choicyCancelApplicationSettingsRequest(NSString *requestID);
 
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
 #define kChoicyPrefsPlistPath JBROOT_PATH(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
-#define kChoicyOpenRequestPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicy.open-request.plist")
-#define kChoicyOpenRequestNotification CFSTR("com.opa334.choicy/OpenApplicationSettings")
+#define kChoicyOpenRequestPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicy.open-request-v2.plist")
+#define kChoicyOpenRequestNotification CFSTR("com.opa334.choicy/OpenApplicationSettingsV2")
+#define kChoicyOpenRequestLifetime 15.0
 #define kChoicyPreferencesDidReloadNotification @"ChoicyPreferencesDidReload"
 #define kChoicyPreferencesRootID @"ChoicyPrefs"
 #define kChoicyApplicationsSpecifierID @"Applications"

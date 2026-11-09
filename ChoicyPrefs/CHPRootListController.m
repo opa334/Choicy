@@ -24,6 +24,7 @@
 #import "CHPTweakList.h"
 #import <mach-o/dyld.h>
 #import "CHPPreferences.h"
+#import "CHPApplicationListSubcontrollerController.h"
 #import "CHPProcessConfigurationListController.h"
 #import "CoreServices.h"
 #import "../ChoicyPrefsMigrator.h"
@@ -173,8 +174,7 @@ static void choicyOpenRequestReceived(CFNotificationCenterRef center, void *obse
 {
 	if (self.choicyOpenScheduled) return;
 	self.choicyOpenScheduled = YES;
-	// Allow Settings' own URL traversal and any navigation transition to finish.
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+	dispatch_async(dispatch_get_main_queue(), ^{
 		self.choicyOpenScheduled = NO;
 		[self choicy_openPendingApplicationSettings];
 	});
@@ -183,59 +183,80 @@ static void choicyOpenRequestReceived(CFNotificationCenterRef center, void *obse
 - (void)choicy_openPendingApplicationSettings
 {
 	UINavigationController *navigation = self.navigationController;
+	NSArray<UIViewController *> *currentControllers = navigation.viewControllers;
+	NSUInteger rootIndex = [currentControllers indexOfObjectIdenticalTo:self];
 	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive
-		|| ![navigation.viewControllers containsObject:self] || !navigation.view.window) return;
-	NSDictionary *request = choicyPendingApplicationSettingsRequest();
+		|| rootIndex == NSNotFound || !navigation.viewIfLoaded.window) return;
+	NSDictionary *request = choicyPendingApplicationSettingsRequest(YES);
 	if (!request) return;
-	if (navigation.transitionCoordinator) {
-		__weak typeof(self) weakSelf = self;
-		[navigation.transitionCoordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
-			[weakSelf choicy_schedulePendingApplicationSettings];
-		}];
-		return;
-	}
-	for (UIViewController *controller in navigation.viewControllers) {
-		if (@available(iOS 11.0, *)) controller.navigationItem.searchController.active = NO;
-		if ([controller.presentedViewController isKindOfClass:[UISearchController class]]) {
-			((UISearchController *)controller.presentedViewController).active = NO;
-		}
-	}
-	if (navigation.presentedViewController) {
-		[navigation dismissViewControllerAnimated:NO completion:^{ [self choicy_schedulePendingApplicationSettings]; }];
-		return;
-	}
+
+	NSString *requestID = request[@"requestID"];
 	NSString *applicationID = request[@"applicationIdentifier"];
 	LSApplicationProxy *proxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
 	BOOL installed = proxy.bundleURL.isFileURL && [[NSFileManager defaultManager] fileExistsAtPath:proxy.bundleURL.path];
 	if (!installed) {
-		choicyConsumeApplicationSettingsRequest(request[@"requestID"]);
+		choicyCancelApplicationSettingsRequest(requestID);
 		return;
 	}
-	UIViewController *top = navigation.topViewController;
-	PSListController *detail = nil;
-	if ([top isKindOfClass:[CHPProcessConfigurationListController class]]
-		&& [applicationID isEqualToString:[[(PSListController *)top specifier] propertyForKey:@"applicationIdentifier"]]) {
-		detail = (PSListController *)top;
+
+	__weak typeof(self) weakSelf = self;
+	id<UIViewControllerTransitionCoordinator> transition = navigation.transitionCoordinator ?: navigation.topViewController.transitionCoordinator;
+	if ([transition animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+		[weakSelf choicy_schedulePendingApplicationSettings];
+	}]) {
+		return;
 	}
-	else {
-		PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:(proxy.localizedName ?: applicationID)
-			target:self set:nil get:@selector(previewStringForSpecifier:)
+
+	UIViewController *presenter = navigation.presentedViewController ? navigation : navigation.topViewController;
+	if (presenter.presentedViewController) {
+		[presenter dismissViewControllerAnimated:NO completion:^{ [weakSelf choicy_schedulePendingApplicationSettings]; }];
+		return;
+	}
+	if (@available(iOS 11.0, *)) {
+		navigation.topViewController.navigationItem.searchController.active = NO;
+	}
+
+	// Use a fresh Applications list so a previous search cannot filter out the target.
+	PSSpecifier *applicationsSpecifier = [self specifierForID:kChoicyApplicationsSpecifierID];
+	CHPApplicationListSubcontrollerController *applications = applicationsSpecifier ? [self controllerForSpecifier:applicationsSpecifier] : nil;
+	if (![applications isKindOfClass:[CHPApplicationListSubcontrollerController class]]) {
+		choicyCancelApplicationSettingsRequest(requestID);
+		NSLog(@"Choicy could not open its Applications list");
+		return;
+	}
+	PSSpecifier *appSpecifier = nil;
+	for (PSSpecifier *specifier in applications.specifiers) {
+		if ([applicationID isEqual:[specifier propertyForKey:@"applicationIdentifier"]]) {
+			appSpecifier = specifier;
+			break;
+		}
+	}
+	if (!appSpecifier) {
+		appSpecifier = [PSSpecifier preferenceSpecifierNamed:(proxy.localizedName ?: applicationID)
+			target:applications set:nil get:nil
 			detail:[CHPProcessConfigurationListController class] cell:PSLinkListCell edit:nil];
-		specifier.identifier = applicationID;
-		[specifier setProperty:applicationID forKey:@"applicationIdentifier"];
-		[specifier setProperty:@YES forKey:@"enabled"];
-		detail = [self controllerForSpecifier:specifier];
+		appSpecifier.identifier = applicationID;
+		[appSpecifier setProperty:applicationID forKey:@"applicationIdentifier"];
+		[appSpecifier setProperty:@YES forKey:@"enabled"];
 	}
-	if (!detail) return;
-	if (!choicyConsumeApplicationSettingsRequest(request[@"requestID"])) {
-		[self choicy_schedulePendingApplicationSettings];
+	CHPProcessConfigurationListController *detail = [applications controllerForSpecifier:appSpecifier];
+	if (![detail isKindOfClass:[CHPProcessConfigurationListController class]]
+		|| ![applicationID isEqual:[detail.specifier propertyForKey:@"applicationIdentifier"]]) {
+		choicyCancelApplicationSettingsRequest(requestID);
+		NSLog(@"Choicy could not open its settings for %@", applicationID);
 		return;
 	}
-	// Normalize the stack even for an already-open app, so URL traversal and
-	// repeated shortcuts cannot leave duplicate app controllers behind.
-	NSUInteger rootIndex = [navigation.viewControllers indexOfObject:self];
-	NSMutableArray *controllers = [[navigation.viewControllers subarrayWithRange:NSMakeRange(0, rootIndex + 1)] mutableCopy];
+
+	NSMutableArray *controllers = [[currentControllers subarrayWithRange:NSMakeRange(0, rootIndex + 1)] mutableCopy];
+	[controllers addObject:applications];
 	[controllers addObject:detail];
+	if (!choicyConsumeApplicationSettingsRequest(requestID)) {
+		NSDictionary *latest = choicyPendingApplicationSettingsRequest(YES);
+		if (latest && ![requestID isEqual:latest[@"requestID"]]) {
+			[self choicy_schedulePendingApplicationSettings];
+		}
+		return;
+	}
 	[navigation setViewControllers:controllers animated:NO];
 }
 
@@ -377,7 +398,7 @@ void presentNotLoadingFirstWarning(PSListController *plc, BOOL showDontShowAgain
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(choicy_applicationDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge void *)self, choicyOpenRequestReceived, kChoicyOpenRequestNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-	if (dylibsBeforeChoicy && !choicyPendingApplicationSettingsRequest()) {
+	if (dylibsBeforeChoicy && !choicyPendingApplicationSettingsRequest(NO)) {
 		presentNotLoadingFirstWarning(self, YES);
 	}
 }

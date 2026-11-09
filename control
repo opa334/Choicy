@@ -1,7 +1,7 @@
 Package: com.opa334.choicy
 Name: Choicy
 Depends: firmware (>= 15.0), mobilesubstrate, com.opa334.altlist (>=1.0.4), preferenceloader
-Version: 1.5.5~b1
+Version: 1.5.5~b2
 Architecture: iphoneos-arm
 Description: Advanced Tweak Configuration!
 Depiction: https://opa334.github.io/depic/Choicy/index.html

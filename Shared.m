@@ -101,8 +101,10 @@ BOOL processPreferencesAreConfigured(NSDictionary *processPreferences)
 		|| parseNumberBool(processPreferences[kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled], NO);
 }
 
-// Serialize the read/consume pair with SpringBoard's next write, so consuming an
-// older request cannot accidentally remove a newer app selection.
+static NSString *const kChoicyOpenRequestStaged = @"staged";
+static NSString *const kChoicyOpenRequestReady = @"ready";
+
+// SpringBoard and Settings use the same lock for every request-file change.
 static int choicyLockOpenRequest(void)
 {
 	NSString *directory = [kChoicyOpenRequestPath stringByDeletingLastPathComponent];
@@ -121,45 +123,93 @@ static void choicyUnlockOpenRequest(int descriptor)
 	close(descriptor);
 }
 
-BOOL choicyWriteApplicationSettingsRequest(NSString *applicationID)
+NSString *choicyStageApplicationSettingsRequest(NSString *applicationID)
 {
-	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length) return NO;
-	int descriptor = choicyLockOpenRequest();
-	if (descriptor < 0) return NO;
-	NSDictionary *request = @{@"applicationIdentifier": applicationID, @"requestID": [NSUUID UUID].UUIDString, @"createdAt": [NSDate date]};
-	BOOL written = [request writeToFile:kChoicyOpenRequestPath atomically:YES];
-	choicyUnlockOpenRequest(descriptor);
-	return written;
-}
-
-NSDictionary *choicyPendingApplicationSettingsRequest(void)
-{
+	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length) return nil;
 	int descriptor = choicyLockOpenRequest();
 	if (descriptor < 0) return nil;
+	NSString *requestID = [NSUUID UUID].UUIDString;
+	NSDictionary *request = @{
+		@"applicationIdentifier": applicationID,
+		@"requestID": requestID,
+		@"createdAt": [NSDate date],
+		@"state": kChoicyOpenRequestStaged
+	};
+	BOOL written = [request writeToFile:kChoicyOpenRequestPath atomically:YES];
+	if (!written) {
+		// This tap supersedes the previous selection even if staging fails.
+		[[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
+	}
+	choicyUnlockOpenRequest(descriptor);
+	return written ? requestID : nil;
+}
+
+// Read while the request lock is held.
+static NSDictionary *choicyReadValidOpenRequest(void)
+{
 	NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:kChoicyOpenRequestPath];
 	NSString *applicationID = request[@"applicationIdentifier"];
 	NSString *requestID = request[@"requestID"];
 	NSDate *createdAt = request[@"createdAt"];
-	BOOL valid = [applicationID isKindOfClass:[NSString class]] && applicationID.length
-		&& [requestID isKindOfClass:[NSString class]] && requestID.length
-		&& [createdAt isKindOfClass:[NSDate class]]
-		&& createdAt.timeIntervalSinceNow <= 0 && createdAt.timeIntervalSinceNow >= -60;
-	if (!valid) {
+	id state = request[@"state"];
+	if (![applicationID isKindOfClass:[NSString class]] || !applicationID.length
+		|| ![requestID isKindOfClass:[NSString class]] || ![[NSUUID alloc] initWithUUIDString:requestID]
+		|| ![createdAt isKindOfClass:[NSDate class]]
+		|| (![kChoicyOpenRequestStaged isEqual:state] && ![kChoicyOpenRequestReady isEqual:state])) return nil;
+
+	NSTimeInterval age = [[NSDate date] timeIntervalSinceDate:createdAt];
+	return age >= 0 && age < kChoicyOpenRequestLifetime ? request : nil;
+}
+
+NSDictionary *choicyPendingApplicationSettingsRequest(BOOL readyOnly)
+{
+	int descriptor = choicyLockOpenRequest();
+	if (descriptor < 0) return nil;
+	NSDictionary *request = choicyReadValidOpenRequest();
+	if (!request) {
 		[[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
-		request = nil;
 	}
 	choicyUnlockOpenRequest(descriptor);
+	if (readyOnly && ![kChoicyOpenRequestReady isEqual:request[@"state"]]) return nil;
 	return request;
 }
 
-BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID)
+BOOL choicyMarkApplicationSettingsRequestReady(NSString *requestID)
 {
 	if (!requestID.length) return NO;
 	int descriptor = choicyLockOpenRequest();
 	if (descriptor < 0) return NO;
-	NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:kChoicyOpenRequestPath];
-	BOOL matches = [requestID isEqual:request[@"requestID"]];
-	BOOL consumed = matches && [[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
+	NSDictionary *request = choicyReadValidOpenRequest();
+	BOOL written = NO;
+	if ([requestID isEqual:request[@"requestID"]] && [kChoicyOpenRequestStaged isEqual:request[@"state"]]) {
+		NSMutableDictionary *readyRequest = [request mutableCopy];
+		readyRequest[@"state"] = kChoicyOpenRequestReady;
+		written = [readyRequest writeToFile:kChoicyOpenRequestPath atomically:YES];
+	}
 	choicyUnlockOpenRequest(descriptor);
-	return consumed;
+	return written;
+}
+
+static BOOL choicyRemoveOpenRequest(NSString *requestID, BOOL readyOnly)
+{
+	if (!requestID.length) return NO;
+	int descriptor = choicyLockOpenRequest();
+	if (descriptor < 0) return NO;
+	// Cancellation can remove an expired request. Consumption requires a live, ready one.
+	NSDictionary *request = readyOnly ? choicyReadValidOpenRequest() : [NSDictionary dictionaryWithContentsOfFile:kChoicyOpenRequestPath];
+	BOOL matches = [requestID isEqual:request[@"requestID"]];
+	BOOL removed = matches && (!readyOnly || [kChoicyOpenRequestReady isEqual:request[@"state"]])
+		&& [[NSFileManager defaultManager] removeItemAtPath:kChoicyOpenRequestPath error:nil];
+	choicyUnlockOpenRequest(descriptor);
+	return removed;
+}
+
+BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID)
+{
+	return choicyRemoveOpenRequest(requestID, YES);
+}
+
+BOOL choicyCancelApplicationSettingsRequest(NSString *requestID)
+{
+	return choicyRemoveOpenRequest(requestID, NO);
 }
