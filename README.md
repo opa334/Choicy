@@ -38,3 +38,7 @@ LEGACY_SDKROOT=/absolute/path/to/prepared/theos/sdks/iPhoneOS13.7.sdk \
 GEN_CLANG=/absolute/path/to/musttail-capable/clang \
 sh ./legacy_build.sh
 ```
+
+## Credit
+- [oppa334 - Choicy](https://github.com/opa334/Choicy)
+- [EolnMsuk - ChoySee](https://github.com/EolnMsuk/ChoySee)
