@@ -14,7 +14,7 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 
 ## Install Choicy on iOS 15+
 
-1. Download the deb file matching your jailbreak environment from the [latest release](https://github.com/EolnMsuk/ChoySee/releases).
+1. Download the deb file matching your jailbreak environment from the [latest release](https://github.com/EolnMsuk/ChoySee/releases/latest).
 2. Open it with Sileo or Zebra and install.
 
 | Environment | Firmware dependency | Filename |
