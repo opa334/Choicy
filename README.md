@@ -2,6 +2,8 @@
 
 A forked (enhanced) version of [Choicy](https://github.com/opa334/Choicy), an advanced tweak configurator!
 
+<img width="4773" height="2589" alt="main" src="https://github.com/user-attachments/assets/7e69dd58-2ce9-4ff0-b353-156e4b6fdefe" />
+
 ## Features
 
 - Disable tweak injection individually for every process
