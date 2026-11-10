@@ -17,7 +17,7 @@ A forked (enhanced) version of Choicy, an advanced tweak configurator!
 1. Download the deb file matching your jailbreak environment from the [latest release](https://github.com/EolnMsuk/ChoySee/releases).
 2. Open it with Sileo or Zebra and install.
 
-| Verified output | Firmware dependency | Filename |
+| Environment | Firmware dependency | Filename |
 | --- | --- | --- |
 | GitHub Rootless | `>= 15.0` | `Choicy_1.5.5~b3_Rootless.deb` |
 | GitHub native Roothide | `>= 15.0` | `Choicy_1.5.5~b3_Roothide.deb` |
