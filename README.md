@@ -1,6 +1,6 @@
 # ChoySee
 
-A forked (enhanced) version of Choicy, an advanced tweak configurator!
+A forked (enhanced) version of [Choicy](https://github.com/opa334/Choicy), an advanced tweak configurator!
 
 ## Features
 
