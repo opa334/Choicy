@@ -24,7 +24,7 @@
 #import "CHPMachoParser.h"
 #import "../Shared.h"
 #import "../HBLogWeak.h"
-#import <libroot.h>
+#import "../ChoicyRoot.h"
 
 @implementation CHPTweakList
 
@@ -42,7 +42,7 @@
 + (NSArray *)possibleInjectionLibrariesPaths
 {
 	// /Library and /usr always gets converted to rootless paths on xina, so this workaround is neccessary
-	return @[[@"/" stringByAppendingString:@"Library/MobileSubstrate/DynamicLibraries"], [@"/" stringByAppendingString:@"usr/lib/TweakInject"], @"/var/jb/Library/MobileSubstrate/DynamicLibraries", @"/var/jb/usr/lib/TweakInject"];
+	return @[JBROOT_PATH_NSSTRING(@"/Library/MobileSubstrate/DynamicLibraries"), JBROOT_PATH_NSSTRING(@"/usr/lib/TweakInject"), [@"/" stringByAppendingString:@"Library/MobileSubstrate/DynamicLibraries"], [@"/" stringByAppendingString:@"usr/lib/TweakInject"], @"/var/jb/Library/MobileSubstrate/DynamicLibraries", @"/var/jb/usr/lib/TweakInject"];
 }
 
 + (NSString *)injectionLibrariesPath

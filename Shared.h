@@ -21,23 +21,39 @@
 #import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
 #import <HBLog.h>
-#import <libroot.h>
+#import "ChoicyRoot.h"
 
 extern NSBundle *CHBundle;
 extern NSString *localize(NSString *key);
 extern NSDictionary *processPreferencesForApplication(NSDictionary *preferences, NSString *applicationID);
 extern NSDictionary *processPreferencesForDaemon(NSDictionary *preferences, NSString *daemonDisplayName);
+extern BOOL processPreferencesAreConfigured(NSDictionary *processPreferences);
+
+// This one-shot navigation request is separate from injection preferences.
+extern NSString *choicyStageApplicationSettingsRequest(NSString *applicationID);
+extern NSDictionary *choicyPendingApplicationSettingsRequest(BOOL readyOnly);
+extern BOOL choicyMarkApplicationSettingsRequestReady(NSString *requestID);
+extern BOOL choicyConsumeApplicationSettingsRequest(NSString *requestID);
+extern BOOL choicyCancelApplicationSettingsRequest(NSString *requestID);
 
 extern BOOL parseNumberBool(id number, BOOL default_);
 extern NSInteger parseNumberInteger(id number, NSInteger default_);
 
 #define kChoicyPrefsPlistPath JBROOT_PATH(@"/var/mobile/Library/Preferences/com.opa334.choicyprefs.plist")
+#define kChoicyOpenRequestPath JBROOT_PATH_NSSTRING(@"/var/mobile/Library/Preferences/com.opa334.choicy.open-request-v2.plist")
+#define kChoicyOpenRequestNotification CFSTR("com.opa334.choicy/OpenApplicationSettingsV2")
+#define kChoicyOpenRequestLifetime 15.0
+#define kChoicyPreferencesDidReloadNotification @"ChoicyPreferencesDidReload"
+#define kChoicyPreferencesRootID @"ChoicyPrefs"
+#define kChoicyApplicationsSpecifierID @"Applications"
 #define kChoicyDylibName @"   Choicy"
 
 #define kChoicyPrefsKeyGlobalDeniedTweaks @"globalDeniedTweaks"
 #define kChoicyPrefsKeyAppSettings @"appSettings"
 #define kChoicyPrefsKeyDaemonSettings @"daemonSettings"
 #define kChoicyPrefsKeyAdditionalExecutables @"additionalExecutables"
+#define kChoicyPrefsKeyTagCustomAppsEnabled @"tagCustomAppsEnabled"
+#define kChoicyPrefsKeyOpenInChoicyOptionEnabled @"openInChoicyOptionEnabled"
 #define kChoicyProcessPrefsKeyTweakInjectionDisabled @"tweakInjectionDisabled"
 #define kChoicyProcessPrefsKeyCustomTweakConfigurationEnabled @"customTweakConfigurationEnabled"
 #define kChoicyProcessPrefsKeyAllowDenyMode @"allowDenyMode"

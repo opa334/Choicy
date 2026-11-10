@@ -19,7 +19,16 @@
 // SOFTWARE.
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "RunningBoard.h"
+
+@interface SBUserAgent : NSObject
+- (BOOL)openURL:(NSURL *)url allowUnlock:(BOOL)allowUnlock animated:(BOOL)animated;
+@end
+
+@interface SpringBoard : UIApplication
+- (SBUserAgent *)pluginUserAgent;
+@end
 
 @interface FBSystemService : NSObject
 + (id)sharedInstance;
@@ -43,6 +52,7 @@
 
 @interface SBApplication : NSObject
 - (SBApplicationInfo *)_appInfo;
+- (NSString *)bundleIdentifier;
 @end
 
 @interface SBSApplicationShortcutIcon : NSObject
@@ -62,11 +72,27 @@
 @property (nonatomic,copy) NSString *bundleIdentifierToLaunch;
 @end
 
-@interface SBIconView : NSObject
+@interface SBIcon : NSObject
+- (BOOL)isApplicationIcon;
+- (NSString *)applicationBundleID;
+- (NSString *)applicationBundleIdentifier;
+- (SBApplication *)application;
+@end
+
+@interface SBIconView : UIView
+- (SBIcon *)icon;
+- (UIView *)iconImageView;
+- (UIView *)_iconImageView;
 - (NSString *)applicationBundleIdentifier;
 - (NSString *)applicationBundleIdentifierForShortcuts;
+- (BOOL)isContextMenuInteractionActive;
+- (void)performAfterContextMenusDismissUsingBlock:(id)block;
 @end
 
 @interface SBUIAppIconForceTouchControllerDataProvider : NSObject
 - (NSString *)applicationBundleIdentifier;
+@end
+
+@interface SBUIAppIconForceTouchController : NSObject
+- (void)dismissAnimated:(BOOL)animated withCompletionHandler:(void (^)(void))completion;
 @end

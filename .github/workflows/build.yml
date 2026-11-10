@@ -1,0 +1,187 @@
+name: Build Choicy packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.label }}
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Rootless
+            scheme: rootless
+            theos_repository: theos/theos
+            theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
+            package_arch: iphoneos-arm64
+          - label: Roothide
+            scheme: roothide
+            theos_repository: roothide/theos
+            theos_ref: 958fea4f779943505b15b93c88bb4db8d97b346d
+            package_arch: iphoneos-arm64e
+          - label: Rootful
+            scheme: ''
+            theos_repository: theos/theos
+            theos_ref: 8167f59de02fd32cf45b16bfcb1330dfa5c9974c
+            package_arch: iphoneos-arm
+    env:
+      THEOS: ${{ github.workspace }}/.ci/theos
+      THEOS_PACKAGE_SCHEME: ${{ matrix.scheme }}
+      BUILD_LABEL: ${{ matrix.label }}
+      BUILD_SDK: '16.5'
+      SDK_SHA256: 5e0fd3f01266cce4ce012d4a99b38eb56578fca40d09edc81cd83dee958202fb
+      BUILD_TARGET: iphone:clang:16.5:15.0
+      BUILD_ARCHS: arm64 arm64e
+      PACKAGE_ARCH: ${{ matrix.package_arch }}
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out Choicy and its source dependencies
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check out the pinned scheme toolchain
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: ${{ matrix.theos_repository }}
+          ref: ${{ matrix.theos_ref }}
+          path: .ci/theos
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Check out AltList development sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: opa334/AltList
+          ref: 9db09f92eff0404ae7fa9c2fe6c25ba13d5e02d7 # 1.0.11
+          path: .ci/AltList
+          persist-credentials: false
+
+      - name: Check out pinned XPC development headers
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: theos/templates
+          ref: 7d98646871281e5b71e280e8f80d3fc27b69aeef # C XPC service headers
+          path: .ci/xpc-headers
+          sparse-checkout: ios/xpc_service/headers/xpc
+          persist-credentials: false
+
+      - name: Select the pre-installed Xcode compiler for every scheme
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          compiler_prefix="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin/"
+          for tool in clang clang++ ld strip; do test -x "${compiler_prefix}${tool}"; done
+          "${compiler_prefix}clang" --version
+          echo "PREFIX=$compiler_prefix" >> "$GITHUB_ENV"
+
+      - name: Provision packaging tools, signing tool, and patched SDK
+        run: |
+          set -euo pipefail
+          brew install make dpkg xz zstd ldid-procursus
+          brew list --versions make dpkg xz zstd ldid-procursus
+          test -x "$(brew --prefix ldid-procursus)/bin/ldid"
+          mkdir -p .ci/downloads "$THEOS/sdks"
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix ldid-procursus)/bin" >> "$GITHUB_PATH"
+          sdk_archive=".ci/downloads/iPhoneOS${BUILD_SDK}.sdk.tar.xz"
+          curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS${BUILD_SDK}.sdk.tar.xz" \
+            --output "$sdk_archive"
+          echo "$SDK_SHA256  $sdk_archive" | shasum -a 256 -c -
+          tar -xf "$sdk_archive" -C "$THEOS/sdks"
+
+      - name: Install XPC development headers
+        run: |
+          set -euo pipefail
+          source_headers=.ci/xpc-headers/ios/xpc_service/headers/xpc
+          mkdir -p "$THEOS/include/xpc"
+          for header in activity.h availability.h base.h connection.h debug.h endpoint.h xpc.h; do
+            test -s "$source_headers/$header"
+            cp "$source_headers/$header" "$THEOS/include/xpc/$header"
+          done
+
+      - name: Verify source, SDK, and scheme development files
+        run: |
+          set -euo pipefail
+          test -s external/litehook/src/litehook.h
+          test -s external/ChOma/src/MachO.h
+          test -s external/ChOma/src/Fat.h
+          test -s external/ChOma/src/Host.h
+          test -n "$(find external/litehook/src -name '*.c' -print -quit)"
+          test -n "$(find external/ChOma/src -name '*.c' -print -quit)"
+          test -s "$THEOS/vendor/include/Preferences/PSListController.h"
+          test -s "$THEOS/vendor/include/libroot/libroot.h"
+          test -s "$THEOS/include/xpc/xpc.h"
+          test -s "$THEOS/vendor/include/launch.h"
+          test -s "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/usr/include/bsm/audit.h"
+          test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/Frameworks/UIKit.framework"
+          test -d "$THEOS/sdks/iPhoneOS${BUILD_SDK}.sdk/System/Library/PrivateFrameworks/Preferences.framework"
+          test -x "${PREFIX}clang"
+          command -v ldid
+          command -v dpkg-deb
+          command -v make
+          case "$THEOS_PACKAGE_SCHEME" in
+            rootless)
+              test -s "$THEOS/vendor/lib/iphone/rootless/libroot.a"
+              ;;
+            roothide)
+              test -s "$THEOS/vendor/include/roothide/roothide.h"
+              test -s "$THEOS/vendor/lib/iphone/roothide/libroothide.tbd"
+              test -f "$THEOS/vendor/mod/roothide/package/deb.mk"
+              ;;
+            '')
+              test -s "$THEOS/vendor/lib/libroot.a"
+              ;;
+          esac
+
+      - name: Build and install the matching AltList development framework
+        run: |
+          set -euo pipefail
+          make -C .ci/AltList FINALPACKAGE=1 TARGET="$BUILD_TARGET" ARCHS="$BUILD_ARCHS" THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME"
+          framework=.ci/AltList/.theos/obj/AltList.framework
+          test -s "$framework/AltList"
+          test -s "$framework/Headers/ATLApplicationListSubcontrollerController.h"
+          test -s "$framework/Headers/ATLApplicationListControllerBase.h"
+          destination="$THEOS/lib"
+          if [[ -n "$THEOS_PACKAGE_SCHEME" ]]; then destination="$destination/iphone/$THEOS_PACKAGE_SCHEME"; fi
+          mkdir -p "$destination"
+          cp -R "$framework" "$destination/AltList.framework"
+          otool -D "$destination/AltList.framework/AltList" | tee .ci/altlist-install-name.txt
+          if [[ "$THEOS_PACKAGE_SCHEME" == roothide ]]; then
+            grep -F '@loader_path/.jbroot/Library/Frameworks/AltList.framework/AltList' .ci/altlist-install-name.txt
+          fi
+
+      - name: Build one clean final package
+        run: |
+          set -euo pipefail
+          python3 -c 'from pathlib import Path; assert not list(Path("packages").glob("*.deb")), "Unexpected preexisting packages"'
+          make clean
+          make package FINALPACKAGE=1 TARGET="$BUILD_TARGET" ARCHS="$BUILD_ARCHS" THEOS_PACKAGE_SCHEME="$THEOS_PACKAGE_SCHEME"
+
+      - name: Verify metadata and payload, then label the package
+        id: package
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify-package.py --label "$BUILD_LABEL" --architecture "$PACKAGE_ARCH"
+
+      - name: Upload ${{ matrix.label }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Choicy_${{ steps.package.outputs.version }}_${{ matrix.label }}
+          path: ${{ steps.package.outputs.path }}
+          if-no-files-found: error
+          compression-level: 0

@@ -24,7 +24,7 @@
 #import "CHPTweakList.h"
 #import "../Shared.h"
 #import "../HBLogWeak.h"
-#import <libroot.h>
+#import "../ChoicyRoot.h"
 
 #import <dirent.h>
 
@@ -260,11 +260,11 @@
 
 - (void)sendReloadToObservers
 {
-	for (id<CHPDaemonListObserver> observer in _observers){
-		dispatch_async(dispatch_get_main_queue(), ^ {
+	dispatch_async(dispatch_get_main_queue(), ^ {
+		for (id<CHPDaemonListObserver> observer in _observers) {
 			[observer daemonListDidUpdate:self];
-		});
-	}
+		}
+	});
 }
 
 - (NSString *)executablePathForDaemonName:(NSString *)daemonName

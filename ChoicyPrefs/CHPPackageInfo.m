@@ -20,7 +20,7 @@
 
 #import "CHPPackageInfo.h"
 #import "CHPTweakList.h"
-#import <libroot.h>
+#import "../ChoicyRoot.h"
 
 NSDictionary *g_packageNamesByIdentifier;
 NSArray *g_packageInfos;

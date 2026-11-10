@@ -24,8 +24,11 @@
 #import "CHPTweakList.h"
 #import <mach-o/dyld.h>
 #import "CHPPreferences.h"
+#import "CHPApplicationListSubcontrollerController.h"
+#import "CHPProcessConfigurationListController.h"
+#import "CoreServices.h"
 #import "../ChoicyPrefsMigrator.h"
-#import <libroot.h>
+#import "../ChoicyRoot.h"
 
 NSArray *dylibsBeforeChoicy;
 
@@ -35,12 +38,26 @@ NSDictionary *preferences;
 
 void choicy_reloadPreferences()
 {
-	preferences = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath];
+	if (![NSThread isMainThread]) {
+		dispatch_async(dispatch_get_main_queue(), ^{ choicy_reloadPreferences(); });
+		return;
+	}
+	NSDictionary *updated = [NSDictionary dictionaryWithContentsOfFile:kChoicyPrefsPlistPath] ?: @{};
+	BOOL changed = ![preferences isEqualToDictionary:updated];
+	preferences = updated;
+	if (changed) {
+		[[NSNotificationCenter defaultCenter] postNotificationName:kChoicyPreferencesDidReloadNotification object:nil];
+	}
+}
+
+static void choicyPreferencesChanged(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
+{
+	choicy_reloadPreferences();
 }
 
 NSMutableDictionary *preferencesForWriting()
 {
-	if (preferences) {
+	if (preferences.count) {
 		return preferences.mutableCopy;
 	}
 	else {
@@ -53,6 +70,7 @@ NSMutableDictionary *preferencesForWriting()
 void writePreferences(NSMutableDictionary *mutablePrefs)
 {
 	[mutablePrefs writeToFile:kChoicyPrefsPlistPath atomically:YES];
+	choicy_reloadPreferences();
 	[CHPListController sendChoicyPrefsPostNotification];
 }
 
@@ -117,7 +135,130 @@ NSString *getInjectionPlatform()
 	return injectionPlatform;
 }
 
+@interface PSListController (ChoicyNavigation)
+- (id)controllerForSpecifier:(PSSpecifier *)specifier;
+@end
+
+@interface CHPRootListController ()
+@property (nonatomic) BOOL choicyOpenScheduled;
+- (void)choicy_schedulePendingApplicationSettings;
+- (void)choicy_openPendingApplicationSettings;
+@end
+
+static void choicyOpenRequestReceived(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
+{
+	CHPRootListController *controller = (__bridge CHPRootListController *)observer;
+	dispatch_async(dispatch_get_main_queue(), ^{ [controller choicy_schedulePendingApplicationSettings]; });
+}
+
 @implementation CHPRootListController
+
+- (void)dealloc
+{
+	[[NSNotificationCenter defaultCenter] removeObserver:self];
+	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge void *)self, kChoicyOpenRequestNotification, NULL);
+}
+
+- (void)choicy_applicationDidBecomeActive:(NSNotification *)notification
+{
+	[self choicy_schedulePendingApplicationSettings];
+}
+
+- (void)viewDidAppear:(BOOL)animated
+{
+	[super viewDidAppear:animated];
+	[self choicy_schedulePendingApplicationSettings];
+}
+
+- (void)choicy_schedulePendingApplicationSettings
+{
+	if (self.choicyOpenScheduled) return;
+	self.choicyOpenScheduled = YES;
+	dispatch_async(dispatch_get_main_queue(), ^{
+		self.choicyOpenScheduled = NO;
+		[self choicy_openPendingApplicationSettings];
+	});
+}
+
+- (void)choicy_openPendingApplicationSettings
+{
+	UINavigationController *navigation = self.navigationController;
+	NSArray<UIViewController *> *currentControllers = navigation.viewControllers;
+	NSUInteger rootIndex = [currentControllers indexOfObjectIdenticalTo:self];
+	if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive
+		|| rootIndex == NSNotFound || !navigation.viewIfLoaded.window) return;
+	NSDictionary *request = choicyPendingApplicationSettingsRequest(YES);
+	if (!request) return;
+
+	NSString *requestID = request[@"requestID"];
+	NSString *applicationID = request[@"applicationIdentifier"];
+	LSApplicationProxy *proxy = [LSApplicationProxy applicationProxyForIdentifier:applicationID];
+	BOOL installed = proxy.bundleURL.isFileURL && [[NSFileManager defaultManager] fileExistsAtPath:proxy.bundleURL.path];
+	if (!installed) {
+		choicyCancelApplicationSettingsRequest(requestID);
+		return;
+	}
+
+	__weak typeof(self) weakSelf = self;
+	id<UIViewControllerTransitionCoordinator> transition = navigation.transitionCoordinator ?: navigation.topViewController.transitionCoordinator;
+	if ([transition animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+		[weakSelf choicy_schedulePendingApplicationSettings];
+	}]) {
+		return;
+	}
+
+	UIViewController *presenter = navigation.presentedViewController ? navigation : navigation.topViewController;
+	if (presenter.presentedViewController) {
+		[presenter dismissViewControllerAnimated:NO completion:^{ [weakSelf choicy_schedulePendingApplicationSettings]; }];
+		return;
+	}
+	if (@available(iOS 11.0, *)) {
+		navigation.topViewController.navigationItem.searchController.active = NO;
+	}
+
+	// Use a fresh Applications list so a previous search cannot filter out the target.
+	PSSpecifier *applicationsSpecifier = [self specifierForID:kChoicyApplicationsSpecifierID];
+	CHPApplicationListSubcontrollerController *applications = applicationsSpecifier ? [self controllerForSpecifier:applicationsSpecifier] : nil;
+	if (![applications isKindOfClass:[CHPApplicationListSubcontrollerController class]]) {
+		choicyCancelApplicationSettingsRequest(requestID);
+		NSLog(@"Choicy could not open its Applications list");
+		return;
+	}
+	PSSpecifier *appSpecifier = nil;
+	for (PSSpecifier *specifier in applications.specifiers) {
+		if ([applicationID isEqual:[specifier propertyForKey:@"applicationIdentifier"]]) {
+			appSpecifier = specifier;
+			break;
+		}
+	}
+	if (!appSpecifier) {
+		appSpecifier = [PSSpecifier preferenceSpecifierNamed:(proxy.localizedName ?: applicationID)
+			target:applications set:nil get:nil
+			detail:[CHPProcessConfigurationListController class] cell:PSLinkListCell edit:nil];
+		appSpecifier.identifier = applicationID;
+		[appSpecifier setProperty:applicationID forKey:@"applicationIdentifier"];
+		[appSpecifier setProperty:@YES forKey:@"enabled"];
+	}
+	CHPProcessConfigurationListController *detail = [applications controllerForSpecifier:appSpecifier];
+	if (![detail isKindOfClass:[CHPProcessConfigurationListController class]]
+		|| ![applicationID isEqual:[detail.specifier propertyForKey:@"applicationIdentifier"]]) {
+		choicyCancelApplicationSettingsRequest(requestID);
+		NSLog(@"Choicy could not open its settings for %@", applicationID);
+		return;
+	}
+
+	NSMutableArray *controllers = [[currentControllers subarrayWithRange:NSMakeRange(0, rootIndex + 1)] mutableCopy];
+	[controllers addObject:applications];
+	[controllers addObject:detail];
+	if (!choicyConsumeApplicationSettingsRequest(requestID)) {
+		NSDictionary *latest = choicyPendingApplicationSettingsRequest(YES);
+		if (latest && ![requestID isEqual:latest[@"requestID"]]) {
+			[self choicy_schedulePendingApplicationSettings];
+		}
+		return;
+	}
+	[navigation setViewControllers:controllers animated:NO];
+}
 
 - (NSString *)title
 {
@@ -181,7 +322,14 @@ NSString *getInjectionPlatform()
 	UIAlertController *resetPreferencesAlert = [UIAlertController alertControllerWithTitle:localize(@"RESET_PREFERENCES") message:localize(@"RESET_PREFERENCES_MESSAGE") preferredStyle:UIAlertControllerStyleAlert];
 
 	UIAlertAction *continueAction = [UIAlertAction actionWithTitle:localize(@"CONTINUE") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-		[[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:nil];
+		NSError *error = nil;
+		if (![[NSFileManager defaultManager] removeItemAtPath:kChoicyPrefsPlistPath error:&error]
+			&& !([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == NSFileNoSuchFileError)) {
+			NSLog(@"Choicy could not reset preferences: %@", error);
+			return;
+		}
+		choicy_reloadPreferences();
+		[self reloadSpecifiers];
 		[[self class] sendChoicyPrefsPostNotification];
 	}];
 
@@ -254,8 +402,10 @@ void presentNotLoadingFirstWarning(PSListController *plc, BOOL showDontShowAgain
 - (void)viewDidLoad
 {
 	[super viewDidLoad];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(choicy_applicationDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge void *)self, choicyOpenRequestReceived, kChoicyOpenRequestNotification, NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 
-	if (dylibsBeforeChoicy) {
+	if (dylibsBeforeChoicy && !choicyPendingApplicationSettingsRequest(NO)) {
 		presentNotLoadingFirstWarning(self, YES);
 	}
 }
@@ -319,6 +469,6 @@ __attribute__((constructor))
 static void init(void)
 {
 	choicy_reloadPreferences();
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)choicy_reloadPreferences, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, choicyPreferencesChanged, CFSTR("com.opa334.choicyprefs/ReloadPrefs"), NULL, CFNotificationSuspensionBehaviorDeliverImmediately);
 	determineLoadingOrder();
 }
