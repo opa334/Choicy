@@ -21,8 +21,6 @@ The modern workflow uses SDK 16.5 and Xcode 16.4. The Legacy Rootful profile use
 | Rootful | `>= 15.0` | `arm64 arm64e` | `iphoneos-arm` | `Choicy_1.5.5~b3_Rootful.deb` |
 | Legacy Rootful | `>= 10.0` | `armv7 arm64 arm64e` with old arm64e ABI and iOS 12.0 floor on that slice | `iphoneos-arm` | `Choicy_1.5.5~b3_Rootful_Legacy_iOS10.deb` |
 
-Local validation covers source and metadata. Toolchain and dependency compatibility, actual packages, CI runs, and device behavior remain owner acceptance steps. The source directories for LiteHook and ChOma are empty, and the snapshot lacks Git metadata to establish their revisions or revision changes. [Validation and owner handoff](IMPLEMENTATION_NOTES.md)
-
 ## File inventory
 
 ### Added
