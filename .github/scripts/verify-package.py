@@ -27,7 +27,7 @@ def main():
         raise SystemExit(f"Expected exactly one fresh .deb; found {len(packages)}")
     package = packages[0]
     metadata = {key: output("dpkg-deb", "-f", str(package), key) for key in ("Package", "Version", "Architecture")}
-    expected = {"Package": "com.opa334.choicy", "Version": "1.5.5~b2", "Architecture": args.architecture}
+    expected = {"Package": "com.opa334.choicy", "Version": "1.5.5~b3", "Architecture": args.architecture}
     if metadata != expected:
         raise SystemExit(f"Unexpected package metadata: {metadata!r}; expected {expected!r}")
     minimum_ios = "15.0"
