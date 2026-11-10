@@ -8,7 +8,7 @@
 - The Home Screen menu preserves the order of existing app and system shortcuts and adds one copy of each applicable Choicy entry. Open in Choicy precedes the applicable one-time launch shortcut when enabled. Its navigation waits for menu dismissal, handles cold and warm Settings, and builds the Back path through Applications and Choicy. A newer tap supersedes earlier requests, and one-use requests expire.
 - Preference and list updates use the main thread where needed, with safer observer cleanup and handling of missing app or daemon dictionaries. The new labels and footer text are in English and use the existing localization fallback.
 - The modern workflow builds and labels Rootless, native Roothide, and Rootful packages for iOS 15+. Native Roothide uses its own path and linkage support. Compared with the v1.5.4 build target, modern Rootful starts at iOS 15.0 and ships 64-bit slices.
-- The separate opt-in Legacy Rootful command targets iOS 10.0 with `armv7` and `arm64`, plus old-ABI `arm64e` from iOS 12.0. Its package has its own filename and firmware dependency. The 32-bit pointer scan now visits every slot in the table. Use the modern packages for iOS 15+. The v1.5.4 iOS 8.0 build target is outside b3's scope.
+- The separate opt-in Legacy Rootful command targets iOS 10.0 with `armv7` and `arm64`, plus old-ABI `arm64e` from iOS 12.0. Its package has its own filename and firmware dependency. The 32-bit pointer scan now visits every slot in the table. Use the modern packages for iOS 15+.
 
 ## Expected b3 packages
 
