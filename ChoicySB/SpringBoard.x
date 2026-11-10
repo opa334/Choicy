@@ -61,7 +61,7 @@ static void choicyUpdateIconTag(SBIconView *view)
 	UIView *tag = objc_getAssociatedObject(view, &choicyIconTagKey);
 	NSString *applicationID = choicyApplicationIDForIconView(view);
 	BOOL show = view.window && applicationID.length
-		&& parseNumberBool(preferences[kChoicyPrefsKeyTagCustomAppsEnabled], NO)
+		&& parseNumberBool(preferences[kChoicyPrefsKeyTagCustomAppsEnabled], YES)
 		&& processPreferencesAreConfigured(processPreferencesForApplication(preferences, applicationID));
 	UIView *imageView = nil;
 	if (show && [view respondsToSelector:@selector(iconImageView)]) imageView = [view iconImageView];
@@ -164,22 +164,8 @@ static dispatch_block_t choicyPrepareApplicationSettingsActivation(SBSApplicatio
 
 BOOL choicy_shouldShow3DTouchOptionForDisableTweakInjectionState(BOOL disableTweakInjectionState)
 {
-	BOOL shouldShow = NO;
-
-	if (disableTweakInjectionState) {
-		shouldShow = ((NSNumber *)[preferences objectForKey:@"launchWithTweaksOptionEnabled"]).boolValue;
-	}
-	else {
-		NSNumber *shouldShowNumber = [preferences objectForKey:@"launchWithoutTweaksOptionEnabled"];
-		if (shouldShowNumber) {
-			shouldShow = shouldShowNumber.boolValue; 
-		}
-		else {
-			shouldShow = YES;
-		}
-	}
-
-	return shouldShow;
+	NSString *key = disableTweakInjectionState ? @"launchWithTweaksOptionEnabled" : @"launchWithoutTweaksOptionEnabled";
+	return parseNumberBool(preferences[key], NO);
 }
 
 static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, BOOL modern)
@@ -189,7 +175,7 @@ static NSArray *choicyShortcutItems(NSArray *original, NSString *applicationID, 
 		if (![item.type isEqualToString:kChoicyLaunchShortcutType] && ![item.type isEqualToString:kChoicyOpenShortcutType]) [items addObject:item];
 	}
 	if (!applicationID.length) return items;
-	if (parseNumberBool(preferences[kChoicyPrefsKeyOpenInChoicyOptionEnabled], NO)) {
+	if (parseNumberBool(preferences[kChoicyPrefsKeyOpenInChoicyOptionEnabled], YES)) {
 		SBSApplicationShortcutItem *open = [[NSClassFromString(@"SBSApplicationShortcutItem") alloc] init];
 		open.type = kChoicyOpenShortcutType;
 		open.localizedTitle = localize(@"OPEN_IN_CHOICY");
